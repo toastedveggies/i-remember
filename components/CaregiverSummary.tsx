@@ -1,3 +1,5 @@
+import MemoryIcon from "@/components/MemoryIcon";
+
 type CaregiverSummaryProps = {
   personName: string;
   lastCheckIn: string;
@@ -7,9 +9,12 @@ type CaregiverSummaryProps = {
 
 export default function CaregiverSummary({ personName, lastCheckIn, status, todaysEvents }: CaregiverSummaryProps) {
   return (
-    <section className="rounded-2xl border border-calm-border bg-calm-card p-4 shadow-sm">
-      <h2 className="text-base font-semibold text-calm-text">Caregiver Snapshot</h2>
-      <dl className="mt-3 space-y-2 text-sm text-calm-text">
+    <section className="rounded-3xl border border-brand-border bg-brand-surface p-5 shadow-sm">
+      <h2 className="flex items-center gap-2 text-xl font-semibold text-brand-text">
+        <MemoryIcon name="shield" className="h-7 w-7 text-brand-primary" />
+        Caregiver Snapshot
+      </h2>
+      <dl className="mt-3 space-y-2 text-base text-brand-text">
         <div className="flex items-center justify-between gap-3">
           <dt>Name</dt>
           <dd className="font-medium">{personName}</dd>
@@ -23,7 +28,12 @@ export default function CaregiverSummary({ personName, lastCheckIn, status, toda
           <dd className="font-medium">{todaysEvents}</dd>
         </div>
       </dl>
-      <p className="mt-3 rounded-lg bg-green-50 p-3 text-sm text-calm-text">{status}</p>
+      <p className="mt-3 rounded-2xl bg-brand-support p-4 text-base text-brand-text">
+        <span aria-hidden="true" className="mr-2 inline-flex text-brand-primary">
+          ✓
+        </span>
+        {status}
+      </p>
     </section>
   );
 }

@@ -10,18 +10,21 @@ type ScenarioSelectorProps = {
 
 export default function ScenarioSelector({ scenarios }: ScenarioSelectorProps) {
   return (
-    <section className="rounded-2xl border border-calm-border bg-calm-card p-4 shadow-sm">
-      <h2 className="text-base font-semibold text-calm-text">Scenario Demo Simulator</h2>
+    <section className="rounded-3xl border border-brand-border bg-brand-surface p-5 shadow-sm">
+      <h2 className="text-xl font-semibold text-brand-text">Scenario Demo Simulator</h2>
       <div className="mt-3 space-y-3">
         {scenarios.map((scenario) => (
-          <article key={scenario.id} className="rounded-xl border border-calm-border p-3">
-            <h3 className="text-sm font-semibold text-calm-text">{scenario.label}</h3>
-            <p className="mt-1 text-sm text-calm-text">{scenario.guidance}</p>
+          <article key={scenario.id} className="rounded-2xl border border-brand-border bg-brand-bg p-4">
+            <h3 className="text-base font-semibold text-brand-text">{scenario.label}</h3>
+            <p className="mt-1 text-base text-brand-muted">{scenario.guidance}</p>
             <button
               type="button"
-              className="mt-3 min-h-11 rounded-lg bg-calm-accent px-4 py-2 text-sm font-medium text-white"
+              className="mt-3 min-h-14 w-full rounded-2xl bg-brand-primary px-4 py-3 text-base font-semibold text-white focus:outline-none focus:ring-2 focus:ring-brand-compass"
             >
-              Preview Scenario
+              <span aria-hidden="true" className="mr-2">
+                →
+              </span>
+              Preview
             </button>
           </article>
         ))}

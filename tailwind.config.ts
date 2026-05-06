@@ -5,13 +5,27 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        brand: {
+          bg: "#F8F4EE",
+          surface: "#FFFDF9",
+          text: "#1F2529",
+          muted: "#4B5560",
+          primary: "#355B5A",
+          compass: "#A44A3F",
+          highlight: "#D8A35D",
+          support: "#E8EFE8",
+          border: "#D9D6D0"
+        },
+        // Back-compat tokens (existing class names used during earlier prototype passes).
         calm: {
-          bg: "#f5f8fb",
-          card: "#ffffff",
-          text: "#1f2937",
-          muted: "#6b7280",
-          border: "#dbe3ec",
-          accent: "#2563eb"
+          bg: "#F8F4EE",
+          card: "#FFFDF9",
+          text: "#1F2529",
+          muted: "#4B5560",
+          border: "#D9D6D0",
+          accent: "#355B5A",
+          accentSoft: "#D8A35D",
+          support: "#E8EFE8"
         }
       }
     }

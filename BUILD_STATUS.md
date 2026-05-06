@@ -25,6 +25,21 @@
   - `CaregiverSummary`
   - `EventLogList`
 - Added shared static demo data source in `data/demoData.ts`
+- Implemented Phase 1 brand + UI design system (static only):
+  - warm grounded palette (rust/amber feeling) with calm, non-emergency emphasis
+  - branded header with `MA` compass-dot placeholder logo + wordmark
+  - icon library + consistent icon-with-label hierarchy
+  - responsive layout improvements (single-column mobile, 2-column tablet where appropriate)
+  - refined Today screen:
+    - main actions separated from support actions
+    - “Call caregiver” separated from “Show helper card”
+  - added “Show Helper Card” modal pattern (no backend, static content)
+- Phase 1 UI refinements (calm + less repetition + better grid clarity):
+  - removed repeated per-question ✓ symbols from `CheckInCard`
+  - added a left accent border to check-in question buttons instead
+  - added vertical `md:divide-x` separators between grid sides in:
+    - `Today` main/support action grids
+    - `CaregiverDashboard` grid
 
 ## Active / Next Task
 
@@ -45,6 +60,7 @@
 - Supabase not configured yet (intentional)
 - OpenAI not configured yet (intentional)
 - Vercel project not connected yet (intentional)
+- Phone number links and demo text are placeholders (replace later when real contact/routing is defined)
 
 ## Changed Files
 
@@ -67,6 +83,12 @@
 - `app/app/page.tsx`
 - `app/caregiver/page.tsx`
 - `app/demo/page.tsx`
+- `components/MemoryIcon.tsx`
+- `components/BrandLogo.tsx`
+- `components/SiteHeader.tsx`
+- `components/ActionCard.tsx`
+- `components/SupportActionCard.tsx`
+- `components/HelperModal.tsx`
 - `components/TodayCard.tsx`
 - `components/ResponseCard.tsx`
 - `components/CheckInCard.tsx`
@@ -102,4 +124,4 @@
 
 ## Last Updated
 
-2026-05-05 22:32 (UTC-7)
+2026-05-06 00:05 (UTC-7)
