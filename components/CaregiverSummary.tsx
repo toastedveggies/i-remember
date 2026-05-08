@@ -1,4 +1,4 @@
-import MemoryIcon from "@/components/MemoryIcon";
+﻿import MemoryIcon from "@/components/MemoryIcon";
 
 type CaregiverSummaryProps = {
   personName: string;
@@ -30,7 +30,7 @@ export default function CaregiverSummary({ personName, lastCheckIn, status, toda
       </dl>
       <p className="mt-3 rounded-2xl bg-brand-support p-4 text-base text-brand-text">
         <span aria-hidden="true" className="mr-2 inline-flex text-brand-primary">
-          ✓
+          OK
         </span>
         {status}
       </p>
