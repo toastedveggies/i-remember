@@ -77,6 +77,28 @@
 - Phone number links and demo text are placeholders (replace later when real contact/routing is defined)
 - `next lint` command is functional and clean, but the tool itself is deprecated by Next.js and should later migrate to ESLint CLI.
 
+## End-of-Night QA Log (2026-05-08, UTC-7)
+
+- Final checks run:
+  - `npm run lint` -> pass (no ESLint warnings/errors)
+  - `npx tsc --noEmit` -> pass
+- Runtime crash from missing `profile` in legacy localStorage state was fixed via state normalization/migration.
+- No blocking errors remain for MVP demo flow.
+
+### Potential User Challenges Observed
+
+- Reorientation refresh action ("Help me now") may not clearly indicate that guidance cards are already visible by default.
+- Emergency/caregiver instructions appear in multiple places; users in distress may benefit from one persistent, high-visibility emergency action.
+- Caregiver call target is still a placeholder phone number (`tel:+15551234567`), which could confuse a live demo if clicked.
+- Local-only state in `localStorage` can create cross-device/session inconsistency (acceptable for MVP, but worth calling out in demo script).
+
+### Recommended Next Mitigations (Phase 3 polish)
+
+- Add short helper text under "Help me now" clarifying it refreshes guidance and logs a support moment.
+- Add a persistent emergency/caregiver quick action in `/app` header or sticky footer for clearer escalation path.
+- Replace placeholder caregiver phone with demo-safe label/action before presentation.
+- Add a one-line demo note: "Data is local to this browser session for prototype purposes."
+
 ## Manual Test Checklist (Demo Readiness)
 
 - [x] /app: Reorientation flow can be triggered and shows a structured grounding card (where/what/next step).
