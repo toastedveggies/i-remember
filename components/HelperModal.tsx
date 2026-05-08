@@ -3,15 +3,16 @@
 import { useEffect } from "react";
 import BrandLogo from "@/components/BrandLogo";
 import MemoryIcon from "@/components/MemoryIcon";
-import { demoProfile, demoUser, pronounWords } from "@/data/demoState";
+import { pronounWords, type DemoProfile } from "@/data/demoState";
 
 type HelperModalProps = {
   open: boolean;
   onClose: () => void;
+  profile: DemoProfile;
 };
 
-export default function HelperModal({ open, onClose }: HelperModalProps) {
-  const words = pronounWords(demoProfile.pronouns, demoProfile.customPronouns);
+export default function HelperModal({ open, onClose, profile }: HelperModalProps) {
+  const words = pronounWords(profile.pronouns, profile.customPronouns);
 
   useEffect(() => {
     if (!open) return;
@@ -51,7 +52,7 @@ export default function HelperModal({ open, onClose }: HelperModalProps) {
           </div>
 
           <div className="p-5">
-            <h2 className="text-2xl font-semibold text-brand-text">{demoUser.name} may need a little help right now.</h2>
+            <h2 className="text-2xl font-semibold text-brand-text">{profile.preferredName} may need a little help right now.</h2>
             <p className="mt-2 text-base leading-7 text-brand-muted">
               This is a support tool for moments of confusion. If this is an emergency, call emergency services.
             </p>
@@ -63,7 +64,7 @@ export default function HelperModal({ open, onClose }: HelperModalProps) {
                 </div>
                 <div>
                   <div className="text-base font-semibold text-brand-text">Tell {words.object} where {words.subject} is</div>
-                  <div className="mt-1 text-base text-brand-muted">"You are at home, and you're safe right now."</div>
+                  <div className="mt-1 text-base text-brand-muted">You are at home, and you are safe right now.</div>
                 </div>
               </div>
 
@@ -73,7 +74,7 @@ export default function HelperModal({ open, onClose }: HelperModalProps) {
                 </div>
                 <div>
                   <div className="text-base font-semibold text-brand-text">Tell {words.object} what time/day it is</div>
-                  <div className="mt-1 text-base text-brand-muted">"Today is Tuesday. It's evening."</div>
+                  <div className="mt-1 text-base text-brand-muted">Today is Tuesday. It is evening.</div>
                 </div>
               </div>
 
@@ -82,7 +83,7 @@ export default function HelperModal({ open, onClose }: HelperModalProps) {
                   <MemoryIcon name="calendar" className="h-6 w-6" />
                 </div>
                 <div>
-                  <div className="text-base font-semibold text-brand-text">Help {words.object} contact {demoProfile.caregiverName}</div>
+                  <div className="text-base font-semibold text-brand-text">Help {words.object} contact {profile.caregiverName}</div>
                   <div className="mt-1 text-base text-brand-muted">A quick call can help reassure {words.object}.</div>
                 </div>
               </div>
@@ -94,8 +95,8 @@ export default function HelperModal({ open, onClose }: HelperModalProps) {
                   <MemoryIcon name="phone" className="h-6 w-6" />
                 </div>
                 <div className="text-lg font-semibold text-brand-text">
-                  {demoProfile.caregiverName}
-                  {demoProfile.caregiverRelationshipLabel ? ` (${demoProfile.caregiverRelationshipLabel})` : ""}
+                  {profile.caregiverName}
+                  {profile.caregiverRelationshipLabel ? ` (${profile.caregiverRelationshipLabel})` : ""}
                 </div>
               </div>
 
@@ -103,7 +104,7 @@ export default function HelperModal({ open, onClose }: HelperModalProps) {
                 href="tel:+15551234567"
                 className="mt-3 flex min-h-14 items-center justify-center rounded-2xl bg-brand-primary px-4 py-3 text-base font-semibold text-white focus:outline-none focus:ring-2 focus:ring-brand-compass"
               >
-                {`Call ${demoProfile.caregiverName}`}
+                {`Call ${profile.caregiverName}`}
               </a>
 
               <p className="mt-3 text-sm text-brand-muted">

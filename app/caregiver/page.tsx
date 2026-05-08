@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import CaregiverSummary from "@/components/CaregiverSummary";
 import EventLogList from "@/components/EventLogList";
-import { createEvent, demoProfile, findScenario, initialDemoState, storageKey, type DemoState } from "@/data/demoState";
+import { createEvent, findScenario, initialDemoState, normalizeDemoState, storageKey, type DemoState } from "@/data/demoState";
 
 function loadState(): DemoState {
   if (typeof window === "undefined") {
@@ -16,7 +16,7 @@ function loadState(): DemoState {
   }
 
   try {
-    return JSON.parse(raw) as DemoState;
+    return normalizeDemoState(JSON.parse(raw));
   } catch {
     return initialDemoState;
   }
@@ -29,7 +29,10 @@ export default function CaregiverPage() {
     const loaded = loadState();
     const next = {
       ...loaded,
-      events: [createEvent("caregiver_view_opened", "caregiver", loaded.activeScenarioId), ...loaded.events].slice(0, 20)
+      events: [
+        createEvent("caregiver_view_opened", "caregiver", loaded.activeScenarioId, undefined, loaded.profile.userId),
+        ...loaded.events
+      ].slice(0, 20)
     };
     setState(next);
     window.localStorage.setItem(storageKey, JSON.stringify(next));
@@ -48,7 +51,7 @@ export default function CaregiverPage() {
 
         <div className="grid grid-cols-1 gap-4 md:gap-0 md:grid-cols-2 md:divide-x md:divide-brand-border">
           <CaregiverSummary
-            personName={demoProfile.preferredName}
+            personName={state.profile.preferredName}
             lastCheckIn={state.checkInStatus === "Not submitted yet" ? "No check-in yet" : "In current session"}
             status={`Active scenario: ${activeScenario.label}`}
             todaysEvents={state.events.length}

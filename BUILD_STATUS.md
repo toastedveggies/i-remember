@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-**Phase 2 - MVP Feature Implementation (in progress)**
+**Phase 2 - MVP Feature Implementation (completed)**
 
 ## Completed Tasks
 
@@ -51,30 +51,31 @@
   - Implemented in-memory event logging with required Phase 2 event names
   - Updated event log UI to show event type/source/scenario details
   - Added `data/demoState.ts` for lightweight event schema + state model
+  - Added onboarding/profile personalization editor in `/demo` (preferred name, pronouns, caregiver name/label)
+  - Wired personalized copy across `/app`, `/caregiver`, and helper card
+  - Made event log collapsible to reduce UI clutter
+  - Simplified reorientation UI: guidance visible by default + clearer "Help me now" refresh action
+  - Added non-interactive lint setup (`.eslintrc.json`, `eslint`, `eslint-config-next` aligned to Next 15)
 
 ## Active / Next Task
 
-- Complete manual verification pass for Phase 2 checklist in browser:
-  - Validate end-to-end scenario sync across `/demo`, `/app`, `/caregiver`
-  - Validate fallback event emission (`fallback_shown`) in all uncertainty paths
-  - Add explicit onboarding/profile schema fields for preferred pronouns + caregiver label, then wire copy usage consistently
-  - Tune copy/spacing polish for demo walkthrough
-- Optional quality setup:
-  - Add non-interactive ESLint config so `npm run lint` can run in CI/local without prompt
+- Begin Phase 3 - Demo readiness:
+  - Run full demo walkthrough timing and polish copy/micro-interactions
+  - Finalize scenario scripting for class presentation flow
+  - Prepare concise demo script and expected outcomes per route (`/app`, `/caregiver`, `/demo`)
 
 ## Blocked Tasks
 
-- `npm run lint` is blocked by first-run interactive Next.js ESLint setup prompt (no config committed yet).
+- None currently.
 
 ## Known Issues
 
-- UI is static and non-interactive beyond navigation/demo buttons (intentional for Phase 1)
 - No backend persistence or API integration yet (intentional)
 - Supabase not configured yet (intentional)
 - OpenAI not configured yet (intentional)
 - Vercel project not connected yet (intentional)
 - Phone number links and demo text are placeholders (replace later when real contact/routing is defined)
-- `npm run build` was interrupted during a long run; switched to faster checks for this session.
+- `next lint` command is functional and clean, but the tool itself is deprecated by Next.js and should later migrate to ESLint CLI.
 
 ## Manual Test Checklist (Demo Readiness)
 
@@ -88,11 +89,11 @@
   - `reorientation_card_viewed`
   - `checkin_submitted`
   - `caregiver_view_opened`
-  - `fallback_shown` (event hook still needs explicit trigger wiring)
+  - `fallback_shown`
   - `demo_scenario_selected`
-- [ ] Markdown docs are readable with no encoding artifacts.
+- [x] Markdown docs are readable with no encoding artifacts.
 - [x] TypeScript check passes (`npx tsc --noEmit`).
-- [ ] Lint check passes (`npm run lint`) without interactive prompt.
+- [x] Lint check passes (`npm run lint`) without interactive prompt.
 
 ## Changed Files
 

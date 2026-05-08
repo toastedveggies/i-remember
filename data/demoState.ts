@@ -25,6 +25,7 @@ export type DemoState = {
   activeScenarioId: string;
   checkInStatus: string;
   events: DemoEvent[];
+  profile: DemoProfile;
 };
 
 export type PronounSet = "he/him" | "she/her" | "they/them" | "custom";
@@ -38,17 +39,12 @@ export type DemoProfile = {
   caregiverRelationshipLabel?: string;
 };
 
-export const demoProfile: DemoProfile = {
+export const defaultDemoProfile: DemoProfile = {
   userId: "demo-user",
   preferredName: "Alex",
   pronouns: "he/him",
   caregiverName: "Maria",
   caregiverRelationshipLabel: "daughter"
-};
-
-export const demoUser = {
-  id: demoProfile.userId,
-  name: demoProfile.preferredName
 };
 
 export const demoScenarios: DemoScenario[] = [
@@ -92,20 +88,45 @@ export const storageKey = "memory-assistant-mvp-state";
 export const initialDemoState: DemoState = {
   activeScenarioId: demoScenarios[0].id,
   checkInStatus: "Not submitted yet",
-  events: []
+  events: [],
+  profile: defaultDemoProfile
 };
+
+export function normalizeDemoState(raw: unknown): DemoState {
+  if (!raw || typeof raw !== "object") {
+    return initialDemoState;
+  }
+
+  const value = raw as Partial<DemoState> & { profile?: Partial<DemoProfile> };
+  const validScenario = demoScenarios.some((scenario) => scenario.id === value.activeScenarioId);
+
+  return {
+    activeScenarioId: validScenario ? (value.activeScenarioId as string) : initialDemoState.activeScenarioId,
+    checkInStatus: typeof value.checkInStatus === "string" ? value.checkInStatus : initialDemoState.checkInStatus,
+    events: Array.isArray(value.events) ? value.events : initialDemoState.events,
+    profile: {
+      userId: value.profile?.userId ?? defaultDemoProfile.userId,
+      preferredName: value.profile?.preferredName ?? defaultDemoProfile.preferredName,
+      pronouns: (value.profile?.pronouns as PronounSet | undefined) ?? defaultDemoProfile.pronouns,
+      customPronouns: value.profile?.customPronouns ?? defaultDemoProfile.customPronouns,
+      caregiverName: value.profile?.caregiverName ?? defaultDemoProfile.caregiverName,
+      caregiverRelationshipLabel: value.profile?.caregiverRelationshipLabel ?? defaultDemoProfile.caregiverRelationshipLabel
+    }
+  };
+}
 
 export function createEvent(
   eventType: string,
   source: EventSource,
   scenarioId?: string,
-  metadata?: Record<string, unknown>
+  metadata?: Record<string, unknown>,
+  userId = defaultDemoProfile.userId
 ): DemoEvent {
   return {
     id: crypto.randomUUID(),
     eventType,
     timestamp: new Date().toISOString(),
-    userId: demoUser.id,
+    userId,
     source,
     scenarioId,
     metadata

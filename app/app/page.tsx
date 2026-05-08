@@ -11,10 +11,9 @@ import MemoryIcon from "@/components/MemoryIcon";
 import {
   checkInQuestions,
   createEvent,
-  demoProfile,
-  demoUser,
   findScenario,
   initialDemoState,
+  normalizeDemoState,
   storageKey,
   type DemoEvent,
   type DemoState,
@@ -44,7 +43,7 @@ function loadState(): DemoState {
   }
 
   try {
-    return JSON.parse(raw) as DemoState;
+    return normalizeDemoState(JSON.parse(raw));
   } catch {
     return initialDemoState;
   }
@@ -62,7 +61,7 @@ function appendEvent(state: DemoState, event: DemoEvent): DemoState {
 
 export default function TodayWindowPage() {
   const [helperOpen, setHelperOpen] = useState(false);
-  const [hasStartedReorientation, setHasStartedReorientation] = useState(false);
+  const [lastGuidanceUpdate, setLastGuidanceUpdate] = useState<string | null>(null);
   const [selectedQuestion, setSelectedQuestion] = useState("");
   const [state, setState] = useState<DemoState>(initialDemoState);
 
@@ -77,18 +76,21 @@ export default function TodayWindowPage() {
     saveState(nextState);
   };
 
-  const startReorientation = () => {
+  const refreshGuidance = () => {
     const withStart = appendEvent(
       state,
-      createEvent("reorientation_started", "app", activeScenario.id, { uncertainty: activeScenario.uncertainty })
+      createEvent("reorientation_started", "app", activeScenario.id, { uncertainty: activeScenario.uncertainty }, state.profile.userId)
     );
-    const withViewed = appendEvent(withStart, createEvent("reorientation_card_viewed", "app", activeScenario.id));
+    const withViewed = appendEvent(
+      withStart,
+      createEvent("reorientation_card_viewed", "app", activeScenario.id, undefined, state.profile.userId)
+    );
     const withFallback = appendEvent(
       withViewed,
-      createEvent("fallback_shown", "app", activeScenario.id, { level: activeScenario.uncertainty })
+      createEvent("fallback_shown", "app", activeScenario.id, { level: activeScenario.uncertainty }, state.profile.userId)
     );
     persist(withFallback);
-    setHasStartedReorientation(true);
+    setLastGuidanceUpdate(new Date().toLocaleTimeString());
   };
 
   const submitCheckIn = () => {
@@ -99,7 +101,7 @@ export default function TodayWindowPage() {
     const status = `Check-in saved: ${selectedQuestion}`;
     const next = appendEvent(
       { ...state, checkInStatus: status },
-      createEvent("checkin_submitted", "app", activeScenario.id, { question: selectedQuestion })
+      createEvent("checkin_submitted", "app", activeScenario.id, { question: selectedQuestion }, state.profile.userId)
     );
     persist(next);
   };
@@ -113,7 +115,7 @@ export default function TodayWindowPage() {
       <div className="space-y-6">
         <header className="space-y-1">
           <h1 className="text-3xl font-semibold text-brand-text">Today Window</h1>
-          <p className="text-base font-medium text-brand-text">Hello, {demoUser.name}.</p>
+          <p className="text-base font-medium text-brand-text">Hello, {state.profile.preferredName}.</p>
           <p className="text-base text-brand-muted">Calm, human support for moments of confusion.</p>
           <p className="text-sm text-brand-muted">Active scenario: {activeScenario.label}</p>
         </header>
@@ -124,29 +126,26 @@ export default function TodayWindowPage() {
             <div className="space-y-3">
               <div className="flex items-center gap-2">
                 <MemoryIcon name="home" className="h-7 w-7 text-brand-primary" />
-                <h3 className="text-xl font-semibold text-brand-text">Help me understand what's happening</h3>
+                <h3 className="text-xl font-semibold text-brand-text">Help me understand what is happening</h3>
               </div>
 
               <button
                 type="button"
-                onClick={startReorientation}
+                onClick={refreshGuidance}
                 className="min-h-12 w-full rounded-2xl bg-brand-primary px-4 py-3 text-base font-semibold text-white focus:outline-none focus:ring-2 focus:ring-brand-compass"
               >
-                Start reorientation
+                Help me now
               </button>
+              <p className="text-sm text-brand-muted">
+                {lastGuidanceUpdate ? `Guidance refreshed at ${lastGuidanceUpdate}.` : "Tap once to refresh guidance and log this support moment."}
+              </p>
 
-              {hasStartedReorientation ? (
-                <>
-                  <TodayCard title="Where am I?" body={activeScenario.where} iconName="mapPin" variant="row" />
-                  <TodayCard title="What is happening?" body={activeScenario.happening} iconName="clock" variant="row" />
-                  <ResponseCard title="What should I do next?" message={activeScenario.nextStep} variant="row" />
-                  <ResponseCard title="Fallback guidance" message={fallbackMessage} variant="row" />
-                </>
-              ) : (
-                <p className="rounded-2xl border border-brand-border bg-brand-surface p-4 text-sm text-brand-muted">
-                  Start the flow to view grounding guidance.
-                </p>
-              )}
+              <>
+                <TodayCard title="Where am I?" body={activeScenario.where} iconName="mapPin" variant="row" />
+                <TodayCard title="What is happening?" body={activeScenario.happening} iconName="clock" variant="row" />
+                <ResponseCard title="What should I do next?" message={activeScenario.nextStep} variant="row" />
+                <ResponseCard title="Fallback guidance" message={fallbackMessage} variant="row" />
+              </>
             </div>
 
             <div className="space-y-3">
@@ -171,8 +170,8 @@ export default function TodayWindowPage() {
             <SupportActionCard
               iconName="phone"
               title="Call caregiver"
-              description={`Call ${demoProfile.caregiverName} for reassurance.`}
-              buttonLabel={`Call ${demoProfile.caregiverName}`}
+              description={`Call ${state.profile.caregiverName} for reassurance.`}
+              buttonLabel={`Call ${state.profile.caregiverName}`}
               href="tel:+15551234567"
             />
 
@@ -192,7 +191,7 @@ export default function TodayWindowPage() {
         </section>
       </div>
 
-      <HelperModal open={helperOpen} onClose={() => setHelperOpen(false)} />
+      <HelperModal open={helperOpen} onClose={() => setHelperOpen(false)} profile={state.profile} />
     </main>
   );
 }

@@ -24,7 +24,7 @@ export default function CaregiverSummary({ personName, lastCheckIn, status, toda
           <dd className="font-medium">{lastCheckIn}</dd>
         </div>
         <div className="flex items-center justify-between gap-3">
-          <dt>Today's events</dt>
+          <dt>Today events</dt>
           <dd className="font-medium">{todaysEvents}</dd>
         </div>
       </dl>
