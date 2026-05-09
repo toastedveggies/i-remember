@@ -82,6 +82,12 @@
 - Phone number links and demo text are placeholders (replace later when real contact/routing is defined)
 - `next lint` command is functional and clean, but the tool itself is deprecated by Next.js and should later migrate to ESLint CLI.
 
+## Demo Access Note
+
+- Demo password gate is enabled for whole site.
+- Current password: `memory2026`
+- Use `/demo` -> **Reset demo state** to clear local data and require password again after refresh.
+
 ## End-of-Night QA Log (2026-05-08, UTC-7)
 
 - Final checks run:

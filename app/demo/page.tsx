@@ -33,6 +33,7 @@ function loadState(): DemoState {
 
 export default function DemoPage() {
   const [state, setState] = useState<DemoState>(initialDemoState);
+  const [resetMessage, setResetMessage] = useState("");
 
   useEffect(() => {
     setState(loadState());
@@ -73,6 +74,17 @@ export default function DemoPage() {
         pronouns
       }
     });
+  };
+
+  const resetDemoState = () => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    window.localStorage.removeItem(storageKey);
+    window.sessionStorage.removeItem("memory-assistant-demo-unlocked");
+    setResetMessage("Demo state reset. Refresh to return to locked entry screen.");
+    setState(initialDemoState);
   };
 
   return (
@@ -142,6 +154,21 @@ export default function DemoPage() {
         </section>
 
         <ResponseCard title="Active scenario" message={`${activeScenario.label}: ${activeScenario.guidance}`} />
+
+        <section className="rounded-3xl border border-brand-border bg-brand-surface p-5 shadow-sm">
+          <h2 className="text-xl font-semibold text-brand-text">Reset demo</h2>
+          <p className="mt-2 text-sm text-brand-muted">
+            Clears local demo data and re-enables password gate on refresh.
+          </p>
+          <button
+            type="button"
+            onClick={resetDemoState}
+            className="mt-3 min-h-12 rounded-2xl border border-brand-border bg-brand-bg px-4 py-3 text-sm font-semibold text-brand-text focus:outline-none focus:ring-2 focus:ring-brand-compass/40"
+          >
+            Reset demo state
+          </button>
+          {resetMessage ? <p className="mt-2 text-sm text-brand-muted">{resetMessage}</p> : null}
+        </section>
 
         <ScenarioSelector scenarios={demoScenarios} activeScenarioId={state.activeScenarioId} onPreview={selectScenario} />
       </div>
