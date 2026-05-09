@@ -59,8 +59,25 @@ function appendEvent(state: DemoState, event: DemoEvent): DemoState {
   return { ...state, events: [event, ...state.events].slice(0, 20) };
 }
 
+function recommendedNextAction(question: string, caregiverName: string): string {
+  if (question.includes("slow breath")) {
+    return "Take three slow breaths, then re-read the 'What should I do next?' card.";
+  }
+
+  if (question.includes("plan for tonight")) {
+    return "Review your next routine step, then refresh guidance if anything still feels unclear.";
+  }
+
+  if (question.includes("calling your caregiver")) {
+    return `Call ${caregiverName} for reassurance now.`;
+  }
+
+  return "Take a short pause and review your next step card.";
+}
+
 export default function TodayWindowPage() {
   const [helperOpen, setHelperOpen] = useState(false);
+  const [showEmergencyNote, setShowEmergencyNote] = useState(false);
   const [lastGuidanceUpdate, setLastGuidanceUpdate] = useState<string | null>(null);
   const [selectedQuestion, setSelectedQuestion] = useState("");
   const [state, setState] = useState<DemoState>(initialDemoState);
@@ -85,11 +102,15 @@ export default function TodayWindowPage() {
       withStart,
       createEvent("reorientation_card_viewed", "app", activeScenario.id, undefined, state.profile.userId)
     );
-    const withFallback = appendEvent(
-      withViewed,
-      createEvent("fallback_shown", "app", activeScenario.id, { level: activeScenario.uncertainty }, state.profile.userId)
-    );
-    persist(withFallback);
+    if (activeScenario.uncertainty === "high") {
+      const withFallback = appendEvent(
+        withViewed,
+        createEvent("fallback_shown", "app", activeScenario.id, { level: activeScenario.uncertainty }, state.profile.userId)
+      );
+      persist(withFallback);
+    } else {
+      persist(withViewed);
+    }
     setLastGuidanceUpdate(new Date().toLocaleTimeString());
   };
 
@@ -99,8 +120,9 @@ export default function TodayWindowPage() {
     }
 
     const status = `Check-in saved: ${selectedQuestion}`;
+    const nextAction = recommendedNextAction(selectedQuestion, state.profile.caregiverName);
     const next = appendEvent(
-      { ...state, checkInStatus: status },
+      { ...state, checkInStatus: `${status} Recommended next action: ${nextAction}` },
       createEvent("checkin_submitted", "app", activeScenario.id, { question: selectedQuestion }, state.profile.userId)
     );
     persist(next);
@@ -137,14 +159,18 @@ export default function TodayWindowPage() {
                 Help me now
               </button>
               <p className="text-sm text-brand-muted">
-                {lastGuidanceUpdate ? `Guidance refreshed at ${lastGuidanceUpdate}.` : "Tap once to refresh guidance and log this support moment."}
+                {lastGuidanceUpdate
+                  ? `Guidance refreshed at ${lastGuidanceUpdate}.`
+                  : "This refreshes your guidance cards and logs a support moment."}
               </p>
 
               <>
                 <TodayCard title="Where am I?" body={activeScenario.where} iconName="mapPin" variant="row" />
                 <TodayCard title="What is happening?" body={activeScenario.happening} iconName="clock" variant="row" />
                 <ResponseCard title="What should I do next?" message={activeScenario.nextStep} variant="row" />
-                <ResponseCard title="Fallback guidance" message={fallbackMessage} variant="row" />
+                {activeScenario.uncertainty === "high" ? (
+                  <ResponseCard title="Fallback guidance" message={fallbackMessage} variant="row" />
+                ) : null}
               </>
             </div>
 
@@ -172,7 +198,7 @@ export default function TodayWindowPage() {
               title="Call caregiver"
               description={`Call ${state.profile.caregiverName} for reassurance.`}
               buttonLabel={`Call ${state.profile.caregiverName}`}
-              href="tel:+15551234567"
+              href="tel:+17047966944"
             />
 
             <SupportActionCard
@@ -190,6 +216,37 @@ export default function TodayWindowPage() {
           <EventLogList items={eventItems} defaultCollapsed />
         </section>
       </div>
+
+      <section className="sticky bottom-3 mt-6 rounded-3xl border border-brand-border bg-brand-surface p-4 shadow-sm">
+        <h2 className="text-base font-semibold text-brand-text">Need urgent support?</h2>
+        <p className="mt-1 text-sm text-brand-muted">
+          Contact {state.profile.caregiverName} now. If there is immediate danger, call emergency services.
+        </p>
+        <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <a
+            href="tel:+17047966944"
+            className="flex min-h-12 items-center justify-center rounded-2xl bg-brand-primary px-4 py-3 text-sm font-semibold text-white focus:outline-none focus:ring-2 focus:ring-brand-compass"
+          >
+            {`Call ${state.profile.caregiverName}`}
+          </a>
+          <button
+            type="button"
+            onClick={() => setShowEmergencyNote((prev) => !prev)}
+            className="flex min-h-12 items-center justify-center rounded-2xl border border-brand-border bg-brand-bg px-4 py-3 text-sm font-semibold text-brand-text focus:outline-none focus:ring-2 focus:ring-brand-compass/40"
+          >
+            Urgent: call emergency services
+          </button>
+        </div>
+        {showEmergencyNote ? (
+          <p className="mt-3 rounded-2xl border border-brand-border bg-brand-bg p-3 text-sm text-brand-muted">
+            If this feels urgent or unsafe, call emergency services now.
+          </p>
+        ) : null}
+      </section>
+
+      <p className="mt-3 text-center text-xs text-brand-muted">
+        Prototype note: data is stored in this browser session for demo purposes.
+      </p>
 
       <HelperModal open={helperOpen} onClose={() => setHelperOpen(false)} profile={state.profile} />
     </main>

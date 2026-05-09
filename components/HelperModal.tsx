@@ -83,8 +83,12 @@ export default function HelperModal({ open, onClose, profile }: HelperModalProps
                   <MemoryIcon name="calendar" className="h-6 w-6" />
                 </div>
                 <div>
-                  <div className="text-base font-semibold text-brand-text">Help {words.object} contact {profile.caregiverName}</div>
-                  <div className="mt-1 text-base text-brand-muted">A quick call can help reassure {words.object}.</div>
+                  <div className="text-base font-semibold text-brand-text">
+                    Help {profile.preferredName} contact {profile.caregiverName}
+                  </div>
+                  <div className="mt-1 text-base text-brand-muted">
+                    A quick call can help reassure {profile.preferredName}, and help {words.object} feel grounded.
+                  </div>
                 </div>
               </div>
             </div>
@@ -101,7 +105,7 @@ export default function HelperModal({ open, onClose, profile }: HelperModalProps
               </div>
 
               <a
-                href="tel:+15551234567"
+                href="tel:+17047966944"
                 className="mt-3 flex min-h-14 items-center justify-center rounded-2xl bg-brand-primary px-4 py-3 text-base font-semibold text-white focus:outline-none focus:ring-2 focus:ring-brand-compass"
               >
                 {`Call ${profile.caregiverName}`}

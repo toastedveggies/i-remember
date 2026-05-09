@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-**Phase 2 - MVP Feature Implementation (completed)**
+**Phase 3 - Demo Readiness (in progress)**
 
 ## Completed Tasks
 
@@ -56,6 +56,10 @@
   - Made event log collapsible to reduce UI clutter
   - Simplified reorientation UI: guidance visible by default + clearer "Help me now" refresh action
   - Added non-interactive lint setup (`.eslintrc.json`, `eslint`, `eslint-config-next` aligned to Next 15)
+  - Phase 3 kickoff polish in `/app`:
+    - Added explicit prototype data note for demo expectation-setting
+    - Clarified "Help me now" helper text (refreshes guidance + logs support moment)
+    - Added persistent urgent-support sticky panel with caregiver and emergency call actions
 
 ## Active / Next Task
 
@@ -63,6 +67,7 @@
   - Run full demo walkthrough timing and polish copy/micro-interactions
   - Finalize scenario scripting for class presentation flow
   - Prepare concise demo script and expected outcomes per route (`/app`, `/caregiver`, `/demo`)
+  - Replace placeholder caregiver phone path with final demo-safe contact strategy
 
 ## Blocked Tasks
 
@@ -174,10 +179,10 @@
 ## Notes for the Next AI Agent
 
 - Start from `PROJECT_PLAN.md` and preserve strict MVP boundaries.
-- Continue Phase 2 by refining implemented interactive MVP flows without adding external integrations.
+- Continue Phase 3 demo-readiness polish without adding external integrations.
 - Do not wire Supabase, OpenAI, or push notifications yet.
 - After making changes, update this file (status, files, timestamp, and next task).
 
 ## Last Updated
 
-2026-05-07 (UTC-7)
+2026-05-09 (UTC-7)

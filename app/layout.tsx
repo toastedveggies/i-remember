@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import SiteHeader from "@/components/SiteHeader";
+import DemoAccessGate from "@/components/DemoAccessGate";
 
 export const metadata: Metadata = {
   title: "Memory Assistant",
@@ -11,8 +12,10 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en">
       <body>
-        <SiteHeader />
-        <div className="pb-10">{children}</div>
+        <DemoAccessGate>
+          <SiteHeader />
+          <div className="pb-10">{children}</div>
+        </DemoAccessGate>
       </body>
     </html>
   );
