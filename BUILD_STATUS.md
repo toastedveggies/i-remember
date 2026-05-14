@@ -81,6 +81,18 @@
 - Phase 3 Activity panel show more/less fix:
     - Default limit changed from 6 to 5
     - "Show more" now toggles to "Show less" to collapse back to 5; scroll container only active when expanded
+- Phase 3 event state refactor: split single `events` array into `activityEvents` (cap 50) and `systemEvents` (cap 20)
+    - `activityEvents`: `reorientation_started`, `checkin_submitted`, `fallback_shown`, `helper_card_shown`
+    - `systemEvents`: `reorientation_card_viewed`, `caregiver_view_opened`, `demo_scenario_selected`
+    - `normalizeDemoState` migrates legacy localStorage state by splitting old `events` array on event type
+    - `/caregiver` reads arrays directly — no runtime filter logic needed
+    - Changed files: `data/demoState.ts`, `app/app/page.tsx`, `app/demo/page.tsx`, `app/caregiver/page.tsx`
+- Phase 3 Activity panel scroll fix:
+    - Expanded view with ≤10 items sizes naturally (no scroll, no max-height)
+    - Expanded view with >10 items uses `max-h-[800px] overflow-y-auto`
+    - Collapsed view always sizes naturally to first 5 items
+- Phase 3 Activity panel allowlist fix:
+    - Removed `demo_scenario_selected` from Alex's Activity panel — it fires from `/demo` (facilitator action, source: "demo"), not from Alex's interactions
 - Phase 3 Activity panel show more/less final fix:
     - Expanded state shows ALL events; scroll container (max-h 500px) applied only when more than 10 events exist
     - Removed `expandedLimit` prop (no longer needed)

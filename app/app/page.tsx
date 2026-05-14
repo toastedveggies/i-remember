@@ -55,8 +55,12 @@ function saveState(nextState: DemoState): void {
   }
 }
 
-function appendEvent(state: DemoState, event: DemoEvent): DemoState {
-  return { ...state, events: [event, ...state.events].slice(0, 20) };
+function appendActivityEvent(state: DemoState, event: DemoEvent): DemoState {
+  return { ...state, activityEvents: [event, ...state.activityEvents].slice(0, 50) };
+}
+
+function appendSystemEvent(state: DemoState, event: DemoEvent): DemoState {
+  return { ...state, systemEvents: [event, ...state.systemEvents].slice(0, 20) };
 }
 
 function recommendedNextAction(question: string, caregiverName: string): string {
@@ -94,16 +98,16 @@ export default function TodayWindowPage() {
   };
 
   const refreshGuidance = () => {
-    const withStart = appendEvent(
+    const withStart = appendActivityEvent(
       state,
       createEvent("reorientation_started", "app", activeScenario.id, { uncertainty: activeScenario.uncertainty }, state.profile.userId)
     );
-    const withViewed = appendEvent(
+    const withViewed = appendSystemEvent(
       withStart,
       createEvent("reorientation_card_viewed", "app", activeScenario.id, undefined, state.profile.userId)
     );
     if (activeScenario.uncertainty === "high") {
-      const withFallback = appendEvent(
+      const withFallback = appendActivityEvent(
         withViewed,
         createEvent("fallback_shown", "app", activeScenario.id, { level: activeScenario.uncertainty }, state.profile.userId)
       );
@@ -121,7 +125,7 @@ export default function TodayWindowPage() {
 
     const status = `Check-in saved: ${selectedQuestion}`;
     const nextAction = recommendedNextAction(selectedQuestion, state.profile.caregiverName);
-    const next = appendEvent(
+    const next = appendActivityEvent(
       { ...state, checkInStatus: `${status} Recommended next action: ${nextAction}` },
       createEvent("checkin_submitted", "app", activeScenario.id, { question: selectedQuestion }, state.profile.userId)
     );
@@ -130,7 +134,9 @@ export default function TodayWindowPage() {
 
   const fallbackMessage = fallbackCopy(activeScenario.uncertainty);
 
-  const eventItems = state.events;
+  const eventItems = [...state.activityEvents, ...state.systemEvents].sort(
+    (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+  );
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-3xl px-4 py-8">
@@ -207,7 +213,7 @@ export default function TodayWindowPage() {
               description="A simple screen you can show to a nearby person."
               buttonLabel="Show helper card"
               onClick={() => {
-                persist(appendEvent(state, createEvent("helper_card_shown", "app", activeScenario.id, undefined, state.profile.userId)));
+                persist(appendActivityEvent(state, createEvent("helper_card_shown", "app", activeScenario.id, undefined, state.profile.userId)));
                 setHelperOpen(true);
               }}
             />
