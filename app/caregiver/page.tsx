@@ -39,6 +39,8 @@ export default function CaregiverPage() {
   }, []);
 
   const activeScenario = useMemo(() => findScenario(state.activeScenarioId), [state.activeScenarioId]);
+  const activityEventTypes = new Set(["reorientation_started", "checkin_submitted", "fallback_shown", "demo_scenario_selected"]);
+  const appEvents = useMemo(() => state.events.filter((e) => activityEventTypes.has(e.eventType)), [state.events]);
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-3xl px-4 py-8">
@@ -56,8 +58,17 @@ export default function CaregiverPage() {
             status={`Active scenario: ${activeScenario.label}`}
             todaysEvents={state.events.length}
           />
-          <EventLogList items={state.events} defaultCollapsed />
+          <EventLogList
+            title={`${state.profile.preferredName}'s Activity`}
+            items={appEvents}
+            defaultCollapsed={false}
+            emptyText="No activity from the app yet."
+          />
         </div>
+
+        <section className="space-y-3">
+          <EventLogList items={state.events} defaultCollapsed title="Event Log" />
+        </section>
       </div>
     </main>
   );

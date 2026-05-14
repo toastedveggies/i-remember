@@ -60,6 +60,16 @@
     - Added explicit prototype data note for demo expectation-setting
     - Clarified "Help me now" helper text (refreshes guidance + logs support moment)
     - Added persistent urgent-support sticky panel with caregiver and emergency call actions
+- Phase 3 caregiver log enhancement:
+    - `checkin_submitted` events in the event log now display the specific question the user selected (from `metadata.question`), visible on both `/app` and `/caregiver`
+- Phase 3 caregiver dashboard redesign:
+    - Top grid: renamed event log panel to "{preferredName}'s Activity", filtered to `source === "app"` events, visible by default
+    - Added full-width "Event Log" section below the grid showing all events, collapsed by default
+    - `reorientation_started` events highlighted with rust left border and colored label to signal distress moments to caregiver
+    - `EventLogList` now accepts `title` and `emptyText` props for reuse flexibility
+- Phase 3 caregiver activity panel filter refinement:
+    - "{preferredName}'s Activity" now filters by event type allowlist (`reorientation_started`, `checkin_submitted`, `fallback_shown`, `demo_scenario_selected`) rather than by source
+    - `reorientation_card_viewed` and `caregiver_view_opened` appear only in the full Event Log section
 
 ## Active / Next Task
 
@@ -191,4 +201,4 @@
 
 ## Last Updated
 
-2026-05-09 (UTC-7)
+2026-05-13 (UTC-7) — caregiver dashboard redesign
