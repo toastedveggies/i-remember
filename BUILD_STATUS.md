@@ -247,4 +247,4 @@
 
 ## Last Updated
 
-2026-05-13 (UTC-7) — caregiver dashboard redesign
+2026-05-14 (UTC-7) — added Fitbit Heart Rate Alert Integration detail to FUTURE_IDEAS.md backlog
