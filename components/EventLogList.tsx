@@ -53,7 +53,7 @@ export default function EventLogList({
 
       {!collapsed ? (
         <>
-          <div className={showAll && items.length > 10 ? "mt-3 max-h-[500px] overflow-y-auto" : "mt-3"}>
+          <div className={showAll && items.length > 10 ? "mt-3 max-h-[800px] overflow-y-auto" : "mt-3"}>
             <ul className="space-y-3">
               {items.length === 0 ? (
                 <li className="rounded-2xl border border-brand-border bg-brand-bg p-4 text-base text-brand-muted">
@@ -63,13 +63,16 @@ export default function EventLogList({
                 visibleItems.map((item) => {
                   const isDistress = !plain && item.eventType === "reorientation_started";
                   const isHelperCard = !plain && item.eventType === "helper_card_shown";
-                  const cardBg = isHelperCard ? "bg-yellow-50" : "bg-brand-bg";
+                  const isCall = !plain && item.eventType === "caregiver_called";
+                  const cardBg = isHelperCard ? "bg-yellow-50" : isCall ? "bg-blue-50" : "bg-brand-bg";
                   const borderClass = isDistress ? "border-l-4 border-brand-border border-l-brand-compass" : "border-brand-border";
                   const labelClass = isDistress
                     ? "font-semibold text-brand-compass"
                     : isHelperCard
                       ? "font-semibold text-amber-700"
-                      : "text-brand-text";
+                      : isCall
+                        ? "font-semibold text-blue-700"
+                        : "text-brand-text";
                   return (
                     <li
                       key={item.id}

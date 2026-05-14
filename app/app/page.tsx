@@ -81,6 +81,7 @@ function recommendedNextAction(question: string, caregiverName: string): string 
 
 export default function TodayWindowPage() {
   const [helperOpen, setHelperOpen] = useState(false);
+  const [callingCaregiver, setCallingCaregiver] = useState(false);
   const [showEmergencyNote, setShowEmergencyNote] = useState(false);
   const [lastGuidanceUpdate, setLastGuidanceUpdate] = useState<string | null>(null);
   const [selectedQuestion, setSelectedQuestion] = useState("");
@@ -130,6 +131,11 @@ export default function TodayWindowPage() {
       createEvent("checkin_submitted", "app", activeScenario.id, { question: selectedQuestion }, state.profile.userId)
     );
     persist(next);
+  };
+
+  const callCaregiver = () => {
+    persist(appendActivityEvent(state, createEvent("caregiver_called", "app", activeScenario.id, undefined, state.profile.userId)));
+    setCallingCaregiver(true);
   };
 
   const fallbackMessage = fallbackCopy(activeScenario.uncertainty);
@@ -204,7 +210,7 @@ export default function TodayWindowPage() {
               title="Call caregiver"
               description={`Call ${state.profile.caregiverName} for reassurance.`}
               buttonLabel={`Call ${state.profile.caregiverName}`}
-              href="tel:+17047966944"
+              onClick={callCaregiver}
             />
 
             <SupportActionCard
@@ -232,12 +238,13 @@ export default function TodayWindowPage() {
           Contact {state.profile.caregiverName} now. If there is immediate danger, call emergency services.
         </p>
         <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
-          <a
-            href="tel:+17047966944"
+          <button
+            type="button"
+            onClick={callCaregiver}
             className="flex min-h-12 items-center justify-center rounded-2xl bg-brand-primary px-4 py-3 text-sm font-semibold text-white focus:outline-none focus:ring-2 focus:ring-brand-compass"
           >
             {`Call ${state.profile.caregiverName}`}
-          </a>
+          </button>
           <button
             type="button"
             onClick={() => setShowEmergencyNote((prev) => !prev)}
@@ -258,6 +265,22 @@ export default function TodayWindowPage() {
       </p>
 
       <HelperModal open={helperOpen} onClose={() => setHelperOpen(false)} profile={state.profile} />
+
+      {callingCaregiver ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-sm rounded-3xl border border-brand-border bg-brand-surface p-6 shadow-lg">
+            <p className="text-xl font-semibold text-brand-text">Calling {state.profile.caregiverName}…</p>
+            <p className="mt-2 text-sm text-brand-muted">This is a demo. No real call is placed.</p>
+            <button
+              type="button"
+              onClick={() => setCallingCaregiver(false)}
+              className="mt-4 min-h-12 w-full rounded-2xl border border-brand-border bg-brand-bg px-4 py-3 text-base font-semibold text-brand-text focus:outline-none focus:ring-2 focus:ring-brand-compass/40"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }

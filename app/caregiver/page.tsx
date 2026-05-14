@@ -39,6 +39,7 @@ export default function CaregiverPage() {
   }, []);
 
   const activeScenario = useMemo(() => findScenario(state.activeScenarioId), [state.activeScenarioId]);
+  const missedCalls = state.activityEvents.filter((e) => e.eventType === "caregiver_called").length;
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-3xl px-4 py-8">
@@ -55,6 +56,7 @@ export default function CaregiverPage() {
             lastCheckIn={state.checkInStatus === "Not submitted yet" ? "No check-in yet" : "In current session"}
             status={`Active scenario: ${activeScenario.label}`}
             todaysEvents={state.activityEvents.length}
+            missedCalls={missedCalls}
           />
           <EventLogList
             title={`${state.profile.preferredName}'s Activity`}

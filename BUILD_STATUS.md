@@ -91,6 +91,11 @@
     - Expanded view with ≤10 items sizes naturally (no scroll, no max-height)
     - Expanded view with >10 items uses `max-h-[800px] overflow-y-auto`
     - Collapsed view always sizes naturally to first 5 items
+- Phase 3 Call Maria feature:
+    - "Call caregiver" buttons in `/app` (support card + sticky footer) now intercept clicks: log `caregiver_called` to activityEvents and show a demo modal ("Calling [name]… Cancel")
+    - `caregiver_called` added to activity event type set in `demoState.ts`
+    - Activity panel in `/caregiver`: `caregiver_called` events shown with blue background and blue label
+    - Caregiver Snapshot: shows a red "Missed calls" row when `caregiver_called` count > 0
 - Phase 3 Activity panel allowlist fix:
     - Removed `demo_scenario_selected` from Alex's Activity panel — it fires from `/demo` (facilitator action, source: "demo"), not from Alex's interactions
 - Phase 3 Activity panel show more/less final fix:
