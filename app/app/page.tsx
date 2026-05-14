@@ -131,6 +131,7 @@ export default function TodayWindowPage() {
       createEvent("checkin_submitted", "app", activeScenario.id, { question: selectedQuestion }, state.profile.userId)
     );
     persist(next);
+    setSelectedQuestion("");
   };
 
   const callCaregiver = () => {
@@ -193,7 +194,7 @@ export default function TodayWindowPage() {
 
             <div className="space-y-3">
               <div className="flex items-center gap-2">
-                <MemoryIcon name="checkCircle" className="h-7 w-7 text-brand-primary" />
+                <MemoryIcon name="checkCircle" className="h-7 w-7 text-green-500" />
                 <h3 className="text-xl font-semibold text-brand-text">Do a quick check-in</h3>
               </div>
               <CheckInCard

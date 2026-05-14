@@ -91,6 +91,12 @@
     - Expanded view with ≤10 items sizes naturally (no scroll, no max-height)
     - Expanded view with >10 items uses `max-h-[800px] overflow-y-auto`
     - Collapsed view always sizes naturally to first 5 items
+- Phase 3 check-in selection reset: `setSelectedQuestion("")` called on submit so options return to default state
+- Phase 3 check-in UI fixes:
+    - Removed duplicate "Do a quick check-in" heading from inside `CheckInCard` (section title above is sufficient)
+    - Check-in section icon changed to `text-green-500`
+    - Selected check-in option now shows `bg-green-50` background for clear selection feedback
+    - Removed unused `title` prop and `MemoryIcon` import from `CheckInCard`
 - Phase 3 emergency services feature:
     - "Urgent: call emergency services" button restyled red; intercepts click, logs `emergency_called`, shows "Calling 911…" demo modal
     - Same button added to HelperModal via `onCallEmergency` prop
