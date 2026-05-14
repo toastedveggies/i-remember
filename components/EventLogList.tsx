@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 import MemoryIcon from "@/components/MemoryIcon";
@@ -9,6 +9,8 @@ type EventLogListProps = {
   defaultCollapsed?: boolean;
   title?: string;
   emptyText?: string;
+  initialLimit?: number;
+  plain?: boolean;
 };
 
 function eventLabel(eventType: string): string {
@@ -22,9 +24,15 @@ export default function EventLogList({
   items,
   defaultCollapsed = false,
   title = "Event Log",
-  emptyText = "No events yet. Interact with /app, /caregiver, or /demo."
+  emptyText = "No events yet. Interact with /app, /caregiver, or /demo.",
+  initialLimit,
+  plain = false
 }: EventLogListProps) {
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
+  const [showAll, setShowAll] = useState(false);
+
+  const visibleItems = showAll || !initialLimit ? items : items.slice(0, initialLimit);
+  const hasMore = !!initialLimit && items.length > initialLimit;
 
   return (
     <section className="rounded-3xl border border-brand-border bg-brand-surface p-5 shadow-sm">
@@ -44,39 +52,56 @@ export default function EventLogList({
       </div>
 
       {!collapsed ? (
-        <ul className="mt-3 space-y-3">
-          {items.length === 0 ? (
-            <li className="rounded-2xl border border-brand-border bg-brand-bg p-4 text-base text-brand-muted">
-              {emptyText}
-            </li>
-          ) : (
-            items.map((item) => {
-              const isDistress = item.eventType === "reorientation_started";
-              const isHelperCard = item.eventType === "helper_card_shown";
-              const cardBg = isHelperCard ? "bg-yellow-50" : "bg-brand-bg";
-              const borderClass = isDistress ? "border-l-4 border-brand-border border-l-brand-compass" : "border-brand-border";
-              const labelClass = isDistress ? "font-semibold text-brand-compass" : isHelperCard ? "font-semibold text-amber-700" : "text-brand-text";
-              return (
-              <li
-                key={item.id}
-                className={`rounded-2xl border p-4 ${cardBg} ${borderClass}`}
-              >
-                <p className="text-sm font-semibold uppercase tracking-wide text-brand-muted">
-                  {new Date(item.timestamp).toLocaleTimeString()}
-                </p>
-                <p className={`mt-1 text-base leading-6 ${labelClass}`}>{eventLabel(item.eventType)}</p>
-                {item.eventType === "checkin_submitted" && typeof item.metadata?.question === "string" ? (
-                  <p className="mt-1 text-sm text-brand-text italic">&ldquo;{item.metadata.question}&rdquo;</p>
-                ) : null}
-                <p className="text-sm text-brand-muted">
-                  Source: {item.source}
-                  {item.scenarioId ? ` | Scenario: ${item.scenarioId}` : ""}
-                </p>
-              </li>
-              );
-            })
-          )}
-        </ul>
+        <>
+          <div className={showAll && items.length > 10 ? "mt-3 max-h-[500px] overflow-y-auto" : "mt-3"}>
+            <ul className="space-y-3">
+              {items.length === 0 ? (
+                <li className="rounded-2xl border border-brand-border bg-brand-bg p-4 text-base text-brand-muted">
+                  {emptyText}
+                </li>
+              ) : (
+                visibleItems.map((item) => {
+                  const isDistress = !plain && item.eventType === "reorientation_started";
+                  const isHelperCard = !plain && item.eventType === "helper_card_shown";
+                  const cardBg = isHelperCard ? "bg-yellow-50" : "bg-brand-bg";
+                  const borderClass = isDistress ? "border-l-4 border-brand-border border-l-brand-compass" : "border-brand-border";
+                  const labelClass = isDistress
+                    ? "font-semibold text-brand-compass"
+                    : isHelperCard
+                      ? "font-semibold text-amber-700"
+                      : "text-brand-text";
+                  return (
+                    <li
+                      key={item.id}
+                      className={`rounded-2xl border p-4 ${cardBg} ${borderClass}`}
+                    >
+                      <p className="text-sm font-semibold uppercase tracking-wide text-brand-muted">
+                        {new Date(item.timestamp).toLocaleTimeString()}
+                      </p>
+                      <p className={`mt-1 text-base leading-6 ${labelClass}`}>{eventLabel(item.eventType)}</p>
+                      {item.eventType === "checkin_submitted" && typeof item.metadata?.question === "string" ? (
+                        <p className="mt-1 text-sm text-brand-text italic">&ldquo;{item.metadata.question}&rdquo;</p>
+                      ) : null}
+                      <p className="text-sm text-brand-muted">
+                        Source: {item.source}
+                        {item.scenarioId ? ` | Scenario: ${item.scenarioId}` : ""}
+                      </p>
+                    </li>
+                  );
+                })
+              )}
+            </ul>
+          </div>
+          {hasMore ? (
+            <button
+              type="button"
+              onClick={() => setShowAll((prev) => !prev)}
+              className="mt-3 rounded-xl border border-brand-border px-3 py-2 text-sm font-medium text-brand-text focus:outline-none focus:ring-2 focus:ring-brand-compass/40"
+            >
+              {showAll ? "Show less" : "Show more"}
+            </button>
+          ) : null}
+        </>
       ) : (
         <p className="mt-3 text-sm text-brand-muted">Event log is collapsed.</p>
       )}

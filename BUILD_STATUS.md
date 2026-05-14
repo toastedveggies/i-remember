@@ -74,6 +74,16 @@
     - Tapping "Show helper card" in `/app` now logs a `helper_card_shown` event
     - `helper_card_shown` events render with a light yellow background and amber label in the event log
     - `helper_card_shown` added to the caregiver Activity panel allowlist
+- Phase 3 caregiver dashboard list fixes:
+    - Alex's Activity panel shows 6 most recent events by default; "Show more" expands to a scrollable 500px container
+    - Event Log panel now shows only system/navigation events (inverse of activity allowlist); displays in plain style with no highlights
+    - `EventLogList` accepts `initialLimit` and `plain` props
+- Phase 3 Activity panel show more/less fix:
+    - Default limit changed from 6 to 5
+    - "Show more" now toggles to "Show less" to collapse back to 5; scroll container only active when expanded
+- Phase 3 Activity panel show more/less final fix:
+    - Expanded state shows ALL events; scroll container (max-h 500px) applied only when more than 10 events exist
+    - Removed `expandedLimit` prop (no longer needed)
 
 ## Active / Next Task
 
