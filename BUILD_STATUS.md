@@ -70,6 +70,10 @@
 - Phase 3 caregiver activity panel filter refinement:
     - "{preferredName}'s Activity" now filters by event type allowlist (`reorientation_started`, `checkin_submitted`, `fallback_shown`, `demo_scenario_selected`) rather than by source
     - `reorientation_card_viewed` and `caregiver_view_opened` appear only in the full Event Log section
+- Phase 3 helper card event logging:
+    - Tapping "Show helper card" in `/app` now logs a `helper_card_shown` event
+    - `helper_card_shown` events render with a light yellow background and amber label in the event log
+    - `helper_card_shown` added to the caregiver Activity panel allowlist
 
 ## Active / Next Task
 

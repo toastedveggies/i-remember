@@ -206,7 +206,10 @@ export default function TodayWindowPage() {
               title="Show helper card"
               description="A simple screen you can show to a nearby person."
               buttonLabel="Show helper card"
-              onClick={() => setHelperOpen(true)}
+              onClick={() => {
+                persist(appendEvent(state, createEvent("helper_card_shown", "app", activeScenario.id, undefined, state.profile.userId)));
+                setHelperOpen(true);
+              }}
             />
           </div>
         </section>

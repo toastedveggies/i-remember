@@ -39,7 +39,7 @@ export default function CaregiverPage() {
   }, []);
 
   const activeScenario = useMemo(() => findScenario(state.activeScenarioId), [state.activeScenarioId]);
-  const activityEventTypes = new Set(["reorientation_started", "checkin_submitted", "fallback_shown", "demo_scenario_selected"]);
+  const activityEventTypes = new Set(["reorientation_started", "checkin_submitted", "fallback_shown", "demo_scenario_selected", "helper_card_shown"]);
   const appEvents = useMemo(() => state.events.filter((e) => activityEventTypes.has(e.eventType)), [state.events]);
 
   return (

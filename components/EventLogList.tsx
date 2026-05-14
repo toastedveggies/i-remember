@@ -52,15 +52,19 @@ export default function EventLogList({
           ) : (
             items.map((item) => {
               const isDistress = item.eventType === "reorientation_started";
+              const isHelperCard = item.eventType === "helper_card_shown";
+              const cardBg = isHelperCard ? "bg-yellow-50" : "bg-brand-bg";
+              const borderClass = isDistress ? "border-l-4 border-brand-border border-l-brand-compass" : "border-brand-border";
+              const labelClass = isDistress ? "font-semibold text-brand-compass" : isHelperCard ? "font-semibold text-amber-700" : "text-brand-text";
               return (
               <li
                 key={item.id}
-                className={`rounded-2xl border bg-brand-bg p-4 ${isDistress ? "border-l-4 border-brand-border border-l-brand-compass" : "border-brand-border"}`}
+                className={`rounded-2xl border p-4 ${cardBg} ${borderClass}`}
               >
                 <p className="text-sm font-semibold uppercase tracking-wide text-brand-muted">
                   {new Date(item.timestamp).toLocaleTimeString()}
                 </p>
-                <p className={`mt-1 text-base leading-6 ${isDistress ? "font-semibold text-brand-compass" : "text-brand-text"}`}>{eventLabel(item.eventType)}</p>
+                <p className={`mt-1 text-base leading-6 ${labelClass}`}>{eventLabel(item.eventType)}</p>
                 {item.eventType === "checkin_submitted" && typeof item.metadata?.question === "string" ? (
                   <p className="mt-1 text-sm text-brand-text italic">&ldquo;{item.metadata.question}&rdquo;</p>
                 ) : null}
