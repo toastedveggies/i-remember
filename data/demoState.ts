@@ -100,7 +100,8 @@ const activityEventTypes = new Set([
   "checkin_submitted",
   "fallback_shown",
   "helper_card_shown",
-  "caregiver_called"
+  "caregiver_called",
+  "emergency_called"
 ]);
 
 export function normalizeDemoState(raw: unknown): DemoState {

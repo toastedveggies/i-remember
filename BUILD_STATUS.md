@@ -91,6 +91,15 @@
     - Expanded view with ≤10 items sizes naturally (no scroll, no max-height)
     - Expanded view with >10 items uses `max-h-[800px] overflow-y-auto`
     - Collapsed view always sizes naturally to first 5 items
+- Phase 3 emergency services feature:
+    - "Urgent: call emergency services" button restyled red; intercepts click, logs `emergency_called`, shows "Calling 911…" demo modal
+    - Same button added to HelperModal via `onCallEmergency` prop
+    - `emergency_called` added to activityEventTypes in `demoState.ts`
+    - Activity panel: `emergency_called` events shown with bright red background and bold yellow "Called Emergency Services" label
+    - Caregiver Snapshot: "Emergency calls" counter (red-600, white text) shown above "Missed calls", only when count > 0
+- Phase 3 Call Maria — helper card fix:
+    - "Call [caregiver]" inside HelperModal now uses `onCallCaregiver` callback instead of `tel:` link
+    - Logs `caregiver_called` and shows the same calling modal as the main buttons
 - Phase 3 Call Maria feature:
     - "Call caregiver" buttons in `/app` (support card + sticky footer) now intercept clicks: log `caregiver_called` to activityEvents and show a demo modal ("Calling [name]… Cancel")
     - `caregiver_called` added to activity event type set in `demoState.ts`

@@ -82,7 +82,7 @@ function recommendedNextAction(question: string, caregiverName: string): string 
 export default function TodayWindowPage() {
   const [helperOpen, setHelperOpen] = useState(false);
   const [callingCaregiver, setCallingCaregiver] = useState(false);
-  const [showEmergencyNote, setShowEmergencyNote] = useState(false);
+  const [callingEmergency, setCallingEmergency] = useState(false);
   const [lastGuidanceUpdate, setLastGuidanceUpdate] = useState<string | null>(null);
   const [selectedQuestion, setSelectedQuestion] = useState("");
   const [state, setState] = useState<DemoState>(initialDemoState);
@@ -136,6 +136,11 @@ export default function TodayWindowPage() {
   const callCaregiver = () => {
     persist(appendActivityEvent(state, createEvent("caregiver_called", "app", activeScenario.id, undefined, state.profile.userId)));
     setCallingCaregiver(true);
+  };
+
+  const callEmergency = () => {
+    persist(appendActivityEvent(state, createEvent("emergency_called", "app", activeScenario.id, undefined, state.profile.userId)));
+    setCallingEmergency(true);
   };
 
   const fallbackMessage = fallbackCopy(activeScenario.uncertainty);
@@ -247,24 +252,35 @@ export default function TodayWindowPage() {
           </button>
           <button
             type="button"
-            onClick={() => setShowEmergencyNote((prev) => !prev)}
-            className="flex min-h-12 items-center justify-center rounded-2xl border border-brand-border bg-brand-bg px-4 py-3 text-sm font-semibold text-brand-text focus:outline-none focus:ring-2 focus:ring-brand-compass/40"
+            onClick={callEmergency}
+            className="flex min-h-12 items-center justify-center rounded-2xl bg-red-600 px-4 py-3 text-sm font-semibold text-white focus:outline-none focus:ring-2 focus:ring-red-400"
           >
             Urgent: call emergency services
           </button>
         </div>
-        {showEmergencyNote ? (
-          <p className="mt-3 rounded-2xl border border-brand-border bg-brand-bg p-3 text-sm text-brand-muted">
-            If this feels urgent or unsafe, call emergency services now.
-          </p>
-        ) : null}
       </section>
 
       <p className="mt-3 text-center text-xs text-brand-muted">
         Prototype note: data is stored in this browser session for demo purposes.
       </p>
 
-      <HelperModal open={helperOpen} onClose={() => setHelperOpen(false)} profile={state.profile} />
+      <HelperModal open={helperOpen} onClose={() => setHelperOpen(false)} profile={state.profile} onCallCaregiver={callCaregiver} onCallEmergency={callEmergency} />
+
+      {callingEmergency ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-sm rounded-3xl border border-brand-border bg-brand-surface p-6 shadow-lg">
+            <p className="text-xl font-semibold text-brand-text">Calling 911…</p>
+            <p className="mt-2 text-sm text-brand-muted">This is a demo. No real call is placed.</p>
+            <button
+              type="button"
+              onClick={() => setCallingEmergency(false)}
+              className="mt-4 min-h-12 w-full rounded-2xl border border-brand-border bg-brand-bg px-4 py-3 text-base font-semibold text-brand-text focus:outline-none focus:ring-2 focus:ring-brand-compass/40"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       {callingCaregiver ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">

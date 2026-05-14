@@ -6,9 +6,10 @@ type CaregiverSummaryProps = {
   status: string;
   todaysEvents: number;
   missedCalls?: number;
+  emergencyCalls?: number;
 };
 
-export default function CaregiverSummary({ personName, lastCheckIn, status, todaysEvents, missedCalls = 0 }: CaregiverSummaryProps) {
+export default function CaregiverSummary({ personName, lastCheckIn, status, todaysEvents, missedCalls = 0, emergencyCalls = 0 }: CaregiverSummaryProps) {
   return (
     <section className="rounded-3xl border border-brand-border bg-brand-surface p-5 shadow-sm">
       <h2 className="flex items-center gap-2 text-xl font-semibold text-brand-text">
@@ -28,6 +29,12 @@ export default function CaregiverSummary({ personName, lastCheckIn, status, toda
           <dt>Today events</dt>
           <dd className="font-medium">{todaysEvents}</dd>
         </div>
+        {emergencyCalls > 0 ? (
+          <div className="flex items-center justify-between gap-3 rounded-xl bg-red-600 px-3 py-2">
+            <dt className="font-bold text-white">Emergency calls</dt>
+            <dd className="font-bold text-white">{emergencyCalls}</dd>
+          </div>
+        ) : null}
         {missedCalls > 0 ? (
           <div className="flex items-center justify-between gap-3 rounded-xl bg-red-50 px-3 py-2">
             <dt className="font-medium text-red-700">Missed calls</dt>

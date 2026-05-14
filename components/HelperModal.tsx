@@ -9,9 +9,11 @@ type HelperModalProps = {
   open: boolean;
   onClose: () => void;
   profile: DemoProfile;
+  onCallCaregiver?: () => void;
+  onCallEmergency?: () => void;
 };
 
-export default function HelperModal({ open, onClose, profile }: HelperModalProps) {
+export default function HelperModal({ open, onClose, profile, onCallCaregiver, onCallEmergency }: HelperModalProps) {
   const words = pronounWords(profile.pronouns, profile.customPronouns);
 
   useEffect(() => {
@@ -104,16 +106,24 @@ export default function HelperModal({ open, onClose, profile }: HelperModalProps
                 </div>
               </div>
 
-              <a
-                href="tel:+17047966944"
-                className="mt-3 flex min-h-14 items-center justify-center rounded-2xl bg-brand-primary px-4 py-3 text-base font-semibold text-white focus:outline-none focus:ring-2 focus:ring-brand-compass"
+              <button
+                type="button"
+                onClick={onCallCaregiver}
+                className="mt-3 flex min-h-14 w-full items-center justify-center rounded-2xl bg-brand-primary px-4 py-3 text-base font-semibold text-white focus:outline-none focus:ring-2 focus:ring-brand-compass"
               >
                 {`Call ${profile.caregiverName}`}
-              </a>
+              </button>
 
               <p className="mt-3 text-sm text-brand-muted">
                 If you are worried or someone is in danger, please contact emergency services.
               </p>
+              <button
+                type="button"
+                onClick={onCallEmergency}
+                className="mt-2 flex min-h-12 w-full items-center justify-center rounded-2xl bg-red-600 px-4 py-3 text-base font-semibold text-white focus:outline-none focus:ring-2 focus:ring-red-400"
+              >
+                Urgent: call emergency services
+              </button>
             </div>
           </div>
         </div>

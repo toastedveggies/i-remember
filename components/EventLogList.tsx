@@ -64,15 +64,19 @@ export default function EventLogList({
                   const isDistress = !plain && item.eventType === "reorientation_started";
                   const isHelperCard = !plain && item.eventType === "helper_card_shown";
                   const isCall = !plain && item.eventType === "caregiver_called";
-                  const cardBg = isHelperCard ? "bg-yellow-50" : isCall ? "bg-blue-50" : "bg-brand-bg";
+                  const isEmergency = !plain && item.eventType === "emergency_called";
+                  const cardBg = isEmergency ? "bg-red-600" : isHelperCard ? "bg-yellow-50" : isCall ? "bg-blue-50" : "bg-brand-bg";
                   const borderClass = isDistress ? "border-l-4 border-brand-border border-l-brand-compass" : "border-brand-border";
-                  const labelClass = isDistress
-                    ? "font-semibold text-brand-compass"
-                    : isHelperCard
-                      ? "font-semibold text-amber-700"
-                      : isCall
-                        ? "font-semibold text-blue-700"
-                        : "text-brand-text";
+                  const labelClass = isEmergency
+                    ? "font-bold text-yellow-300"
+                    : isDistress
+                      ? "font-semibold text-brand-compass"
+                      : isHelperCard
+                        ? "font-semibold text-amber-700"
+                        : isCall
+                          ? "font-semibold text-blue-700"
+                          : "text-brand-text";
+                  const label = isEmergency ? "Called Emergency Services" : eventLabel(item.eventType);
                   return (
                     <li
                       key={item.id}
@@ -81,7 +85,7 @@ export default function EventLogList({
                       <p className="text-sm font-semibold uppercase tracking-wide text-brand-muted">
                         {new Date(item.timestamp).toLocaleTimeString()}
                       </p>
-                      <p className={`mt-1 text-base leading-6 ${labelClass}`}>{eventLabel(item.eventType)}</p>
+                      <p className={`mt-1 text-base leading-6 ${labelClass}`}>{label}</p>
                       {item.eventType === "checkin_submitted" && typeof item.metadata?.question === "string" ? (
                         <p className="mt-1 text-sm text-brand-text italic">&ldquo;{item.metadata.question}&rdquo;</p>
                       ) : null}

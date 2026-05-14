@@ -40,6 +40,7 @@ export default function CaregiverPage() {
 
   const activeScenario = useMemo(() => findScenario(state.activeScenarioId), [state.activeScenarioId]);
   const missedCalls = state.activityEvents.filter((e) => e.eventType === "caregiver_called").length;
+  const emergencyCalls = state.activityEvents.filter((e) => e.eventType === "emergency_called").length;
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-3xl px-4 py-8">
@@ -57,6 +58,7 @@ export default function CaregiverPage() {
             status={`Active scenario: ${activeScenario.label}`}
             todaysEvents={state.activityEvents.length}
             missedCalls={missedCalls}
+            emergencyCalls={emergencyCalls}
           />
           <EventLogList
             title={`${state.profile.preferredName}'s Activity`}
