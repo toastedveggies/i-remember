@@ -15,5 +15,29 @@ Parking lot for ideas that are intentionally out of current MVP scope.
 - Multi-profile household support
 - Voice-first reorientation flow
 - Calendar integrations
-- Wearable/device integrations
+- Wearable/device integrations (see Fitbit detail below)
 - Advanced safety escalation workflows
+
+---
+
+## Fitbit Heart Rate Alert Integration (Weekend Prototype)
+
+**Status:** Backlog — not in active scope
+
+**Demo path:** Facilitator walks a lap during class presentation, heart rate spikes on their Fitbit, caregiver dashboard updates in real time showing elevated BPM.
+
+### Implementation outline
+
+- Use Fitbit Web API with OAuth 2.0 to pull real-time heart rate data from a paired Fitbit device
+- Implement OAuth flow via Next.js API routes — no third-party auth library needed
+- Register app at dev.fitbit.com to get client ID and secret; store in `.env.local`, never commit
+- Poll heart rate endpoint every 30–60 seconds during an active demo session
+- If BPM exceeds a configurable threshold (default 100), fire an `elevated_heart_rate` event to `activityEvents` with `source: "app"`
+- Display `elevated_heart_rate` events in Alex's Activity panel with a distinct visual (orange background, heart icon, BPM value shown)
+- Add a heart rate alert row to the Caregiver Snapshot when threshold is exceeded
+
+### Key constraints
+
+- Fitbit does NOT sync to Apple Health on iPhone — must use Fitbit Web API directly
+- Scope is demo-only: single user account, no production auth hardening needed
+- All Fitbit credentials must live in `.env.local` and be excluded from version control

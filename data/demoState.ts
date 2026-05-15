@@ -24,7 +24,8 @@ export type DemoScenario = {
 export type DemoState = {
   activeScenarioId: string;
   checkInStatus: string;
-  events: DemoEvent[];
+  activityEvents: DemoEvent[];
+  systemEvents: DemoEvent[];
   profile: DemoProfile;
 };
 
@@ -88,22 +89,53 @@ export const storageKey = "memory-assistant-mvp-state";
 export const initialDemoState: DemoState = {
   activeScenarioId: demoScenarios[0].id,
   checkInStatus: "Not submitted yet",
-  events: [],
+  activityEvents: [],
+  systemEvents: [],
   profile: defaultDemoProfile
 };
+
+// Event types that belong in activityEvents (user-facing actions)
+const activityEventTypes = new Set([
+  "reorientation_started",
+  "checkin_submitted",
+  "fallback_shown",
+  "helper_card_shown",
+  "caregiver_called",
+  "emergency_called"
+]);
 
 export function normalizeDemoState(raw: unknown): DemoState {
   if (!raw || typeof raw !== "object") {
     return initialDemoState;
   }
 
-  const value = raw as Partial<DemoState> & { profile?: Partial<DemoProfile> };
+  const value = raw as Partial<DemoState> & {
+    profile?: Partial<DemoProfile>;
+    events?: DemoEvent[]; // legacy single-array field
+  };
   const validScenario = demoScenarios.some((scenario) => scenario.id === value.activeScenarioId);
+
+  // Migrate legacy state that used a single `events` array by splitting on event type
+  let activityEvents: DemoEvent[] = [];
+  let systemEvents: DemoEvent[] = [];
+
+  if (Array.isArray(value.activityEvents)) {
+    activityEvents = value.activityEvents;
+  } else if (Array.isArray(value.events)) {
+    activityEvents = value.events.filter((e) => activityEventTypes.has(e.eventType));
+  }
+
+  if (Array.isArray(value.systemEvents)) {
+    systemEvents = value.systemEvents;
+  } else if (Array.isArray(value.events)) {
+    systemEvents = value.events.filter((e) => !activityEventTypes.has(e.eventType));
+  }
 
   return {
     activeScenarioId: validScenario ? (value.activeScenarioId as string) : initialDemoState.activeScenarioId,
     checkInStatus: typeof value.checkInStatus === "string" ? value.checkInStatus : initialDemoState.checkInStatus,
-    events: Array.isArray(value.events) ? value.events : initialDemoState.events,
+    activityEvents,
+    systemEvents,
     profile: {
       userId: value.profile?.userId ?? defaultDemoProfile.userId,
       preferredName: value.profile?.preferredName ?? defaultDemoProfile.preferredName,
@@ -115,6 +147,14 @@ export function normalizeDemoState(raw: unknown): DemoState {
   };
 }
 
+function generateId(): string {
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === "x" ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+
 export function createEvent(
   eventType: string,
   source: EventSource,
@@ -123,7 +163,7 @@ export function createEvent(
   userId = defaultDemoProfile.userId
 ): DemoEvent {
   return {
-    id: crypto.randomUUID(),
+    id: generateId(),
     eventType,
     timestamp: new Date().toISOString(),
     userId,

@@ -29,9 +29,9 @@ export default function CaregiverPage() {
     const loaded = loadState();
     const next = {
       ...loaded,
-      events: [
+      systemEvents: [
         createEvent("caregiver_view_opened", "caregiver", loaded.activeScenarioId, undefined, loaded.profile.userId),
-        ...loaded.events
+        ...loaded.systemEvents
       ].slice(0, 20)
     };
     setState(next);
@@ -39,6 +39,8 @@ export default function CaregiverPage() {
   }, []);
 
   const activeScenario = useMemo(() => findScenario(state.activeScenarioId), [state.activeScenarioId]);
+  const missedCalls = state.activityEvents.filter((e) => e.eventType === "caregiver_called").length;
+  const emergencyCalls = state.activityEvents.filter((e) => e.eventType === "emergency_called").length;
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-3xl px-4 py-8">
@@ -54,10 +56,22 @@ export default function CaregiverPage() {
             personName={state.profile.preferredName}
             lastCheckIn={state.checkInStatus === "Not submitted yet" ? "No check-in yet" : "In current session"}
             status={`Active scenario: ${activeScenario.label}`}
-            todaysEvents={state.events.length}
+            todaysEvents={state.activityEvents.length}
+            missedCalls={missedCalls}
+            emergencyCalls={emergencyCalls}
           />
-          <EventLogList items={state.events} defaultCollapsed />
+          <EventLogList
+            title={`${state.profile.preferredName}'s Activity`}
+            items={state.activityEvents}
+            defaultCollapsed={false}
+            emptyText="No activity from the app yet."
+            initialLimit={5}
+          />
         </div>
+
+        <section className="space-y-3">
+          <EventLogList items={state.systemEvents} defaultCollapsed title="Event Log" plain emptyText="No system events yet." />
+        </section>
       </div>
     </main>
   );

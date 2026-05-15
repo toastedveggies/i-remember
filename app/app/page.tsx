@@ -55,8 +55,12 @@ function saveState(nextState: DemoState): void {
   }
 }
 
-function appendEvent(state: DemoState, event: DemoEvent): DemoState {
-  return { ...state, events: [event, ...state.events].slice(0, 20) };
+function appendActivityEvent(state: DemoState, event: DemoEvent): DemoState {
+  return { ...state, activityEvents: [event, ...state.activityEvents].slice(0, 50) };
+}
+
+function appendSystemEvent(state: DemoState, event: DemoEvent): DemoState {
+  return { ...state, systemEvents: [event, ...state.systemEvents].slice(0, 20) };
 }
 
 function recommendedNextAction(question: string, caregiverName: string): string {
@@ -77,7 +81,8 @@ function recommendedNextAction(question: string, caregiverName: string): string 
 
 export default function TodayWindowPage() {
   const [helperOpen, setHelperOpen] = useState(false);
-  const [showEmergencyNote, setShowEmergencyNote] = useState(false);
+  const [callingCaregiver, setCallingCaregiver] = useState(false);
+  const [callingEmergency, setCallingEmergency] = useState(false);
   const [lastGuidanceUpdate, setLastGuidanceUpdate] = useState<string | null>(null);
   const [selectedQuestion, setSelectedQuestion] = useState("");
   const [state, setState] = useState<DemoState>(initialDemoState);
@@ -94,16 +99,16 @@ export default function TodayWindowPage() {
   };
 
   const refreshGuidance = () => {
-    const withStart = appendEvent(
+    const withStart = appendActivityEvent(
       state,
       createEvent("reorientation_started", "app", activeScenario.id, { uncertainty: activeScenario.uncertainty }, state.profile.userId)
     );
-    const withViewed = appendEvent(
+    const withViewed = appendSystemEvent(
       withStart,
       createEvent("reorientation_card_viewed", "app", activeScenario.id, undefined, state.profile.userId)
     );
     if (activeScenario.uncertainty === "high") {
-      const withFallback = appendEvent(
+      const withFallback = appendActivityEvent(
         withViewed,
         createEvent("fallback_shown", "app", activeScenario.id, { level: activeScenario.uncertainty }, state.profile.userId)
       );
@@ -121,16 +126,29 @@ export default function TodayWindowPage() {
 
     const status = `Check-in saved: ${selectedQuestion}`;
     const nextAction = recommendedNextAction(selectedQuestion, state.profile.caregiverName);
-    const next = appendEvent(
+    const next = appendActivityEvent(
       { ...state, checkInStatus: `${status} Recommended next action: ${nextAction}` },
       createEvent("checkin_submitted", "app", activeScenario.id, { question: selectedQuestion }, state.profile.userId)
     );
     persist(next);
+    setSelectedQuestion("");
+  };
+
+  const callCaregiver = () => {
+    persist(appendActivityEvent(state, createEvent("caregiver_called", "app", activeScenario.id, undefined, state.profile.userId)));
+    setCallingCaregiver(true);
+  };
+
+  const callEmergency = () => {
+    persist(appendActivityEvent(state, createEvent("emergency_called", "app", activeScenario.id, undefined, state.profile.userId)));
+    setCallingEmergency(true);
   };
 
   const fallbackMessage = fallbackCopy(activeScenario.uncertainty);
 
-  const eventItems = state.events;
+  const eventItems = [...state.activityEvents, ...state.systemEvents].sort(
+    (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+  );
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-3xl px-4 py-8">
@@ -176,7 +194,7 @@ export default function TodayWindowPage() {
 
             <div className="space-y-3">
               <div className="flex items-center gap-2">
-                <MemoryIcon name="checkCircle" className="h-7 w-7 text-brand-primary" />
+                <MemoryIcon name="checkCircle" className="h-7 w-7 text-green-500" />
                 <h3 className="text-xl font-semibold text-brand-text">Do a quick check-in</h3>
               </div>
               <CheckInCard
@@ -198,7 +216,7 @@ export default function TodayWindowPage() {
               title="Call caregiver"
               description={`Call ${state.profile.caregiverName} for reassurance.`}
               buttonLabel={`Call ${state.profile.caregiverName}`}
-              href="tel:+17047966944"
+              onClick={callCaregiver}
             />
 
             <SupportActionCard
@@ -206,7 +224,10 @@ export default function TodayWindowPage() {
               title="Show helper card"
               description="A simple screen you can show to a nearby person."
               buttonLabel="Show helper card"
-              onClick={() => setHelperOpen(true)}
+              onClick={() => {
+                persist(appendActivityEvent(state, createEvent("helper_card_shown", "app", activeScenario.id, undefined, state.profile.userId)));
+                setHelperOpen(true);
+              }}
             />
           </div>
         </section>
@@ -223,32 +244,60 @@ export default function TodayWindowPage() {
           Contact {state.profile.caregiverName} now. If there is immediate danger, call emergency services.
         </p>
         <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
-          <a
-            href="tel:+17047966944"
+          <button
+            type="button"
+            onClick={callCaregiver}
             className="flex min-h-12 items-center justify-center rounded-2xl bg-brand-primary px-4 py-3 text-sm font-semibold text-white focus:outline-none focus:ring-2 focus:ring-brand-compass"
           >
             {`Call ${state.profile.caregiverName}`}
-          </a>
+          </button>
           <button
             type="button"
-            onClick={() => setShowEmergencyNote((prev) => !prev)}
-            className="flex min-h-12 items-center justify-center rounded-2xl border border-brand-border bg-brand-bg px-4 py-3 text-sm font-semibold text-brand-text focus:outline-none focus:ring-2 focus:ring-brand-compass/40"
+            onClick={callEmergency}
+            className="flex min-h-12 items-center justify-center rounded-2xl bg-red-600 px-4 py-3 text-sm font-semibold text-white focus:outline-none focus:ring-2 focus:ring-red-400"
           >
             Urgent: call emergency services
           </button>
         </div>
-        {showEmergencyNote ? (
-          <p className="mt-3 rounded-2xl border border-brand-border bg-brand-bg p-3 text-sm text-brand-muted">
-            If this feels urgent or unsafe, call emergency services now.
-          </p>
-        ) : null}
       </section>
 
       <p className="mt-3 text-center text-xs text-brand-muted">
         Prototype note: data is stored in this browser session for demo purposes.
       </p>
 
-      <HelperModal open={helperOpen} onClose={() => setHelperOpen(false)} profile={state.profile} />
+      <HelperModal open={helperOpen} onClose={() => setHelperOpen(false)} profile={state.profile} onCallCaregiver={callCaregiver} onCallEmergency={callEmergency} />
+
+      {callingEmergency ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-sm rounded-3xl border border-brand-border bg-brand-surface p-6 shadow-lg">
+            <p className="text-xl font-semibold text-brand-text">Calling 911…</p>
+            <p className="mt-2 text-sm text-brand-muted">This is a demo. No real call is placed.</p>
+            <button
+              type="button"
+              onClick={() => setCallingEmergency(false)}
+              className="mt-4 min-h-12 w-full rounded-2xl border border-brand-border bg-brand-bg px-4 py-3 text-base font-semibold text-brand-text focus:outline-none focus:ring-2 focus:ring-brand-compass/40"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {callingCaregiver ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-sm rounded-3xl border border-brand-border bg-brand-surface p-6 shadow-lg">
+            <p className="text-xl font-semibold text-brand-text">Calling {state.profile.caregiverName}…</p>
+            <p className="mt-2 text-sm text-brand-muted">This is a demo. No real call is placed.</p>
+            <button
+              type="button"
+              onClick={() => setCallingCaregiver(false)}
+              className="mt-4 min-h-12 w-full rounded-2xl border border-brand-border bg-brand-bg px-4 py-3 text-base font-semibold text-brand-text focus:outline-none focus:ring-2 focus:ring-brand-compass/40"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }

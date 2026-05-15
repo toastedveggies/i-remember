@@ -60,6 +60,65 @@
     - Added explicit prototype data note for demo expectation-setting
     - Clarified "Help me now" helper text (refreshes guidance + logs support moment)
     - Added persistent urgent-support sticky panel with caregiver and emergency call actions
+- Phase 3 caregiver log enhancement:
+    - `checkin_submitted` events in the event log now display the specific question the user selected (from `metadata.question`), visible on both `/app` and `/caregiver`
+- Phase 3 caregiver dashboard redesign:
+    - Top grid: renamed event log panel to "{preferredName}'s Activity", filtered to `source === "app"` events, visible by default
+    - Added full-width "Event Log" section below the grid showing all events, collapsed by default
+    - `reorientation_started` events highlighted with rust left border and colored label to signal distress moments to caregiver
+    - `EventLogList` now accepts `title` and `emptyText` props for reuse flexibility
+- Phase 3 caregiver activity panel filter refinement:
+    - "{preferredName}'s Activity" now filters by event type allowlist (`reorientation_started`, `checkin_submitted`, `fallback_shown`, `demo_scenario_selected`) rather than by source
+    - `reorientation_card_viewed` and `caregiver_view_opened` appear only in the full Event Log section
+- Phase 3 helper card event logging:
+    - Tapping "Show helper card" in `/app` now logs a `helper_card_shown` event
+    - `helper_card_shown` events render with a light yellow background and amber label in the event log
+    - `helper_card_shown` added to the caregiver Activity panel allowlist
+- Phase 3 caregiver dashboard list fixes:
+    - Alex's Activity panel shows 6 most recent events by default; "Show more" expands to a scrollable 500px container
+    - Event Log panel now shows only system/navigation events (inverse of activity allowlist); displays in plain style with no highlights
+    - `EventLogList` accepts `initialLimit` and `plain` props
+- Phase 3 Activity panel show more/less fix:
+    - Default limit changed from 6 to 5
+    - "Show more" now toggles to "Show less" to collapse back to 5; scroll container only active when expanded
+- Phase 3 event state refactor: split single `events` array into `activityEvents` (cap 50) and `systemEvents` (cap 20)
+    - `activityEvents`: `reorientation_started`, `checkin_submitted`, `fallback_shown`, `helper_card_shown`
+    - `systemEvents`: `reorientation_card_viewed`, `caregiver_view_opened`, `demo_scenario_selected`
+    - `normalizeDemoState` migrates legacy localStorage state by splitting old `events` array on event type
+    - `/caregiver` reads arrays directly — no runtime filter logic needed
+    - Changed files: `data/demoState.ts`, `app/app/page.tsx`, `app/demo/page.tsx`, `app/caregiver/page.tsx`
+- Phase 3 Activity panel scroll fix:
+    - Expanded view with ≤10 items sizes naturally (no scroll, no max-height)
+    - Expanded view with >10 items uses `max-h-[800px] overflow-y-auto`
+    - Collapsed view always sizes naturally to first 5 items
+- Phase 3 check-in selection reset: `setSelectedQuestion("")` called on submit so options return to default state
+- Phase 3 check-in UI fixes:
+    - Removed duplicate "Do a quick check-in" heading from inside `CheckInCard` (section title above is sufficient)
+    - Check-in section icon changed to `text-green-500`
+    - Selected check-in option now shows `bg-green-50` background for clear selection feedback
+    - Removed unused `title` prop and `MemoryIcon` import from `CheckInCard`
+- Phase 3 emergency services feature:
+    - "Urgent: call emergency services" button restyled red; intercepts click, logs `emergency_called`, shows "Calling 911…" demo modal
+    - Same button added to HelperModal via `onCallEmergency` prop
+    - `emergency_called` added to activityEventTypes in `demoState.ts`
+    - Activity panel: `emergency_called` events shown with bright red background and bold yellow "Called Emergency Services" label
+    - Caregiver Snapshot: "Emergency calls" counter (red-600, white text) shown above "Missed calls", only when count > 0
+- Phase 3 Call Maria — helper card fix:
+    - "Call [caregiver]" inside HelperModal now uses `onCallCaregiver` callback instead of `tel:` link
+    - Logs `caregiver_called` and shows the same calling modal as the main buttons
+- Phase 3 Call Maria feature:
+    - "Call caregiver" buttons in `/app` (support card + sticky footer) now intercept clicks: log `caregiver_called` to activityEvents and show a demo modal ("Calling [name]… Cancel")
+    - `caregiver_called` added to activity event type set in `demoState.ts`
+    - Activity panel in `/caregiver`: `caregiver_called` events shown with blue background and blue label
+    - Caregiver Snapshot: shows a red "Missed calls" row when `caregiver_called` count > 0
+- Phase 3 Activity panel allowlist fix:
+    - Removed `demo_scenario_selected` from Alex's Activity panel — it fires from `/demo` (facilitator action, source: "demo"), not from Alex's interactions
+- Phase 3 Activity panel show more/less final fix:
+    - Expanded state shows ALL events; scroll container (max-h 500px) applied only when more than 10 events exist
+    - Removed `expandedLimit` prop (no longer needed)
+- Safari/iOS compatibility fix:
+    - Replaced `crypto.randomUUID()` in `createEvent` (`data/demoState.ts`) with a `generateId()` fallback using `Math.random()`
+    - `crypto.randomUUID()` throws on Safari/iPhone; the fallback works across all browsers
 
 ## Active / Next Task
 
@@ -191,4 +250,4 @@
 
 ## Last Updated
 
-2026-05-09 (UTC-7)
+2026-05-14 (UTC-7) — Safari/iOS fix: replaced crypto.randomUUID() with Math.random() fallback in data/demoState.ts

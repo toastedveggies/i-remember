@@ -50,7 +50,7 @@ export default function DemoPage() {
     const next = {
       ...state,
       activeScenarioId: scenarioId,
-      events: [createEvent("demo_scenario_selected", "demo", scenarioId, undefined, state.profile.userId), ...state.events].slice(0, 20)
+      systemEvents: [createEvent("demo_scenario_selected", "demo", scenarioId, undefined, state.profile.userId), ...state.systemEvents].slice(0, 20)
     };
 
     persist(next);
