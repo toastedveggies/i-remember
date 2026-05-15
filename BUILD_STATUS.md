@@ -116,6 +116,9 @@
 - Phase 3 Activity panel show more/less final fix:
     - Expanded state shows ALL events; scroll container (max-h 500px) applied only when more than 10 events exist
     - Removed `expandedLimit` prop (no longer needed)
+- Safari/iOS compatibility fix:
+    - Replaced `crypto.randomUUID()` in `createEvent` (`data/demoState.ts`) with a `generateId()` fallback using `Math.random()`
+    - `crypto.randomUUID()` throws on Safari/iPhone; the fallback works across all browsers
 
 ## Active / Next Task
 
@@ -247,4 +250,4 @@
 
 ## Last Updated
 
-2026-05-14 (UTC-7) — added Fitbit Heart Rate Alert Integration detail to FUTURE_IDEAS.md backlog
+2026-05-14 (UTC-7) — Safari/iOS fix: replaced crypto.randomUUID() with Math.random() fallback in data/demoState.ts
