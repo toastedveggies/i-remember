@@ -61,11 +61,22 @@ function monthRange(): { start: string; end: string } {
   };
 }
 
-function yearRange(): { start: string; end: string } {
-  const y = new Date().getUTCFullYear();
+function rollingYearRange(): {
+  start: string;
+  end: string;
+  months: Array<{ year: number; month: number; label: string }>;
+} {
+  const now = new Date();
+  const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const months: Array<{ year: number; month: number; label: string }> = [];
+  for (let i = 11; i >= 0; i--) {
+    const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1));
+    months.push({ year: d.getUTCFullYear(), month: d.getUTCMonth() + 1, label: MONTH_LABELS[d.getUTCMonth()] });
+  }
   return {
-    start: new Date(Date.UTC(y, 0, 1)).toISOString(),
-    end:   new Date(Date.UTC(y + 1, 0, 1)).toISOString(),
+    start: new Date(Date.UTC(months[0].year, months[0].month - 1, 1)).toISOString(),
+    end: end.toISOString(),
+    months,
   };
 }
 
@@ -78,7 +89,7 @@ async function fetchEvents(start: string, end: string): Promise<EventRow[] | nul
       .eq("user_id", DEMO_USER_ID)
       .gte("created_at", start)
       .lt("created_at", end)
-      .limit(3000);
+      .limit(5000);
     if (error || !data) return null;
     return data as EventRow[];
   } catch {
@@ -155,9 +166,12 @@ export async function getMonthlyData(): Promise<MonthlyData | null> {
 }
 
 export async function getYearlyData(): Promise<YearlyData | null> {
-  const { start, end } = yearRange();
+  const { start, end, months } = rollingYearRange();
   const events = await fetchEvents(start, end);
   if (!events) return null;
+
+  const startDate = new Date(start);
+  const startOffset = startDate.getUTCFullYear() * 12 + startDate.getUTCMonth();
 
   const perMonth = new Array<number>(12).fill(0);
   const sundown: TimeOfDay[] = Array.from({ length: 12 }, emptyTod);
@@ -165,14 +179,17 @@ export async function getYearlyData(): Promise<YearlyData | null> {
   for (const e of events) {
     if (e.event_type !== "reorientation_started") continue;
     const d = new Date(e.created_at);
-    const mi = d.getUTCMonth();
-    perMonth[mi]++;
-    sundown[mi][timeBucket(d.getUTCHours())]++;
+    const relativeIndex = (d.getUTCFullYear() * 12 + d.getUTCMonth()) - startOffset;
+    if (relativeIndex < 0 || relativeIndex >= 12) continue;
+    perMonth[relativeIndex]++;
+    sundown[relativeIndex][timeBucket(d.getUTCHours())]++;
   }
 
+  const monthLabels = months.map((m) => m.label);
+
   return {
-    eventsPerMonth: MONTH_LABELS.map((label, i) => ({ label, count: perMonth[i] })),
-    sundowningPattern: MONTH_LABELS.map((month, i) => ({ month, ...sundown[i] })),
+    eventsPerMonth: monthLabels.map((label, i) => ({ label, count: perMonth[i] })),
+    sundowningPattern: monthLabels.map((month, i) => ({ month, ...sundown[i] })),
     stabilityScore: stabilityScore(events),
   };
 }

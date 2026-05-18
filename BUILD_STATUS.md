@@ -143,6 +143,7 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
   - [x] `app/demo/page.tsx` — "Supabase Demo Data" section added with event count, Seed and Clear buttons, loading states, and status messages
   - [x] `lib/insightsData.ts` created — `getWeeklyData`, `getMonthlyData`, `getYearlyData` query Supabase and return aggregated data; silent null return on error
   - [x] Both insights pages wired to live Supabase data via `useEffect`; static placeholders used as fallback when Supabase returns null; loading indicator shown during fetch
+  - [x] Rolling 12-month window: `seedDemoData` generates past 12 months from today; `getYearlyData` queries same rolling range with dynamic month labels; year tab labels updated to "Past 12 Months"
   - Implement Independent Mode UI: `/caregiver` shows "No caregiver connected yet" state when no caregiver is linked
 
 ## Blocked Tasks
@@ -271,4 +272,4 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
 
 ## Last Updated
 
-2026-05-18 (UTC-7) — Insights pages wired to live Supabase data via lib/insightsData.ts; static placeholders remain as fallback
+2026-05-18 (UTC-7) — Fixed getYearlyData(): relative-index bucketing, dynamic sundowningPattern labels

@@ -379,7 +379,7 @@ export default function InsightsPage() {
         {tab === "year" && (
           <div className="space-y-4">
             <section className="rounded-3xl border border-brand-border bg-brand-surface p-5 shadow-sm space-y-3">
-              <h2 className="text-xl font-semibold text-brand-text">Confusion Events This Year</h2>
+              <h2 className="text-xl font-semibold text-brand-text">Confusion Events — Past 12 Months</h2>
               <p className="text-sm text-brand-muted">
                 Help requests per month — higher values indicate more confusion events
               </p>
@@ -396,7 +396,7 @@ export default function InsightsPage() {
 
             <section className="rounded-3xl border border-brand-border bg-brand-surface p-5 shadow-sm">
               <h2 className="text-xl font-semibold text-brand-text">Stability Score</h2>
-              <StabilityScore score={resolvedYearScore} periodLabel="this year" />
+              <StabilityScore score={resolvedYearScore} periodLabel="the past 12 months" />
             </section>
           </div>
         )}

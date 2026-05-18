@@ -1,7 +1,6 @@
 import { supabase } from "./supabaseClient";
 
 const DEMO_USER_ID = "00000000-0000-0000-0000-000000000001";
-const YEAR = 2026;
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -56,19 +55,20 @@ function isoTs(year: number, month: number, day: number, hour: number, minute: n
 
 // ── Static config ─────────────────────────────────────────────────────────────
 
-const DAYS_IN_MONTH: Record<number, number> = {
-  1: 31, 2: 28, 3: 31, 4: 30, 5: 31, 6: 30,
-  7: 31, 8: 31, 9: 30, 10: 31, 11: 30, 12: 31,
-};
+function daysInMonth(year: number, month: number): number {
+  // month is 1-indexed; day 0 of the next UTC month = last day of this month
+  return new Date(Date.UTC(year, month, 0)).getUTCDate();
+}
 
-// Specific days-of-month that have an emergency event, per the narrative
-const EMERGENCY_DAYS: Record<number, number[]> = {
-  7:  [8, 22],
-  8:  [5, 14, 25],
-  9:  [10, 21],
-  10: [3, 15, 27],
-  11: [7, 12, 19, 28],
-  12: [4, 16, 23],
+// Emergency event days keyed by rolling window index (0=oldest month, 11=current month)
+// Indices 6-11 correspond to phases 3 and 4 per the narrative
+const EMERGENCY_DAYS_BY_INDEX: Record<number, number[]> = {
+  6:  [8, 22],
+  7:  [5, 14, 25],
+  8:  [10, 21],
+  9:  [3, 15, 27],
+  10: [7, 12, 19, 28],
+  11: [4, 16, 23],
 };
 
 const CHECK_IN_QUESTIONS = [
@@ -77,10 +77,10 @@ const CHECK_IN_QUESTIONS = [
   "Would calling your caregiver help right now?",
 ];
 
-function getPhase(month: number): Phase {
-  if (month <= 3) return 1;
-  if (month <= 6) return 2;
-  if (month <= 9) return 3;
+function getPhaseByIndex(idx: number): Phase {
+  if (idx <= 2) return 1;
+  if (idx <= 5) return 2;
+  if (idx <= 8) return 3;
   return 4;
 }
 
@@ -124,6 +124,7 @@ function scenarioForHour(hour: number): string {
 // ── Per-day event generation ─────────────────────────────────────────────────
 
 function generateDay(
+  year: number,
   month: number,
   day: number,
   phase: Phase,
@@ -156,7 +157,7 @@ function generateDay(
       confidence_level: confidence,
       scenario_id: scenarioForHour(h),
       metadata: { uncertainty: confidence },
-      created_at: isoTs(YEAR, month, day, h, randInt(0, 59)),
+      created_at: isoTs(year, month, day, h, randInt(0, 59)),
     });
   }
 
@@ -168,7 +169,7 @@ function generateDay(
       event_type: "checkin_submitted",
       source: "app",
       metadata: { question: pick(CHECK_IN_QUESTIONS) },
-      created_at: isoTs(YEAR, month, day, randomHour(phase), randInt(0, 59)),
+      created_at: isoTs(year, month, day, randomHour(phase), randInt(0, 59)),
     });
   }
 
@@ -187,7 +188,7 @@ function generateDay(
       user_id: DEMO_USER_ID,
       event_type: "helper_card_shown",
       source: "app",
-      created_at: isoTs(YEAR, month, day, randomHour(phase), randInt(0, 59)),
+      created_at: isoTs(year, month, day, randomHour(phase), randInt(0, 59)),
     });
   }
 
@@ -218,7 +219,7 @@ function generateDay(
           user_id: DEMO_USER_ID,
           event_type: "caregiver_called",
           source: "app",
-          created_at: isoTs(YEAR, month, day, Math.min(Math.floor(totalMin / 60), 23), totalMin % 60),
+          created_at: isoTs(year, month, day, Math.min(Math.floor(totalMin / 60), 23), totalMin % 60),
         });
       }
     } else {
@@ -228,7 +229,7 @@ function generateDay(
           user_id: DEMO_USER_ID,
           event_type: "caregiver_called",
           source: "app",
-          created_at: isoTs(YEAR, month, day, randomHour(phase), randInt(0, 59)),
+          created_at: isoTs(year, month, day, randomHour(phase), randInt(0, 59)),
         });
       }
     }
@@ -241,7 +242,7 @@ function generateDay(
       user_id: DEMO_USER_ID,
       event_type: "emergency_called",
       source: "app",
-      created_at: isoTs(YEAR, month, day, randInt(18, 21), randInt(0, 59)),
+      created_at: isoTs(year, month, day, randInt(18, 21), randInt(0, 59)),
     });
   }
 
@@ -252,7 +253,7 @@ function generateDay(
     for (let i = 0; i < sampleCount; i++) {
       const h = Math.min(baseHour + i, 23);
       const bpm = isEmergencyDay ? randInt(128, 152) : randInt(103, 128);
-      const ts = isoTs(YEAR, month, day, h, randInt(0, 59));
+      const ts = isoTs(year, month, day, h, randInt(0, 59));
       biometric.push({
         id: generateId(),
         user_id: DEMO_USER_ID,
@@ -295,13 +296,22 @@ export async function seedDemoData(): Promise<{ success: boolean; message: strin
     const allActivity: ActivityRow[] = [];
     const allBiometric: BiometricRow[] = [];
 
-    for (let month = 1; month <= 12; month++) {
-      const days = DAYS_IN_MONTH[month];
-      const phase = getPhase(month);
-      const emergencyDays = EMERGENCY_DAYS[month] ?? [];
+    // Build rolling 12-month window ending at start of today
+    const now = new Date();
+    const rollingMonths: Array<{ year: number; month: number }> = [];
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1));
+      rollingMonths.push({ year: d.getUTCFullYear(), month: d.getUTCMonth() + 1 });
+    }
+
+    for (let idx = 0; idx < 12; idx++) {
+      const { year, month } = rollingMonths[idx];
+      const phase = getPhaseByIndex(idx);
+      const emergencyDays = EMERGENCY_DAYS_BY_INDEX[idx] ?? [];
+      const days = daysInMonth(year, month);
 
       for (let day = 1; day <= days; day++) {
-        const { activity, biometric } = generateDay(month, day, phase, emergencyDays.includes(day));
+        const { activity, biometric } = generateDay(year, month, day, phase, emergencyDays.includes(day));
         allActivity.push(...activity);
         allBiometric.push(...biometric);
       }
