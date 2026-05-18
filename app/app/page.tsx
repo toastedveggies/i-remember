@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import CheckInCard from "@/components/CheckInCard";
 import EventLogList from "@/components/EventLogList";
 import HelperModal from "@/components/HelperModal";
@@ -223,6 +224,12 @@ export default function TodayWindowPage() {
               }}
             />
           </div>
+          <Link
+            href="/app/insights"
+            className="flex min-h-12 w-full items-center justify-center rounded-2xl border border-brand-border bg-brand-bg px-4 py-3 text-base font-semibold text-brand-text hover:bg-brand-surface focus:outline-none focus:ring-2 focus:ring-brand-compass/40"
+          >
+            My Insights
+          </Link>
         </section>
 
         <section className="space-y-3">

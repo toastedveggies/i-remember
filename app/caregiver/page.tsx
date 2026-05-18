@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import CaregiverSummary from "@/components/CaregiverSummary";
 import EventLogList from "@/components/EventLogList";
+import Link from "next/link";
 import { appendSystemEvent, createEvent, findScenario, initialDemoState, normalizeDemoState, storageKey, type DemoState } from "@/data/demoState";
 
 function loadState(): DemoState {
@@ -47,6 +48,15 @@ export default function CaregiverPage() {
           <p className="text-base text-brand-muted">A calm overview of recent activity and current status.</p>
           <p className="text-sm text-brand-muted">Simulation route only. No production auth in MVP.</p>
         </header>
+
+        <div>
+          <Link
+            href="/caregiver/insights"
+            className="inline-flex items-center rounded-2xl border border-brand-border bg-brand-bg px-4 py-2 text-sm font-semibold text-brand-text hover:bg-brand-surface focus:outline-none focus:ring-2 focus:ring-brand-compass/40"
+          >
+            Insights →
+          </Link>
+        </div>
 
         <div className="grid grid-cols-1 gap-4 md:gap-0 md:grid-cols-2 md:divide-x md:divide-brand-border">
           <CaregiverSummary
