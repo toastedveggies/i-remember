@@ -129,6 +129,7 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
   - [x] Supabase client initialized at `lib/supabaseClient.ts`
   - [x] Event logging helpers created at `lib/logEvent.ts` (`logActivityEvent`, `logSystemEvent`)
   - [x] `appendActivityEvent` and `appendSystemEvent` added to `data/demoState.ts`; call Supabase logger fire-and-forget alongside local state update
+  - [x] All three page components migrated to use `appendActivityEvent`/`appendSystemEvent` from `demoState.ts`; local duplicates removed
   - Set up Supabase project and configure environment variables (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`)
   - Apply schema migration in Supabase dashboard (SQL editor)
   - Migrate state from localStorage (`demoState.ts`) to Supabase persistence
@@ -260,4 +261,4 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
 
 ## Last Updated
 
-2026-05-18 (UTC-7) — appendActivityEvent/appendSystemEvent added to demoState.ts with Supabase fire-and-forget logging
+2026-05-18 (UTC-7) — Pages migrated to use appendActivityEvent/appendSystemEvent from demoState.ts; local duplicates removed

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import ResponseCard from "@/components/ResponseCard";
 import ScenarioSelector from "@/components/ScenarioSelector";
 import {
+  appendSystemEvent,
   createEvent,
   demoScenarios,
   findScenario,
@@ -47,12 +48,10 @@ export default function DemoPage() {
   };
 
   const selectScenario = (scenarioId: string) => {
-    const next = {
-      ...state,
-      activeScenarioId: scenarioId,
-      systemEvents: [createEvent("demo_scenario_selected", "demo", scenarioId, undefined, state.profile.userId), ...state.systemEvents].slice(0, 20)
-    };
-
+    const next = appendSystemEvent(
+      { ...state, activeScenarioId: scenarioId },
+      createEvent("demo_scenario_selected", "demo", scenarioId, undefined, state.profile.userId)
+    );
     persist(next);
   };
 
