@@ -67,7 +67,7 @@ function rollingYearRange(): {
   months: Array<{ year: number; month: number; label: string }>;
 } {
   const now = new Date();
-  const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
   const months: Array<{ year: number; month: number; label: string }> = [];
   for (let i = 11; i >= 0; i--) {
     const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1));
@@ -90,9 +90,11 @@ async function fetchEvents(start: string, end: string): Promise<EventRow[] | nul
       .gte("created_at", start)
       .lt("created_at", end)
       .limit(5000);
+    if (error) console.error("Supabase query error:", error, "range:", start, "to", end);
     if (error || !data) return null;
     return data as EventRow[];
-  } catch {
+  } catch (err) {
+    console.error("fetchEvents error:", err);
     return null;
   }
 }
