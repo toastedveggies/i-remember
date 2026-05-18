@@ -1,3 +1,5 @@
+import { logActivityEvent, logSystemEvent } from "@/lib/logEvent";
+
 export type EventSource = "app" | "caregiver" | "demo";
 export type UncertaintyLevel = "low" | "medium" | "high";
 
@@ -171,6 +173,16 @@ export function createEvent(
     scenarioId,
     metadata
   };
+}
+
+export function appendActivityEvent(state: DemoState, event: DemoEvent): DemoState {
+  logActivityEvent(event);
+  return { ...state, activityEvents: [event, ...state.activityEvents].slice(0, 50) };
+}
+
+export function appendSystemEvent(state: DemoState, event: DemoEvent): DemoState {
+  logSystemEvent(event);
+  return { ...state, systemEvents: [event, ...state.systemEvents].slice(0, 20) };
 }
 
 export function findScenario(scenarioId: string): DemoScenario {

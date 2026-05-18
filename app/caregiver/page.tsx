@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import CaregiverSummary from "@/components/CaregiverSummary";
 import EventLogList from "@/components/EventLogList";
-import { createEvent, findScenario, initialDemoState, normalizeDemoState, storageKey, type DemoState } from "@/data/demoState";
+import { appendSystemEvent, createEvent, findScenario, initialDemoState, normalizeDemoState, storageKey, type DemoState } from "@/data/demoState";
 
 function loadState(): DemoState {
   if (typeof window === "undefined") {
@@ -27,13 +27,10 @@ export default function CaregiverPage() {
 
   useEffect(() => {
     const loaded = loadState();
-    const next = {
-      ...loaded,
-      systemEvents: [
-        createEvent("caregiver_view_opened", "caregiver", loaded.activeScenarioId, undefined, loaded.profile.userId),
-        ...loaded.systemEvents
-      ].slice(0, 20)
-    };
+    const next = appendSystemEvent(
+      loaded,
+      createEvent("caregiver_view_opened", "caregiver", loaded.activeScenarioId, undefined, loaded.profile.userId)
+    );
     setState(next);
     window.localStorage.setItem(storageKey, JSON.stringify(next));
   }, []);

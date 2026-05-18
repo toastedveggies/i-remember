@@ -57,7 +57,12 @@ Memory Assistant answers:
 - Add scenario simulator polish
 - Prepare class demonstration path
 
-### Phase 4 - Stretch (optional)
+### Phase 4 - Supabase backend integration
+- Connect Supabase backend to the app
+- Define and apply database schema
+- Migrate state from localStorage to Supabase persistence
+
+### Phase 5 - Stretch (optional)
 - Simple push notification demo
 
 ## Phase 2 Definition of Done
@@ -133,7 +138,6 @@ Phase 2 is complete when the following MVP criteria are met using route-based ro
 
 ## Non-Goals for Current Stage
 
-- Supabase integration now
 - OpenAI/API integration now
 - Push notifications now
 - Full auth/roles hardening

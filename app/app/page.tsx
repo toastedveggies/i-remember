@@ -9,13 +9,14 @@ import SupportActionCard from "@/components/SupportActionCard";
 import TodayCard from "@/components/TodayCard";
 import MemoryIcon from "@/components/MemoryIcon";
 import {
+  appendActivityEvent,
+  appendSystemEvent,
   checkInQuestions,
   createEvent,
   findScenario,
   initialDemoState,
   normalizeDemoState,
   storageKey,
-  type DemoEvent,
   type DemoState,
   type UncertaintyLevel
 } from "@/data/demoState";
@@ -53,14 +54,6 @@ function saveState(nextState: DemoState): void {
   if (typeof window !== "undefined") {
     window.localStorage.setItem(storageKey, JSON.stringify(nextState));
   }
-}
-
-function appendActivityEvent(state: DemoState, event: DemoEvent): DemoState {
-  return { ...state, activityEvents: [event, ...state.activityEvents].slice(0, 50) };
-}
-
-function appendSystemEvent(state: DemoState, event: DemoEvent): DemoState {
-  return { ...state, systemEvents: [event, ...state.systemEvents].slice(0, 20) };
 }
 
 function recommendedNextAction(question: string, caregiverName: string): string {
