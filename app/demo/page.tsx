@@ -10,6 +10,7 @@ import {
   findScenario,
   initialDemoState,
   normalizeDemoState,
+  setIndependentMode,
   storageKey,
   type DemoState,
   type PronounSet
@@ -89,6 +90,11 @@ export default function DemoPage() {
     const newProfile = { ...state.profile, pronouns };
     persist({ ...state, profile: newProfile });
     saveProfile(newProfile);
+  };
+
+  const toggleIndependentMode = () => {
+    const updated = setIndependentMode(!state.profile.independentMode);
+    setState(updated);
   };
 
   const fetchActivityCount = () => {
@@ -191,6 +197,20 @@ export default function DemoPage() {
                 />
               </label>
             ) : null}
+            <div className="md:col-span-2 flex items-center justify-between rounded-xl border border-brand-border bg-brand-bg px-3 py-2">
+              <span className="text-sm text-brand-muted">Independent Mode (no caregiver connected)</span>
+              <button
+                type="button"
+                onClick={toggleIndependentMode}
+                className={`rounded-xl px-4 py-1.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-brand-compass/40 ${
+                  state.profile.independentMode
+                    ? "bg-brand-primary text-white"
+                    : "border border-brand-border bg-brand-surface text-brand-text"
+                }`}
+              >
+                {state.profile.independentMode ? "On" : "Off"}
+              </button>
+            </div>
           </div>
         </section>
 

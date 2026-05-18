@@ -40,6 +40,53 @@ export default function CaregiverPage() {
   const missedCalls = state.activityEvents.filter((e) => e.eventType === "caregiver_called").length;
   const emergencyCalls = state.activityEvents.filter((e) => e.eventType === "emergency_called").length;
 
+  if (state.profile.independentMode) {
+    return (
+      <main className="mx-auto min-h-screen w-full max-w-3xl px-4 py-8">
+        <div className="space-y-6">
+          <header className="space-y-1">
+            <h1 className="text-3xl font-semibold text-brand-text">Your care space is ready</h1>
+            <p className="text-base text-brand-muted">
+              {state.profile.preferredName} is using Memory Assistant independently. No caregiver has been connected yet.
+            </p>
+          </header>
+
+          <section className="rounded-3xl border border-brand-border bg-brand-surface p-5 shadow-sm space-y-3">
+            <h2 className="text-xl font-semibold text-brand-text">What a connected caregiver can see</h2>
+            <p className="text-sm text-brand-muted">When a caregiver is invited and connected, they will be able to view:</p>
+            <ul className="space-y-2 text-sm text-brand-muted list-disc list-inside">
+              <li>Activity summary and recent check-in status</li>
+              <li>Support events, caregiver calls, and emergency actions</li>
+              <li>Reorientation patterns and stability trends over time</li>
+            </ul>
+          </section>
+
+          <section className="rounded-3xl border border-brand-border bg-brand-surface p-5 shadow-sm space-y-3">
+            <h2 className="text-xl font-semibold text-brand-text">Connect a caregiver</h2>
+            <p className="text-sm text-brand-muted">
+              You can invite a caregiver to view your care space. They will receive a link to set up access.
+            </p>
+            <button
+              type="button"
+              disabled
+              className="min-h-12 rounded-2xl border border-brand-border bg-brand-bg px-4 py-3 text-sm font-semibold text-brand-text opacity-60 cursor-not-allowed focus:outline-none"
+            >
+              Invite a caregiver
+            </button>
+            <p className="text-xs text-brand-muted">Caregiver invite is coming in a future update.</p>
+          </section>
+
+          <Link
+            href="/app"
+            className="inline-flex items-center rounded-2xl border border-brand-border bg-brand-bg px-4 py-2 text-sm font-semibold text-brand-text hover:bg-brand-surface focus:outline-none focus:ring-2 focus:ring-brand-compass/40"
+          >
+            ← Back to Today
+          </Link>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="mx-auto min-h-screen w-full max-w-3xl px-4 py-8">
       <div className="space-y-6">

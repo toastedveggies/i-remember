@@ -40,6 +40,7 @@ export type DemoProfile = {
   customPronouns?: string;
   caregiverName: string;
   caregiverRelationshipLabel?: string;
+  independentMode?: boolean;
 };
 
 export const defaultDemoProfile: DemoProfile = {
@@ -47,7 +48,8 @@ export const defaultDemoProfile: DemoProfile = {
   preferredName: "Alex",
   pronouns: "he/him",
   caregiverName: "Maria",
-  caregiverRelationshipLabel: "daughter"
+  caregiverRelationshipLabel: "daughter",
+  independentMode: false
 };
 
 export const demoScenarios: DemoScenario[] = [
@@ -144,7 +146,8 @@ export function normalizeDemoState(raw: unknown): DemoState {
       pronouns: (value.profile?.pronouns as PronounSet | undefined) ?? defaultDemoProfile.pronouns,
       customPronouns: value.profile?.customPronouns ?? defaultDemoProfile.customPronouns,
       caregiverName: value.profile?.caregiverName ?? defaultDemoProfile.caregiverName,
-      caregiverRelationshipLabel: value.profile?.caregiverRelationshipLabel ?? defaultDemoProfile.caregiverRelationshipLabel
+      caregiverRelationshipLabel: value.profile?.caregiverRelationshipLabel ?? defaultDemoProfile.caregiverRelationshipLabel,
+      independentMode: value.profile?.independentMode ?? false
     }
   };
 }
@@ -173,6 +176,18 @@ export function createEvent(
     scenarioId,
     metadata
   };
+}
+
+export function setIndependentMode(value: boolean): DemoState {
+  if (typeof window === "undefined") return initialDemoState;
+  const raw = window.localStorage.getItem(storageKey);
+  let current = initialDemoState;
+  if (raw) {
+    try { current = normalizeDemoState(JSON.parse(raw)); } catch { /* use initialDemoState */ }
+  }
+  const updated: DemoState = { ...current, profile: { ...current.profile, independentMode: value } };
+  window.localStorage.setItem(storageKey, JSON.stringify(updated));
+  return updated;
 }
 
 export function appendActivityEvent(state: DemoState, event: DemoEvent): DemoState {
