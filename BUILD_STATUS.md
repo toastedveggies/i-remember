@@ -139,6 +139,8 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
   - [x] Insights screen built at `app/caregiver/insights/page.tsx` — week/month/year tabs, bar charts, line chart, time-of-day breakdown, stat cards, stability score, sundowning heatmap; all static placeholder data for now
   - [x] "My Insights" link added to support actions in `app/app/page.tsx`; "Insights →" link added to `app/caregiver/page.tsx`
   - [x] Alex's personal Insights view created at `app/app/insights/page.tsx`; back button navigates to `/app`; "My Insights" link in `/app` updated to point to `/app/insights`
+  - [x] Seed script created at `lib/seedData.ts` — generates one year of synthetic narrative data (4 phases, emergency clustering, biometric events); `clearSeedData` deletes by user_id
+  - [x] `app/demo/page.tsx` — "Supabase Demo Data" section added with event count, Seed and Clear buttons, loading states, and status messages
   - Implement Independent Mode UI: `/caregiver` shows "No caregiver connected yet" state when no caregiver is linked
 
 ## Blocked Tasks
@@ -267,4 +269,4 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
 
 ## Last Updated
 
-2026-05-18 (UTC-7) — Alex's personal Insights page created at /app/insights; /app My Insights link updated
+2026-05-18 (UTC-7) — Seed script and demo data controls added; lib/seedData.ts + demo page Supabase Demo Data section
