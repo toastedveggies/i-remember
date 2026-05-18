@@ -2,7 +2,9 @@
 
 ## Current Phase
 
-**Phase 3 - Demo Readiness (in progress)**
+**Phase 4 - Supabase Backend Integration (starting)**
+
+Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
 
 ## Completed Tasks
 
@@ -122,11 +124,11 @@
 
 ## Active / Next Task
 
-- Begin Phase 3 - Demo readiness:
-  - Run full demo walkthrough timing and polish copy/micro-interactions
-  - Finalize scenario scripting for class presentation flow
-  - Prepare concise demo script and expected outcomes per route (`/app`, `/caregiver`, `/demo`)
-  - Replace placeholder caregiver phone path with final demo-safe contact strategy
+- Begin Phase 4 - Supabase backend integration:
+  - Set up Supabase project and configure environment variables (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`)
+  - Define and apply database schema (events, profile, check-ins)
+  - Migrate state from localStorage (`demoState.ts`) to Supabase persistence
+  - Verify reads/writes work end-to-end across `/app`, `/caregiver`, and `/demo`
 
 ## Blocked Tasks
 
@@ -244,10 +246,14 @@
 ## Notes for the Next AI Agent
 
 - Start from `PROJECT_PLAN.md` and preserve strict MVP boundaries.
-- Continue Phase 3 demo-readiness polish without adding external integrations.
-- Do not wire Supabase, OpenAI, or push notifications yet.
+- This is Phase 4: Supabase backend integration.
+- Set up the Supabase project and confirm environment variables are in `.env.local` before writing any integration code.
+- Define and apply the database schema for events, profile, and check-in data.
+- Migrate `data/demoState.ts` (currently localStorage-backed) to read/write from Supabase.
+- Verify end-to-end reads and writes work across `/app`, `/caregiver`, and `/demo` before marking Phase 4 complete.
+- Do not add OpenAI or push notifications yet.
 - After making changes, update this file (status, files, timestamp, and next task).
 
 ## Last Updated
 
-2026-05-14 (UTC-7) — Safari/iOS fix: replaced crypto.randomUUID() with Math.random() fallback in data/demoState.ts
+2026-05-18 (UTC-7) — Phase 3 marked complete; Phase 4 (Supabase backend integration) starting

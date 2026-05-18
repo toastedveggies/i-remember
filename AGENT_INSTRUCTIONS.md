@@ -26,7 +26,6 @@ Read all of the following first:
 
 ## Guardrails
 
-- Do not implement Supabase integration until the phase/task explicitly calls for it.
 - Do not add OpenAI integration until explicitly planned.
 - Do not implement push notifications yet (stretch only, later).
 - Prefer clear, small, reviewable changes.
