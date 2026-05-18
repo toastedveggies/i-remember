@@ -124,9 +124,10 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
 
 ## Active / Next Task
 
-- Begin Phase 4 - Supabase backend integration:
+- Phase 4 - Supabase backend integration (in progress):
+  - [x] Initial schema defined and saved to `supabase/migrations/20260518_initial_schema.sql`
   - Set up Supabase project and configure environment variables (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`)
-  - Define and apply database schema (events, profile, check-ins)
+  - Apply schema migration in Supabase dashboard (SQL editor)
   - Migrate state from localStorage (`demoState.ts`) to Supabase persistence
   - Verify reads/writes work end-to-end across `/app`, `/caregiver`, and `/demo`
 
@@ -256,4 +257,4 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
 
 ## Last Updated
 
-2026-05-18 (UTC-7) — Phase 3 marked complete; Phase 4 (Supabase backend integration) starting
+2026-05-18 (UTC-7) — Initial Supabase schema created at supabase/migrations/20260518_initial_schema.sql
