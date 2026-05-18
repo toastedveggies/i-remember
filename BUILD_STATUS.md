@@ -144,6 +144,7 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
   - [x] `lib/insightsData.ts` created — `getWeeklyData`, `getMonthlyData`, `getYearlyData` query Supabase and return aggregated data; silent null return on error
   - [x] Both insights pages wired to live Supabase data via `useEffect`; static placeholders used as fallback when Supabase returns null; loading indicator shown during fetch
   - [x] Rolling 12-month window: `seedDemoData` generates past 12 months from today; `getYearlyData` queries same rolling range with dynamic month labels; year tab labels updated to "Past 12 Months"
+  - [x] Insights yearly chart bug resolved: root cause was Supabase PostgREST `max_rows` default of 1000 silently capping the yearly query despite `.limit(5000)`. Fixed by increasing `max_rows` to 10000 in Supabase Project Settings → API. No code change required.
   - Implement Independent Mode UI: `/caregiver` shows "No caregiver connected yet" state when no caregiver is linked
 
 ## Blocked Tasks
@@ -272,4 +273,4 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
 
 ## Last Updated
 
-2026-05-18 (UTC-7) — getYearlyData() rewritten with key-based lookup; SundowningHeatmap accepts dynamic monthLabels prop
+2026-05-18 (UTC-7) — Insights yearly chart fully working; max_rows fix in Supabase; only remaining Phase 4 task is Independent Mode UI
