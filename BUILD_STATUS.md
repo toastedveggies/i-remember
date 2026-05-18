@@ -131,6 +131,7 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
   - [x] `appendActivityEvent` and `appendSystemEvent` added to `data/demoState.ts`; call Supabase logger fire-and-forget alongside local state update
   - [x] All three page components migrated to use `appendActivityEvent`/`appendSystemEvent` from `demoState.ts`; local duplicates removed
   - [x] Profile persistence helpers created at `lib/profile.ts` (`saveProfile`, `loadProfile`, `saveCaregiverName`); fixed demo UUIDs used until auth is added
+  - [x] `app/demo/page.tsx` wired to Supabase profile helpers: saves on each profile/caregiver field change; loads from Supabase on first visit (localStorage takes priority)
   - Set up Supabase project and configure environment variables (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`)
   - Apply schema migration in Supabase dashboard (SQL editor)
   - Migrate state from localStorage (`demoState.ts`) to Supabase persistence
@@ -262,4 +263,4 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
 
 ## Last Updated
 
-2026-05-18 (UTC-7) — Profile persistence helpers created at lib/profile.ts
+2026-05-18 (UTC-7) — demo/page.tsx wired to Supabase profile helpers; saves on change, hydrates from Supabase when no localStorage session exists

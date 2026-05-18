@@ -14,6 +14,7 @@ import {
   type DemoState,
   type PronounSet
 } from "@/data/demoState";
+import { loadProfile, saveCaregiverName, saveProfile } from "@/lib/profile";
 
 function loadState(): DemoState {
   if (typeof window === "undefined") {
@@ -37,7 +38,15 @@ export default function DemoPage() {
   const [resetMessage, setResetMessage] = useState("");
 
   useEffect(() => {
+    const hasLocalData = window.localStorage.getItem(storageKey) !== null;
     setState(loadState());
+    if (!hasLocalData) {
+      loadProfile().then((supabaseProfile) => {
+        if (supabaseProfile) {
+          setState((prev) => ({ ...prev, profile: supabaseProfile }));
+        }
+      });
+    }
   }, []);
 
   const activeScenario = useMemo(() => findScenario(state.activeScenarioId), [state.activeScenarioId]);
@@ -56,23 +65,19 @@ export default function DemoPage() {
   };
 
   const updateProfile = (field: "preferredName" | "caregiverName" | "caregiverRelationshipLabel" | "customPronouns", value: string) => {
-    persist({
-      ...state,
-      profile: {
-        ...state.profile,
-        [field]: value
-      }
-    });
+    const newProfile = { ...state.profile, [field]: value };
+    persist({ ...state, profile: newProfile });
+    if (field === "caregiverName" || field === "caregiverRelationshipLabel") {
+      saveCaregiverName(newProfile.caregiverName, newProfile.caregiverRelationshipLabel);
+    } else {
+      saveProfile(newProfile);
+    }
   };
 
   const updatePronouns = (pronouns: PronounSet) => {
-    persist({
-      ...state,
-      profile: {
-        ...state.profile,
-        pronouns
-      }
-    });
+    const newProfile = { ...state.profile, pronouns };
+    persist({ ...state, profile: newProfile });
+    saveProfile(newProfile);
   };
 
   const resetDemoState = () => {
