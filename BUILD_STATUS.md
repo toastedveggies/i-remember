@@ -272,4 +272,4 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
 
 ## Last Updated
 
-2026-05-18 (UTC-7) — Fixed getYearlyData(): relative-index bucketing, dynamic sundowningPattern labels
+2026-05-18 (UTC-7) — getYearlyData() rewritten with key-based lookup; SundowningHeatmap accepts dynamic monthLabels prop

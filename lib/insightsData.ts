@@ -172,26 +172,21 @@ export async function getYearlyData(): Promise<YearlyData | null> {
   const events = await fetchEvents(start, end);
   if (!events) return null;
 
-  const startDate = new Date(start);
-  const startOffset = startDate.getUTCFullYear() * 12 + startDate.getUTCMonth();
-
-  const perMonth = new Array<number>(12).fill(0);
-  const sundown: TimeOfDay[] = Array.from({ length: 12 }, emptyTod);
+  const countByKey: Record<string, number> = {};
+  const sundownByKey: Record<string, TimeOfDay> = {};
 
   for (const e of events) {
     if (e.event_type !== "reorientation_started") continue;
     const d = new Date(e.created_at);
-    const relativeIndex = (d.getUTCFullYear() * 12 + d.getUTCMonth()) - startOffset;
-    if (relativeIndex < 0 || relativeIndex >= 12) continue;
-    perMonth[relativeIndex]++;
-    sundown[relativeIndex][timeBucket(d.getUTCHours())]++;
+    const key = `${d.getUTCFullYear()}-${d.getUTCMonth() + 1}`;
+    countByKey[key] = (countByKey[key] || 0) + 1;
+    if (!sundownByKey[key]) sundownByKey[key] = emptyTod();
+    sundownByKey[key][timeBucket(d.getUTCHours())]++;
   }
 
-  const monthLabels = months.map((m) => m.label);
-
   return {
-    eventsPerMonth: monthLabels.map((label, i) => ({ label, count: perMonth[i] })),
-    sundowningPattern: monthLabels.map((month, i) => ({ month, ...sundown[i] })),
+    eventsPerMonth: months.map((m) => ({ label: m.label, count: countByKey[`${m.year}-${m.month}`] || 0 })),
+    sundowningPattern: months.map((m) => ({ month: m.label, ...(sundownByKey[`${m.year}-${m.month}`] || emptyTod()) })),
     stabilityScore: stabilityScore(events),
   };
 }

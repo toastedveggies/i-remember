@@ -205,7 +205,7 @@ function StabilityScore({ score, periodLabel }: { score: number; periodLabel: st
   );
 }
 
-function SundowningHeatmap({ rows }: { rows: number[][] }) {
+function SundowningHeatmap({ rows, monthLabels }: { rows: number[][]; monthLabels: string[] }) {
   const maxVal = Math.max(...rows.flat(), 1);
   return (
     <div className="overflow-x-auto">
@@ -222,9 +222,9 @@ function SundowningHeatmap({ rows }: { rows: number[][] }) {
         </thead>
         <tbody>
           {rows.map((row, mi) => (
-            <tr key={heatmapMonths[mi]}>
+            <tr key={monthLabels[mi]}>
               <td className="pr-2 py-0.5 font-medium text-brand-muted text-right">
-                {heatmapMonths[mi]}
+                {monthLabels[mi]}
               </td>
               {row.map((val, bi) => (
                 <td key={bi} className="py-0.5 px-0.5">
@@ -233,7 +233,7 @@ function SundowningHeatmap({ rows }: { rows: number[][] }) {
                     style={{
                       backgroundColor: `rgba(164, 74, 63, ${val > 0 ? 0.1 + (val / maxVal) * 0.75 : 0.05})`,
                     }}
-                    title={`${heatmapMonths[mi]} ${heatmapBuckets[bi]}: ${val}`}
+                    title={`${monthLabels[mi]} ${heatmapBuckets[bi]}: ${val}`}
                   />
                 </td>
               ))}
@@ -291,6 +291,7 @@ export default function InsightsPage() {
   const resolvedSundowningRows = yearData?.sundowningPattern
     ? yearData.sundowningPattern.map((p) => [p.morning, p.afternoon, p.evening, p.night])
     : sundowningRows;
+  const resolvedSundowningMonthLabels = yearData?.sundowningPattern.map((p) => p.month) ?? heatmapMonths;
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-3xl px-4 py-8">
@@ -391,7 +392,7 @@ export default function InsightsPage() {
               <p className="text-sm text-brand-muted">
                 Event frequency by month and time of day. Darker cells = more events.
               </p>
-              <SundowningHeatmap rows={resolvedSundowningRows} />
+              <SundowningHeatmap rows={resolvedSundowningRows} monthLabels={resolvedSundowningMonthLabels} />
             </section>
 
             <section className="rounded-3xl border border-brand-border bg-brand-surface p-5 shadow-sm">
