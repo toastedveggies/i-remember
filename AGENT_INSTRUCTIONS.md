@@ -29,6 +29,8 @@ Read all of the following first:
 - Do not add OpenAI integration until explicitly planned.
 - Do not implement push notifications yet (stretch only, later).
 - Prefer clear, small, reviewable changes.
+- The app supports Independent Mode (no caregiver connected). This is intentional and not a bug.
+- A new route `/caregiver/insights` is planned for Phase 4. It is accessible from both `/app` and `/caregiver`.
 
 ## Handoff Expectations
 

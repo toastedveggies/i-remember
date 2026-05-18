@@ -10,6 +10,8 @@ Parking lot for ideas that are intentionally out of current MVP scope.
 
 ## Idea Backlog
 
+- Caregiver invite flow — allow Alex to invite a caregiver by email from within the app, creating a `caregiver_user_relationships` row with a role assignment
+- Role-based caregiver dashboard visibility — primary caregivers see full metrics; family/secondary caregivers see summary only (missed calls, emergency events, stability score)
 - Push notification enhancements beyond basic demo
 - Rich caregiver analytics and trends
 - Multi-profile household support

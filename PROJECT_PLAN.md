@@ -29,7 +29,8 @@ Memory Assistant answers:
 4. Caregiver Dashboard at `/caregiver`
 5. Scenario Demo Simulator at `/demo`
 6. Event logging
-7. Stretch: simple push notification demo (later)
+7. Insights screen at `/caregiver/insights` (accessible from both `/app` and `/caregiver`)
+8. Stretch: simple push notification demo (later)
 
 ## Initial Build Phases
 
@@ -61,6 +62,8 @@ Memory Assistant answers:
 - Connect Supabase backend to the app
 - Define and apply database schema
 - Migrate state from localStorage to Supabase persistence
+- Support Independent Mode: user can use the app with no caregiver connected (zero rows in `caregiver_user_relationships`)
+- Build Insights screen at `/caregiver/insights`, accessible from both `/app` and `/caregiver`
 
 ### Phase 5 - Stretch (optional)
 - Simple push notification demo

@@ -87,6 +87,18 @@ Tracks notable project decisions and rationale.
 - **Why:** Consistent, respectful language is a core UX requirement for this prototype.
 - **Implication:** Phase 2 can store this locally/mock/in-memory; production identity/auth and privacy infrastructure are still out of scope for MVP.
 
+### 2026-05-18 - Independent Mode — no caregiver required to start
+- **Decision:** The app supports an Independent Mode where a user has no caregiver connected yet. This is represented by zero rows in `caregiver_user_relationships` for that user. No schema changes are needed.
+- **Behavior in Independent Mode:**
+  - `/app` works as normal.
+  - `/caregiver` shows a "No caregiver connected yet" state with an invite prompt.
+  - `/insights` is accessible directly from `/app` as "My Insights" — Alex has full access to his own metrics and activity history.
+- **When a caregiver is connected**, the caregiver dashboard unlocks based on role:
+  - Primary caregivers see everything.
+  - Family/secondary caregivers see summary only (missed calls, emergency events, stability score).
+- **Why:** Lowers onboarding barrier, respects user agency for early-stage users, and maps to pricing tiers (solo free, caregiver access paid).
+- **Implication:** Caregiver invite/onboarding flow is a future feature.
+
 ## Open Decisions (To Resolve Later)
 
 - Data model for routines/events/check-ins

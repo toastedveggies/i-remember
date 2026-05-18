@@ -136,6 +136,8 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
   - Apply schema migration in Supabase dashboard (SQL editor)
   - Migrate state from localStorage (`demoState.ts`) to Supabase persistence
   - Verify reads/writes work end-to-end across `/app`, `/caregiver`, and `/demo`
+  - Build Insights screen at `/caregiver/insights` (accessible from both `/app` and `/caregiver`)
+  - Implement Independent Mode UI: `/caregiver` shows "No caregiver connected yet" state when no caregiver is linked
 
 ## Blocked Tasks
 
@@ -263,4 +265,4 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
 
 ## Last Updated
 
-2026-05-18 (UTC-7) — demo/page.tsx wired to Supabase profile helpers; saves on change, hydrates from Supabase when no localStorage session exists
+2026-05-18 (UTC-7) — Added Independent Mode decision, Insights screen to plan, and updated guardrails and future ideas
