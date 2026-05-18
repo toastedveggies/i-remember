@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { getMonthlyData, getWeeklyData, getYearlyData, type MonthlyData, type WeeklyData, type YearlyData } from "@/lib/insightsData";
 
 type Tab = "week" | "month" | "year";
 
@@ -204,8 +205,8 @@ function StabilityScore({ score, periodLabel }: { score: number; periodLabel: st
   );
 }
 
-function SundowningHeatmap() {
-  const maxVal = Math.max(...sundowningRows.flat(), 1);
+function SundowningHeatmap({ rows }: { rows: number[][] }) {
+  const maxVal = Math.max(...rows.flat(), 1);
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-xs" style={{ borderSpacing: "3px", borderCollapse: "separate" }}>
@@ -220,7 +221,7 @@ function SundowningHeatmap() {
           </tr>
         </thead>
         <tbody>
-          {sundowningRows.map((row, mi) => (
+          {rows.map((row, mi) => (
             <tr key={heatmapMonths[mi]}>
               <td className="pr-2 py-0.5 font-medium text-brand-muted text-right">
                 {heatmapMonths[mi]}
@@ -249,6 +250,47 @@ function SundowningHeatmap() {
 export default function InsightsPage() {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("week");
+  const [insightsLoading, setInsightsLoading] = useState(true);
+  const [weekData, setWeekData] = useState<WeeklyData | null>(null);
+  const [monthData, setMonthData] = useState<MonthlyData | null>(null);
+  const [yearData, setYearData] = useState<YearlyData | null>(null);
+
+  useEffect(() => {
+    Promise.all([getWeeklyData(), getMonthlyData(), getYearlyData()]).then(([w, m, y]) => {
+      setWeekData(w);
+      setMonthData(m);
+      setYearData(y);
+      setInsightsLoading(false);
+    });
+  }, []);
+
+  const resolvedWeekBarData = weekData?.eventsPerDay ?? weekBarData;
+  const resolvedWeekTimeOfDay = weekData
+    ? [
+        { label: "Morning",   range: "6am–12pm",  count: weekData.timeOfDay.morning },
+        { label: "Afternoon", range: "12pm–6pm",  count: weekData.timeOfDay.afternoon },
+        { label: "Evening",   range: "6pm–10pm",  count: weekData.timeOfDay.evening },
+        { label: "Night",     range: "10pm–6am",  count: weekData.timeOfDay.night },
+      ]
+    : weekTimeOfDay;
+  const resolvedWeekStats = weekData?.glance ?? weekStats;
+
+  const resolvedMonthBarData = monthData?.eventsPerWeek ?? monthBarData;
+  const resolvedMonthTimeOfDay = monthData
+    ? [
+        { label: "Morning",   range: "6am–12pm",  count: monthData.timeOfDay.morning },
+        { label: "Afternoon", range: "12pm–6pm",  count: monthData.timeOfDay.afternoon },
+        { label: "Evening",   range: "6pm–10pm",  count: monthData.timeOfDay.evening },
+        { label: "Night",     range: "10pm–6am",  count: monthData.timeOfDay.night },
+      ]
+    : monthTimeOfDay;
+  const resolvedMonthScore = monthData?.stabilityScore ?? 72;
+
+  const resolvedYearLineData = yearData?.eventsPerMonth ?? yearLineData;
+  const resolvedYearScore = yearData?.stabilityScore ?? 68;
+  const resolvedSundowningRows = yearData?.sundowningPattern
+    ? yearData.sundowningPattern.map((p) => [p.morning, p.afternoon, p.evening, p.night])
+    : sundowningRows;
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-3xl px-4 py-8">
@@ -265,9 +307,17 @@ export default function InsightsPage() {
           <h1 className="text-3xl font-semibold text-brand-text">Insights</h1>
           <p className="text-base text-brand-muted">Activity patterns and trends over time.</p>
           <p className="text-xs text-brand-muted">
-            Prototype note: charts use placeholder data. Real data wired after seed script.
+            {insightsLoading
+              ? "Loading data from Supabase…"
+              : weekData
+                ? "Live data from Supabase."
+                : "Prototype note: charts use placeholder data. Seed data in /demo to populate."}
           </p>
         </header>
+
+        {insightsLoading && (
+          <p className="animate-pulse text-sm text-brand-muted">Loading insights…</p>
+        )}
 
         <div className="flex gap-2">
           {(["week", "month", "year"] as Tab[]).map((t) => (
@@ -291,17 +341,17 @@ export default function InsightsPage() {
             <section className="rounded-3xl border border-brand-border bg-brand-surface p-5 shadow-sm space-y-3">
               <h2 className="text-xl font-semibold text-brand-text">Confusion Events This Week</h2>
               <p className="text-sm text-brand-muted">Help requests per day (reorientation started)</p>
-              <BarChart data={weekBarData} />
+              <BarChart data={resolvedWeekBarData} />
             </section>
 
             <section className="rounded-3xl border border-brand-border bg-brand-surface p-5 shadow-sm space-y-3">
               <h2 className="text-xl font-semibold text-brand-text">Time of Day</h2>
-              <TimeOfDayBreakdown data={weekTimeOfDay} />
+              <TimeOfDayBreakdown data={resolvedWeekTimeOfDay} />
             </section>
 
             <section className="rounded-3xl border border-brand-border bg-brand-surface p-5 shadow-sm space-y-3">
               <h2 className="text-xl font-semibold text-brand-text">This Week at a Glance</h2>
-              <StatGrid stats={weekStats} />
+              <StatGrid stats={resolvedWeekStats} />
             </section>
           </div>
         )}
@@ -311,17 +361,17 @@ export default function InsightsPage() {
             <section className="rounded-3xl border border-brand-border bg-brand-surface p-5 shadow-sm space-y-3">
               <h2 className="text-xl font-semibold text-brand-text">Confusion Events This Month</h2>
               <p className="text-sm text-brand-muted">Help requests per week</p>
-              <BarChart data={monthBarData} />
+              <BarChart data={resolvedMonthBarData} />
             </section>
 
             <section className="rounded-3xl border border-brand-border bg-brand-surface p-5 shadow-sm space-y-3">
               <h2 className="text-xl font-semibold text-brand-text">Time of Day</h2>
-              <TimeOfDayBreakdown data={monthTimeOfDay} />
+              <TimeOfDayBreakdown data={resolvedMonthTimeOfDay} />
             </section>
 
             <section className="rounded-3xl border border-brand-border bg-brand-surface p-5 shadow-sm">
               <h2 className="text-xl font-semibold text-brand-text">Stability Score</h2>
-              <StabilityScore score={72} periodLabel="this month" />
+              <StabilityScore score={resolvedMonthScore} periodLabel="this month" />
             </section>
           </div>
         )}
@@ -333,7 +383,7 @@ export default function InsightsPage() {
               <p className="text-sm text-brand-muted">
                 Help requests per month — higher values indicate more confusion events
               </p>
-              <LineChart data={yearLineData} />
+              <LineChart data={resolvedYearLineData} />
             </section>
 
             <section className="rounded-3xl border border-brand-border bg-brand-surface p-5 shadow-sm space-y-3">
@@ -341,12 +391,12 @@ export default function InsightsPage() {
               <p className="text-sm text-brand-muted">
                 Event frequency by month and time of day. Darker cells = more events.
               </p>
-              <SundowningHeatmap />
+              <SundowningHeatmap rows={resolvedSundowningRows} />
             </section>
 
             <section className="rounded-3xl border border-brand-border bg-brand-surface p-5 shadow-sm">
               <h2 className="text-xl font-semibold text-brand-text">Stability Score</h2>
-              <StabilityScore score={68} periodLabel="this year" />
+              <StabilityScore score={resolvedYearScore} periodLabel="this year" />
             </section>
           </div>
         )}
