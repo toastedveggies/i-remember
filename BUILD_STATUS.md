@@ -127,6 +127,7 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
 - Phase 4 - Supabase backend integration (in progress):
   - [x] Initial schema defined and saved to `supabase/migrations/20260518_initial_schema.sql`
   - [x] Supabase client initialized at `lib/supabaseClient.ts`
+  - [x] Event logging helpers created at `lib/logEvent.ts` (`logActivityEvent`, `logSystemEvent`)
   - Set up Supabase project and configure environment variables (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`)
   - Apply schema migration in Supabase dashboard (SQL editor)
   - Migrate state from localStorage (`demoState.ts`) to Supabase persistence
@@ -258,4 +259,4 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
 
 ## Last Updated
 
-2026-05-18 (UTC-7) — Supabase client created at lib/supabaseClient.ts
+2026-05-18 (UTC-7) — Event logging helpers created at lib/logEvent.ts
