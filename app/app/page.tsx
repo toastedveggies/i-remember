@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import CheckInCard from "@/components/CheckInCard";
 import EventLogList from "@/components/EventLogList";
 import HelperModal from "@/components/HelperModal";
 import ResponseCard from "@/components/ResponseCard";
@@ -12,7 +11,6 @@ import MemoryIcon from "@/components/MemoryIcon";
 import {
   appendActivityEvent,
   appendSystemEvent,
-  checkInQuestions,
   createEvent,
   findScenario,
   initialDemoState,
@@ -127,9 +125,52 @@ export default function TodayWindowPage() {
   const [recentGuidanceOpen, setRecentGuidanceOpen] = useState(false);
   const [recentGuidance, setRecentGuidance] = useState<GuidanceEntry[]>([]);
 
+  // AI check-in
+  const [aiCheckInQuestions, setAiCheckInQuestions] = useState<string[]>([]);
+  const [checkInQuestionsLoading, setCheckInQuestionsLoading] = useState(true);
+  const [checkInResponseOpen, setCheckInResponseOpen] = useState(false);
+  const [checkInResponseText, setCheckInResponseText] = useState("");
+  const [checkInResponseLoading, setCheckInResponseLoading] = useState(false);
+  const [checkInActiveQuestion, setCheckInActiveQuestion] = useState("");
+
   useEffect(() => {
-    setState(loadState());
-    setRecentGuidance(loadRecentGuidance());
+    const loaded = loadState();
+    setState(loaded);
+    const guidance = loadRecentGuidance();
+    setRecentGuidance(guidance);
+
+    const packet = contextPackets[loaded.activeScenarioId] ?? contextPackets.unknown;
+    const recentQ = guidance[0]?.question ?? null;
+
+    fetch("/api/checkin", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        mode: "questions",
+        context: {
+          ...packet,
+          scenario: loaded.activeScenarioId,
+          ...(recentQ ? { recentHelpMeNowQuestion: recentQ } : {}),
+        },
+        userName: loaded.profile.preferredName,
+      }),
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed");
+        return res.json() as Promise<string[]>;
+      })
+      .then((qs) => {
+        if (Array.isArray(qs) && qs.length > 0) setAiCheckInQuestions(qs);
+        else throw new Error("Invalid");
+      })
+      .catch(() => {
+        setAiCheckInQuestions([
+          "How are you feeling right now?",
+          "Would you like a moment to sit and breathe?",
+          "Is there anything you need help with?",
+        ]);
+      })
+      .finally(() => setCheckInQuestionsLoading(false));
   }, []);
 
   const activeScenario = useMemo(() => findScenario(state.activeScenarioId), [state.activeScenarioId]);
@@ -234,6 +275,54 @@ export default function TodayWindowPage() {
     setStreamedText("");
   };
 
+  const handleCheckInQuestion = async (question: string) => {
+    const nextAction = recommendedNextAction(question, state.profile.caregiverName);
+    const next = appendActivityEvent(
+      { ...state, checkInStatus: `Check-in saved: ${question} Recommended next action: ${nextAction}` },
+      createEvent("checkin_submitted", "app", activeScenario.id, { question }, state.profile.userId)
+    );
+    persist(next);
+
+    setCheckInActiveQuestion(question);
+    setCheckInResponseText("");
+    setCheckInResponseLoading(true);
+    setCheckInResponseOpen(true);
+
+    try {
+      const packet = contextPackets[activeScenario.id] ?? contextPackets.unknown;
+      const res = await fetch("/api/checkin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mode: "response",
+          context: packet,
+          selectedQuestion: question,
+          userName: state.profile.preferredName,
+        }),
+      });
+
+      if (!res.ok || !res.body) {
+        setCheckInResponseText("I hear you. Take a gentle breath. You are doing well.");
+        setCheckInResponseLoading(false);
+        return;
+      }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let fullText = "";
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        fullText += decoder.decode(value, { stream: true });
+        setCheckInResponseText(fullText);
+      }
+      setCheckInResponseLoading(false);
+    } catch {
+      setCheckInResponseText("I hear you. Take a gentle breath. You are doing well.");
+      setCheckInResponseLoading(false);
+    }
+  };
+
   const submitCheckIn = () => {
     if (!selectedQuestion) {
       return;
@@ -321,13 +410,27 @@ export default function TodayWindowPage() {
                 <MemoryIcon name="checkCircle" className="h-7 w-7 text-green-500" />
                 <h3 className="text-xl font-semibold text-brand-text">Do a quick check-in</h3>
               </div>
-              <CheckInCard
-                questions={checkInQuestions}
-                selectedQuestion={selectedQuestion}
-                submittedState={state.checkInStatus}
-                onSelectQuestion={setSelectedQuestion}
-                onSubmit={submitCheckIn}
-              />
+              {state.checkInStatus !== "Not submitted yet" ? (
+                <div className="rounded-2xl border border-brand-border bg-green-50 px-4 py-3">
+                  <p className="text-sm font-medium text-green-800">Check-in saved.</p>
+                  <p className="mt-1 text-xs text-brand-muted">{state.checkInStatus}</p>
+                </div>
+              ) : checkInQuestionsLoading ? (
+                <p className="text-sm text-brand-muted">Preparing your check-in…</p>
+              ) : (
+                <div className="space-y-2">
+                  {aiCheckInQuestions.map((q, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => handleCheckInQuestion(q)}
+                      className="min-h-12 w-full rounded-2xl border-l-4 border-brand-border bg-brand-bg px-4 py-3 text-left text-sm font-medium text-brand-text hover:bg-brand-surface focus:outline-none focus:ring-2 focus:ring-brand-compass/40"
+                    >
+                      {q}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </section>
@@ -432,6 +535,36 @@ export default function TodayWindowPage() {
             >
               Back
             </button>
+          </div>
+        </div>
+      ) : null}
+
+      {/* Check-in response panel */}
+      {checkInResponseOpen ? (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4">
+          <div className="w-full max-w-lg rounded-t-3xl border border-brand-border bg-brand-surface p-6 shadow-xl sm:rounded-3xl">
+            <p className="text-xs font-semibold uppercase tracking-wide text-brand-muted mb-3">
+              {checkInActiveQuestion}
+            </p>
+            <div className="min-h-24 text-base leading-relaxed text-brand-text">
+              {checkInResponseLoading && !checkInResponseText ? (
+                <span className="text-brand-muted">One moment…</span>
+              ) : (
+                checkInResponseText
+              )}
+              {checkInResponseLoading ? (
+                <span className="ml-1 inline-block h-3 w-0.5 animate-pulse bg-brand-primary" />
+              ) : null}
+            </div>
+            {!checkInResponseLoading ? (
+              <button
+                type="button"
+                onClick={() => { setCheckInResponseOpen(false); setCheckInResponseText(""); }}
+                className="mt-5 min-h-12 w-full rounded-2xl bg-brand-primary px-4 py-3 text-base font-semibold text-white focus:outline-none focus:ring-2 focus:ring-brand-compass"
+              >
+                Got it
+              </button>
+            ) : null}
           </div>
         </div>
       ) : null}
