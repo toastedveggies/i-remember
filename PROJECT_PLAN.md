@@ -65,7 +65,11 @@ Memory Assistant answers:
 - Support Independent Mode: user can use the app with no caregiver connected (zero rows in `caregiver_user_relationships`)
 - Build Insights screen at `/caregiver/insights`, accessible from both `/app` and `/caregiver`
 
-### Phase 5 - Stretch (optional)
+### Phase 5 - Multiple caregiver support
+- Caregiver roster UI on `/demo`: add and edit caregivers with role assignment (primary, family, read-only), saved to Supabase `caregivers` and `caregiver_user_relationships` tables
+- Role-based dashboard visibility: `/demo` gets a "View as caregiver" selector; primary role sees full dashboard; family/secondary sees summary only (missed calls, emergency events, stability score — no detailed activity log)
+
+### Phase 6 - Stretch (optional)
 - Simple push notification demo
 
 ## Phase 2 Definition of Done

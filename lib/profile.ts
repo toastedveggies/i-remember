@@ -11,6 +11,7 @@ export async function saveProfile(profile: DemoProfile): Promise<void> {
       preferred_name: profile.preferredName,
       pronouns: profile.pronouns,
       custom_pronouns: profile.customPronouns ?? null,
+      active_caregiver_id: profile.activeCaregiverId ?? null,
     });
     // error is intentionally ignored — Supabase write failure is non-fatal
   } catch {
@@ -43,7 +44,7 @@ export async function loadProfile(): Promise<DemoProfile | null> {
   try {
     const { data, error } = await supabase
       .from("profiles")
-      .select("preferred_name, pronouns, custom_pronouns")
+      .select("preferred_name, pronouns, custom_pronouns, active_caregiver_id")
       .eq("id", DEMO_PROFILE_ID)
       .single();
 
@@ -53,13 +54,15 @@ export async function loadProfile(): Promise<DemoProfile | null> {
 
     const caregiver = await loadCaregiverName();
 
+    const d = data as Record<string, unknown>;
     return {
       userId: DEMO_PROFILE_ID,
-      preferredName: data.preferred_name,
-      pronouns: data.pronouns as PronounSet,
-      customPronouns: data.custom_pronouns ?? undefined,
+      preferredName: d.preferred_name as string,
+      pronouns: d.pronouns as PronounSet,
+      customPronouns: (d.custom_pronouns as string | null) ?? undefined,
       caregiverName: caregiver?.caregiverName ?? "",
       caregiverRelationshipLabel: caregiver?.caregiverRelationshipLabel,
+      activeCaregiverId: (d.active_caregiver_id as string | null) ?? "00000000-0000-0000-0000-000000000002",
     };
   } catch {
     return null;

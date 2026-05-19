@@ -30,7 +30,8 @@ Read all of the following first:
 - Do not implement push notifications yet (stretch only, later).
 - Prefer clear, small, reviewable changes.
 - The app supports Independent Mode (no caregiver connected). This is intentional and not a bug.
-- A new route `/caregiver/insights` is planned for Phase 4. It is accessible from both `/app` and `/caregiver`.
+- `/caregiver/insights` is accessible from both `/app` and `/caregiver`.
+- The app now supports multiple caregivers via the `caregiver_user_relationships` table (columns: `user_id`, `caregiver_id`, `role`). The `/demo` page controls both the caregiver roster and the active "view as" role for the caregiver dashboard.
 
 ## Handoff Expectations
 

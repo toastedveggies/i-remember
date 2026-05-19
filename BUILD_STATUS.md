@@ -2,8 +2,9 @@
 
 ## Current Phase
 
-**Phase 4 - Supabase Backend Integration (starting)**
+**Phase 5 - Multiple Caregiver Support (complete)**
 
+Phase 4 - Supabase Backend Integration: complete as of 2026-05-18 (UTC-7)
 Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
 
 ## Completed Tasks
@@ -147,6 +148,13 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
   - [x] Insights yearly chart bug resolved: root cause was Supabase PostgREST `max_rows` default of 1000 silently capping the yearly query despite `.limit(5000)`. Fixed by increasing `max_rows` to 10000 in Supabase Project Settings → API. No code change required.
   - [x] Independent Mode UI implemented: `independentMode` field added to `DemoProfile`; `/caregiver` shows calm "Your care space is ready" view when enabled; `/demo` toggle controls the flag; `setIndependentMode()` helper in `demoState.ts`
 
+- Phase 5 - Multiple caregiver support (complete):
+  - [x] `DECISIONS.md` — Phase 5 schema additions entry: `permissions` JSONB, `is_primary_contact` BOOLEAN, partial unique index, role as visibility mechanism
+  - [x] `data/demoState.ts` — `activeCaregiverId` added to `DemoProfile` (default `00000000-0000-0000-0000-000000000002`); `generateId` exported; `setActiveCaregiverId` helper added; `normalizeDemoState` handles missing field
+  - [x] `lib/profile.ts` — `saveProfile` persists `active_caregiver_id`; `loadProfile` selects and returns it (cast via `Record<string, unknown>`)
+  - [x] `app/demo/page.tsx` — Caregiver Roster section: fetches live from Supabase, shows name/role/primary-contact status, Add/Edit/Remove (soft-delete only, no remove button on demo default UUID), inline form with is_primary_contact lock when another caregiver already holds it; View as Caregiver section: button group highlights active, calls `setActiveCaregiverId`
+  - [x] `app/caregiver/page.tsx` — On mount, fetches relationship row and caregiver name for `activeCaregiverId`; loading state while fetch is in flight; `null` role falls back to Independent Mode view; `family`/`read_only` roles render summary-only view (missed calls, emergency calls, stability score, distress alert, no activity log); `primary` role renders full dashboard with "Viewing as [name]" banner
+
 ## Blocked Tasks
 
 - None currently.
@@ -273,4 +281,4 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
 
 ## Last Updated
 
-2026-05-18 (UTC-7) — Independent Mode UI complete; Phase 4 all tasks done
+2026-05-18 (UTC-7) — Phase 5 complete; missed-calls label fix for non-primary-contact caregivers

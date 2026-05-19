@@ -41,6 +41,7 @@ export type DemoProfile = {
   caregiverName: string;
   caregiverRelationshipLabel?: string;
   independentMode?: boolean;
+  activeCaregiverId?: string | null;
 };
 
 export const defaultDemoProfile: DemoProfile = {
@@ -49,7 +50,8 @@ export const defaultDemoProfile: DemoProfile = {
   pronouns: "he/him",
   caregiverName: "Maria",
   caregiverRelationshipLabel: "daughter",
-  independentMode: false
+  independentMode: false,
+  activeCaregiverId: "00000000-0000-0000-0000-000000000002"
 };
 
 export const demoScenarios: DemoScenario[] = [
@@ -147,12 +149,15 @@ export function normalizeDemoState(raw: unknown): DemoState {
       customPronouns: value.profile?.customPronouns ?? defaultDemoProfile.customPronouns,
       caregiverName: value.profile?.caregiverName ?? defaultDemoProfile.caregiverName,
       caregiverRelationshipLabel: value.profile?.caregiverRelationshipLabel ?? defaultDemoProfile.caregiverRelationshipLabel,
-      independentMode: value.profile?.independentMode ?? false
+      independentMode: value.profile?.independentMode ?? false,
+      activeCaregiverId: value.profile?.activeCaregiverId !== undefined
+        ? value.profile.activeCaregiverId
+        : "00000000-0000-0000-0000-000000000002"
     }
   };
 }
 
-function generateId(): string {
+export function generateId(): string {
   return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
     const r = Math.random() * 16 | 0;
     const v = c === "x" ? r : (r & 0x3 | 0x8);
@@ -176,6 +181,18 @@ export function createEvent(
     scenarioId,
     metadata
   };
+}
+
+export function setActiveCaregiverId(id: string | null): DemoState {
+  if (typeof window === "undefined") return initialDemoState;
+  const raw = window.localStorage.getItem(storageKey);
+  let current = initialDemoState;
+  if (raw) {
+    try { current = normalizeDemoState(JSON.parse(raw)); } catch { /* use initialDemoState */ }
+  }
+  const updated: DemoState = { ...current, profile: { ...current.profile, activeCaregiverId: id } };
+  window.localStorage.setItem(storageKey, JSON.stringify(updated));
+  return updated;
 }
 
 export function setIndependentMode(value: boolean): DemoState {
