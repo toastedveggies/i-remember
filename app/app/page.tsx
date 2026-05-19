@@ -395,8 +395,8 @@ export default function TodayWindowPage() {
           type="button"
           tabIndex={emergencyExpanded ? 0 : -1}
           onClick={() => { callEmergency(); setEmergencyExpanded(false); }}
-          className={`flex items-center justify-center bg-red-600 transition-all duration-200 focus:outline-none ${
-            emergencyExpanded ? "w-[240px] px-4" : "w-0"
+          className={`flex items-center justify-center overflow-hidden bg-red-600 transition-all duration-200 focus:outline-none ${
+            emergencyExpanded ? "w-[320px] px-4" : "w-0"
           }`}
         >
           <span className="whitespace-nowrap text-sm font-bold text-white">
