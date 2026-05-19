@@ -2,7 +2,7 @@
 
 ## Current Phase
 
-**Phase 6 - AI Integration (starting)**
+**Phase 6 - AI Integration (complete)**
 
 Phase 5 - Multiple Caregiver Support: complete as of 2026-05-18 (UTC-7)
 Phase 4 - Supabase Backend Integration: complete as of 2026-05-18 (UTC-7)
@@ -126,14 +126,11 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
 
 ## Active / Next Task
 
-- Phase 6 - AI integration (starting):
-  - Install Anthropic SDK (`@anthropic-ai/sdk`) and add `ANTHROPIC_API_KEY` to `.env.local` and Vercel environment variables
-  - Create `data/contextPackets.ts` — pre-written context packets keyed by scenario ID (`morning`, `afternoon`, `evening`), each describing location, time of day, and next step
-  - Create server-side API route at `app/api/reorient/route.ts` — accepts `{ question, scenarioId }`, looks up the context packet, calls Claude with a bounded system prompt, streams the response back
-  - Replace the three static reorientation cards in `app/app/page.tsx` with a **Help Me Now** button presenting three question options: "Where am I?", "What is happening?", "What should I do next?"
-  - Add a streaming response modal/slide-up panel in `/app` — tapping a question calls the API route and streams Claude's response into the panel; user can dismiss and return to dashboard
-  - Store each AI response in localStorage under a `recentGuidance` array (capped at 5); add a "Recent guidance" link on the main dashboard that shows this list
-  - Passive today card remains at the top of `/app` (date, scenario-based location, next event) — no changes needed
+- Phase 6 - AI integration (complete):
+  - [x] Installed `@anthropic-ai/sdk`
+  - [x] `data/demoData.ts` — `ContextPacket` type and `contextPackets` object added, keyed by scenario ID (`morning`, `afternoon`, `evening`, `unknown`)
+  - [x] `app/api/reorient/route.ts` — POST route; accepts `{ question, context, userName }`; maps question key to natural-language prompt; calls Claude claude-sonnet-4-20250514 with streaming; streams response back via `ReadableStream`; falls back to calm message on error; API key server-side only
+  - [x] `app/app/page.tsx` — passive today card added (date, location, next event from context packet); Help Me Now button replaces static reorientation cards; tapping opens three question buttons; tapping a question streams Claude response into a slide-up panel with "Got it" dismiss; recent guidance stored in localStorage (capped at 10, showing last 5); "Recent guidance" link opens history panel; `reorientation_started` logged on Help Me Now tap; `reorientation_card_viewed` logged on successful AI response
   - Add `ANTHROPIC_API_KEY` setup instructions to `README.md`
 
 ## Blocked Tasks
@@ -262,4 +259,4 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
 
 ## Last Updated
 
-2026-05-18 (UTC-7) — Phase 6 (AI integration) starting; Phase 5 complete
+2026-05-18 (UTC-7) — Phase 6 (AI integration) complete

@@ -21,6 +21,34 @@ import {
   type DemoState,
   type UncertaintyLevel
 } from "@/data/demoState";
+import { contextPackets } from "@/data/demoData";
+
+const RECENT_GUIDANCE_KEY = "recentGuidance";
+
+type QuestionKey = "where_am_i" | "what_is_happening" | "what_should_i_do_next";
+type GuidanceEntry = { question: string; response: string; timestamp: string };
+
+const questionLabels: Record<QuestionKey, string> = {
+  where_am_i: "Where am I?",
+  what_is_happening: "What is happening?",
+  what_should_i_do_next: "What should I do next?",
+};
+
+function loadRecentGuidance(): GuidanceEntry[] {
+  if (typeof window === "undefined") return [];
+  try {
+    return JSON.parse(window.localStorage.getItem(RECENT_GUIDANCE_KEY) ?? "[]") as GuidanceEntry[];
+  } catch {
+    return [];
+  }
+}
+
+function saveRecentGuidance(entry: GuidanceEntry): void {
+  if (typeof window === "undefined") return;
+  const existing = loadRecentGuidance();
+  const updated = [entry, ...existing].slice(0, 10);
+  window.localStorage.setItem(RECENT_GUIDANCE_KEY, JSON.stringify(updated));
+}
 
 function fallbackCopy(level: UncertaintyLevel): string {
   if (level === "low") {
@@ -81,11 +109,22 @@ export default function TodayWindowPage() {
   const [selectedQuestion, setSelectedQuestion] = useState("");
   const [state, setState] = useState<DemoState>(initialDemoState);
 
+  // Help Me Now flow
+  const [helpMeNowOpen, setHelpMeNowOpen] = useState(false);
+  const [streamingQuestion, setStreamingQuestion] = useState<QuestionKey | null>(null);
+  const [streamedText, setStreamedText] = useState("");
+  const [streamingLoading, setStreamingLoading] = useState(false);
+  const [streamPanelOpen, setStreamPanelOpen] = useState(false);
+  const [recentGuidanceOpen, setRecentGuidanceOpen] = useState(false);
+  const [recentGuidance, setRecentGuidance] = useState<GuidanceEntry[]>([]);
+
   useEffect(() => {
     setState(loadState());
+    setRecentGuidance(loadRecentGuidance());
   }, []);
 
   const activeScenario = useMemo(() => findScenario(state.activeScenarioId), [state.activeScenarioId]);
+  const contextPacket = contextPackets[state.activeScenarioId] ?? contextPackets.unknown;
 
   const persist = (nextState: DemoState) => {
     setState(nextState);
@@ -111,6 +150,79 @@ export default function TodayWindowPage() {
       persist(withViewed);
     }
     setLastGuidanceUpdate(new Date().toLocaleTimeString());
+  };
+
+  const handleHelpMeNow = () => {
+    const withStart = appendActivityEvent(
+      state,
+      createEvent("reorientation_started", "app", activeScenario.id, { uncertainty: activeScenario.uncertainty }, state.profile.userId)
+    );
+    persist(withStart);
+    setHelpMeNowOpen(true);
+    setLastGuidanceUpdate(new Date().toLocaleTimeString());
+  };
+
+  const askQuestion = async (key: QuestionKey) => {
+    const packet = contextPackets[activeScenario.id] ?? contextPackets.unknown;
+    setStreamingQuestion(key);
+    setStreamedText("");
+    setStreamingLoading(true);
+    setStreamPanelOpen(true);
+
+    try {
+      const res = await fetch("/api/reorient", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          question: key,
+          context: packet,
+          userName: state.profile.preferredName,
+        }),
+      });
+
+      if (!res.ok || !res.body) {
+        setStreamedText("I am here with you. Please take a breath. If you need help, contact your caregiver.");
+        setStreamingLoading(false);
+        return;
+      }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let fullText = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value, { stream: true });
+        fullText += chunk;
+        setStreamedText(fullText);
+      }
+
+      setStreamingLoading(false);
+
+      const entry: GuidanceEntry = {
+        question: questionLabels[key],
+        response: fullText,
+        timestamp: new Date().toISOString(),
+      };
+      saveRecentGuidance(entry);
+      setRecentGuidance(loadRecentGuidance());
+
+      const withViewed = appendActivityEvent(
+        state,
+        createEvent("reorientation_card_viewed", "app", activeScenario.id, { question: key }, state.profile.userId)
+      );
+      persist(withViewed);
+    } catch {
+      setStreamedText("I am here with you. Please take a breath. If you need help, contact your caregiver.");
+      setStreamingLoading(false);
+    }
+  };
+
+  const dismissStreamPanel = () => {
+    setStreamPanelOpen(false);
+    setStreamingQuestion(null);
+    setStreamedText("");
   };
 
   const submitCheckIn = () => {
@@ -154,6 +266,16 @@ export default function TodayWindowPage() {
           <p className="text-sm text-brand-muted">Active scenario: {activeScenario.label}</p>
         </header>
 
+        {/* Passive today card */}
+        <section className="rounded-3xl border border-brand-border bg-brand-surface p-5 shadow-sm space-y-2">
+          <div className="flex items-center gap-2">
+            <MemoryIcon name="clock" className="h-6 w-6 text-brand-primary" />
+            <h2 className="text-lg font-semibold text-brand-text">{new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}</h2>
+          </div>
+          <p className="text-sm text-brand-muted"><span className="font-medium text-brand-text">Where:</span> {contextPacket.location}</p>
+          <p className="text-sm text-brand-muted"><span className="font-medium text-brand-text">Next:</span> {contextPacket.next_event}</p>
+        </section>
+
         <section className="space-y-3">
           <h2 className="text-lg font-semibold text-brand-text">Main actions</h2>
           <div className="grid grid-cols-1 gap-4 md:gap-0 md:grid-cols-2 md:divide-x md:divide-brand-border">
@@ -163,27 +285,52 @@ export default function TodayWindowPage() {
                 <h3 className="text-xl font-semibold text-brand-text">Help me understand what is happening</h3>
               </div>
 
+              {!helpMeNowOpen ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={handleHelpMeNow}
+                    className="min-h-14 w-full rounded-2xl bg-brand-primary px-4 py-4 text-lg font-semibold text-white focus:outline-none focus:ring-2 focus:ring-brand-compass"
+                  >
+                    Help Me Now
+                  </button>
+                  <p className="text-sm text-brand-muted">
+                    {lastGuidanceUpdate
+                      ? `Last used at ${lastGuidanceUpdate}.`
+                      : "Tap for step-by-step guidance about where you are and what to do."}
+                  </p>
+                </>
+              ) : (
+                <div className="space-y-3">
+                  <p className="text-sm text-brand-muted">Choose what you would like to know:</p>
+                  {(["where_am_i", "what_is_happening", "what_should_i_do_next"] as QuestionKey[]).map((key) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => askQuestion(key)}
+                      disabled={streamingLoading}
+                      className="min-h-12 w-full rounded-2xl border border-brand-border bg-brand-bg px-4 py-3 text-left text-base font-medium text-brand-text hover:bg-brand-surface focus:outline-none focus:ring-2 focus:ring-brand-compass/40 disabled:opacity-50"
+                    >
+                      {questionLabels[key]}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => setHelpMeNowOpen(false)}
+                    className="text-sm text-brand-muted underline underline-offset-2"
+                  >
+                    Back
+                  </button>
+                </div>
+              )}
+
               <button
                 type="button"
-                onClick={refreshGuidance}
-                className="min-h-12 w-full rounded-2xl bg-brand-primary px-4 py-3 text-base font-semibold text-white focus:outline-none focus:ring-2 focus:ring-brand-compass"
+                onClick={() => setRecentGuidanceOpen(true)}
+                className="text-sm text-brand-muted underline underline-offset-2 text-left"
               >
-                Help me now
+                Recent guidance
               </button>
-              <p className="text-sm text-brand-muted">
-                {lastGuidanceUpdate
-                  ? `Guidance refreshed at ${lastGuidanceUpdate}.`
-                  : "This refreshes your guidance cards and logs a support moment."}
-              </p>
-
-              <>
-                <TodayCard title="Where am I?" body={activeScenario.where} iconName="mapPin" variant="row" />
-                <TodayCard title="What is happening?" body={activeScenario.happening} iconName="clock" variant="row" />
-                <ResponseCard title="What should I do next?" message={activeScenario.nextStep} variant="row" />
-                {activeScenario.uncertainty === "high" ? (
-                  <ResponseCard title="Fallback guidance" message={fallbackMessage} variant="row" />
-                ) : null}
-              </>
             </div>
 
             <div className="space-y-3">
@@ -266,6 +413,62 @@ export default function TodayWindowPage() {
       </p>
 
       <HelperModal open={helperOpen} onClose={() => setHelperOpen(false)} profile={state.profile} onCallCaregiver={callCaregiver} onCallEmergency={callEmergency} />
+
+      {/* Streaming response panel */}
+      {streamPanelOpen ? (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4">
+          <div className="w-full max-w-lg rounded-t-3xl border border-brand-border bg-brand-surface p-6 shadow-xl sm:rounded-3xl">
+            <p className="text-xs font-semibold uppercase tracking-wide text-brand-muted mb-3">
+              {streamingQuestion ? questionLabels[streamingQuestion] : ""}
+            </p>
+            <div className="min-h-24 text-base leading-relaxed text-brand-text">
+              {streamingLoading && !streamedText ? (
+                <span className="text-brand-muted">One moment…</span>
+              ) : (
+                streamedText
+              )}
+              {streamingLoading ? <span className="ml-1 inline-block h-3 w-0.5 animate-pulse bg-brand-primary" /> : null}
+            </div>
+            {!streamingLoading ? (
+              <button
+                type="button"
+                onClick={dismissStreamPanel}
+                className="mt-5 min-h-12 w-full rounded-2xl bg-brand-primary px-4 py-3 text-base font-semibold text-white focus:outline-none focus:ring-2 focus:ring-brand-compass"
+              >
+                Got it
+              </button>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+
+      {/* Recent guidance panel */}
+      {recentGuidanceOpen ? (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4">
+          <div className="w-full max-w-lg rounded-t-3xl border border-brand-border bg-brand-surface p-6 shadow-xl sm:rounded-3xl max-h-[80vh] overflow-y-auto">
+            <h2 className="text-lg font-semibold text-brand-text mb-4">Recent guidance</h2>
+            {recentGuidance.length === 0 ? (
+              <p className="text-sm text-brand-muted">No guidance yet. Tap Help Me Now to get started.</p>
+            ) : (
+              <ul className="space-y-4">
+                {recentGuidance.slice(0, 5).map((entry, i) => (
+                  <li key={i} className="rounded-2xl border border-brand-border bg-brand-bg p-4 space-y-1">
+                    <p className="text-xs font-semibold text-brand-muted">{entry.question} · {new Date(entry.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</p>
+                    <p className="text-sm text-brand-text leading-relaxed">{entry.response}</p>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <button
+              type="button"
+              onClick={() => setRecentGuidanceOpen(false)}
+              className="mt-5 min-h-12 w-full rounded-2xl border border-brand-border bg-brand-bg px-4 py-3 text-base font-semibold text-brand-text focus:outline-none focus:ring-2 focus:ring-brand-compass/40"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       {callingEmergency ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">

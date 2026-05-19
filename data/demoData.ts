@@ -23,6 +23,50 @@ export const scenarios = [
   { id: "evening", label: "Evening uncertainty", guidance: "It is evening. Review dinner plan and medication checklist." }
 ];
 
+export type ContextPacket = {
+  location: string;
+  time_of_day: string;
+  next_event: string;
+  who_is_expected: string;
+  caregiver_name: string;
+  notes: string;
+};
+
+export const contextPackets: Record<string, ContextPacket> = {
+  morning: {
+    location: "home, bedroom",
+    time_of_day: "Tuesday morning",
+    next_event: "Breakfast at 8:00 AM",
+    who_is_expected: "Maria visiting at noon",
+    caregiver_name: "Maria",
+    notes: "Alex just woke up",
+  },
+  afternoon: {
+    location: "home, living room",
+    time_of_day: "Tuesday afternoon",
+    next_event: "Short walk at 2:00 PM, then rest",
+    who_is_expected: "No visitors expected",
+    caregiver_name: "Maria",
+    notes: "After lunch routine",
+  },
+  evening: {
+    location: "home",
+    time_of_day: "Tuesday evening",
+    next_event: "Dinner at 6:30 PM, medication checklist after",
+    who_is_expected: "Maria calling at 7:00 PM",
+    caregiver_name: "Maria",
+    notes: "Wind-down routine",
+  },
+  unknown: {
+    location: "unknown",
+    time_of_day: "unknown",
+    next_event: "Check with caregiver",
+    who_is_expected: "unknown",
+    caregiver_name: "Maria",
+    notes: "Context unavailable",
+  },
+};
+
 export const caregiverSummary = {
   personName: "Alex",
   lastCheckIn: "10 minutes ago",
