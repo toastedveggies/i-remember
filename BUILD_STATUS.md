@@ -2,8 +2,9 @@
 
 ## Current Phase
 
-**Phase 4 - Supabase Backend Integration (starting)**
+**Phase 5 - Multiple Caregiver Support (starting)**
 
+Phase 4 - Supabase Backend Integration: complete as of 2026-05-18 (UTC-7)
 Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
 
 ## Completed Tasks
@@ -147,6 +148,11 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
   - [x] Insights yearly chart bug resolved: root cause was Supabase PostgREST `max_rows` default of 1000 silently capping the yearly query despite `.limit(5000)`. Fixed by increasing `max_rows` to 10000 in Supabase Project Settings → API. No code change required.
   - [x] Independent Mode UI implemented: `independentMode` field added to `DemoProfile`; `/caregiver` shows calm "Your care space is ready" view when enabled; `/demo` toggle controls the flag; `setIndependentMode()` helper in `demoState.ts`
 
+- Phase 5 - Multiple caregiver support (starting):
+  - Build caregiver roster UI on `/demo`: add/edit caregivers with role assignment (primary, family, read-only), persisted to Supabase `caregivers` and `caregiver_user_relationships` tables
+  - Add "View as caregiver" selector to `/demo`; primary role sees full caregiver dashboard; family/secondary role sees summary only (missed calls, emergency events, stability score — no detailed activity log)
+  - Wire role-based visibility into `/caregiver` page based on active "view as" selection
+
 ## Blocked Tasks
 
 - None currently.
@@ -273,4 +279,4 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
 
 ## Last Updated
 
-2026-05-18 (UTC-7) — Independent Mode UI complete; Phase 4 all tasks done
+2026-05-18 (UTC-7) — Phase 4 complete; Phase 5 (multiple caregiver support) starting
