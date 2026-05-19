@@ -380,30 +380,30 @@ export default function TodayWindowPage() {
           aria-hidden="true"
         />
       ) : null}
-      <button
-        type="button"
-        aria-label="Emergency"
-        onClick={() => {
-          if (emergencyExpanded) {
-            callEmergency();
-            setEmergencyExpanded(false);
-          } else {
-            setEmergencyExpanded(true);
-          }
-        }}
-        className={`fixed top-1/2 left-0 z-40 flex h-20 -translate-y-1/2 items-center overflow-hidden rounded-r-2xl shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-400 ${
-          emergencyExpanded
-            ? "w-[280px] gap-3 bg-red-600 px-4"
-            : "w-12 justify-center bg-red-900"
-        }`}
-      >
-        <MemoryIcon name="shield" className="h-5 w-5 shrink-0 text-white" />
-        {emergencyExpanded ? (
+      <div className="fixed bottom-8 left-0 z-40 flex h-20 items-stretch overflow-hidden rounded-r-2xl shadow-lg">
+        {/* Dark red tab — always visible, toggles expanded */}
+        <button
+          type="button"
+          aria-label={emergencyExpanded ? "Collapse emergency" : "Emergency"}
+          onClick={() => setEmergencyExpanded((v) => !v)}
+          className="flex w-12 shrink-0 items-center justify-center bg-red-900 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-red-400"
+        >
+          <MemoryIcon name="shield" className="h-5 w-5 text-white" />
+        </button>
+        {/* Bright red slide-out — triggers emergency call */}
+        <button
+          type="button"
+          tabIndex={emergencyExpanded ? 0 : -1}
+          onClick={() => { callEmergency(); setEmergencyExpanded(false); }}
+          className={`flex items-center justify-center bg-red-600 transition-all duration-200 focus:outline-none ${
+            emergencyExpanded ? "w-[240px] px-4" : "w-0"
+          }`}
+        >
           <span className="whitespace-nowrap text-sm font-bold text-white">
             Urgent: Call Emergency Services
           </span>
-        ) : null}
-      </button>
+        </button>
+      </div>
 
       <HelperModal open={helperOpen} onClose={() => setHelperOpen(false)} profile={state.profile} onCallCaregiver={callCaregiver} onCallEmergency={callEmergency} />
 
