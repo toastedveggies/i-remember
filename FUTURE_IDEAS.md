@@ -10,6 +10,7 @@ Parking lot for ideas that are intentionally out of current MVP scope.
 
 ## Idea Backlog
 
+- Full UI polish pass for `/app` — spacing refinement, typography hierarchy review, and mobile-specific layout testing (safe areas, button tap targets, scroll behaviour on small screens)
 - Dynamic question options based on active scenario — e.g. "Who am I talking to?" at a clinic visit vs "What is my morning routine?" at home; questions would be pulled from the scenario context packet rather than hardcoded
 - Location-aware passive today card — pulls real GPS coordinates once location integration is added, replacing the current scenario-based location placeholder
 

@@ -127,6 +127,21 @@ Tracks notable project decisions and rationale.
 - **Why:** Demo reliability is more important than dynamic accuracy for a class prototype. Pre-written packets ensure consistent, safe responses during the presentation and avoid latency from data assembly.
 - **Implication:** Each scenario (`morning`, `afternoon`, `evening`) has a corresponding context packet that describes location, time, and next steps. Dynamic context assembly from real data is a future enhancement.
 
+### 2026-05-19 - Check-in questions generated on demand, not on page load
+- **Decision:** The `/api/checkin` questions fetch fires only when the user explicitly taps "Do a quick check-in", not on page mount.
+- **Why:** Auto-fetching on mount caused the questions to arrive silently and then be blocked from rendering by a stale `checkInStatus` value loaded from localStorage. On-demand fetch also avoids an unnecessary API call on every page load for users who may not want to check in.
+- **Implication:** The check-in section shows a single trigger button in its default state. Questions are fetched fresh each time the button is tapped, using the current scenario context and most recent Help Me Now question for personalisation.
+
+### 2026-05-19 - Double-tap interaction to commit check-in selection
+- **Decision:** Tapping a check-in option once highlights it (and dims the others); tapping the same option a second time commits the selection, logs the event, and triggers the AI response.
+- **Why:** A single tap was too easy to trigger accidentally on mobile. The double-tap pattern creates a deliberate two-step confirmation that is familiar from mobile accessibility interactions and reduces mis-fires in a high-stress context.
+- **Implication:** Hint text updates dynamically: "Tap once to select, tap again to confirm." changes to "Tap the highlighted option again to confirm." once a selection is made.
+
+### 2026-05-19 - Slide-down animation for check-in options
+- **Decision:** Check-in question cards animate in with a `max-height` + `opacity` CSS transition (300ms ease) rather than appearing instantly or using a modal overlay.
+- **Why:** The slide-down keeps the questions spatially connected to the trigger button, matching the directional metaphor of the emergency tab slide-out. It avoids modal fatigue (the page already has multiple modals for Help Me Now and AI responses) and feels grounded on mobile.
+- **Implication:** The trigger button remains visible and muted (green-800, opacity-75) while questions are shown, providing clear visual feedback that the section is active. Dismissal is handled by the response modal's "Got it" action, which collapses the questions and resets selection state.
+
 ## Open Decisions (To Resolve Later)
 
 - Data model for routines/events/check-ins

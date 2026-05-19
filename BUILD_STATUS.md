@@ -126,19 +126,18 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
 
 ## Active / Next Task
 
-- Phase 6 - AI integration (complete):
+- Phase 6 - AI Integration (complete as of 2026-05-19, UTC-7):
   - [x] Installed `@anthropic-ai/sdk`
-  - [x] `data/demoData.ts` — `ContextPacket` type and `contextPackets` object added, keyed by scenario ID (`morning`, `afternoon`, `evening`, `unknown`)
-  - [x] `app/api/reorient/route.ts` — POST route; accepts `{ question, context, userName }`; maps question key to natural-language prompt; calls Claude claude-sonnet-4-20250514 with streaming; streams response back via `ReadableStream`; falls back to calm message on error; API key server-side only
-  - [x] `app/app/page.tsx` — passive today card added (date, location, next event from context packet); Help Me Now button replaces static reorientation cards; tapping opens three question buttons; tapping a question streams Claude response into a slide-up panel with "Got it" dismiss; recent guidance stored in localStorage (capped at 10, showing last 5); "Recent guidance" link opens history panel; `reorientation_started` logged on Help Me Now tap; `reorientation_card_viewed` logged on successful AI response
-  - Add `ANTHROPIC_API_KEY` setup instructions to `README.md`
-  - [x] Phase 6 polish pass: console.error debug logging removed from route (silent error handling); system prompt updated with per-question focus rules (location only / time+activity only / next step only); question buttons moved from inline column to centered modal overlay with "What would you like to know?" title; model corrected from `claude-sonnet-4-20250514` to `claude-sonnet-4-5` after 404 on first test; decision logged in `DECISIONS.md`
-  - Phase 6 AI integration complete — pending merge to main
-  - [x] `app/api/checkin/route.ts` (new) — POST route with two modes: "questions" (non-streaming, returns JSON array of 3 AI-generated check-in questions) and "response" (streaming, warm supportive reply ending with "In a full version, I would…"); silent fallbacks for both modes; markdown fence stripping before JSON.parse
-  - [x] `app/app/page.tsx` — AI check-in redesign: default state shows "Do a quick check-in" button only; tapping opens section, fetches questions on demand; tap-once-to-select (highlights, greys others), tap-again-to-confirm pattern; commit logs checkin_submitted and streams response in slide-up panel; dismiss collapses section and shows "Check-in saved" + "Do another check-in" button; debug console.log removed; no auto-fetch on mount
-  - [x] `app/app/page.tsx` — check-in UI polish: heading removed; trigger is full-width green-700 button with checkCircle icon (mutes to green-800/opacity-75 while open); questions slide down with max-height 300ms transition; question cards use white bg/rounded-xl/border, selected=lime-100/lime-500 border, non-selected-when-one-chosen=opacity-60; saved confirmation appears below button after collapse
-  - [x] `app/app/page.tsx` — further UI tweaks: "Today Window"→"Today" (text-4xl centered); time-aware greeting (Good morning/afternoon/evening/night [name] 😊); removed "Calm, human support" subtitle and "Active scenario" line; removed "Main actions" heading and "Help me understand" subheading; home icon added to Help Me Now button; check-in column now appears first; HMN and check-in buttons matched in size/style
-  - [x] `app/app/page.tsx` — emergency side tab split into two parts: permanent 48×80px dark red tab (toggle only, shield icon) + 240px bright red slide-out (emergency action only, text only); container uses overflow-hidden + rounded-r-2xl for clean animation; tap tab to expand/collapse, tap slide-out to trigger callEmergency(); auto-collapse 4s, click-outside backdrop
+  - [x] `data/demoData.ts` — `ContextPacket` type and `contextPackets` keyed by scenario ID (`morning`, `afternoon`, `evening`, `unknown`)
+  - [x] `app/api/reorient/route.ts` — server-side POST route; accepts `{ question, context, userName }`; per-question system prompt rules (location only / time+activity only / next step only); streams via `ReadableStream`; model `claude-sonnet-4-5`; silent fallback; API key server-side only
+  - [x] `app/api/checkin/route.ts` (new) — dual-mode POST: "questions" (non-streaming JSON array of 3 AI check-in questions, generated on demand); "response" (streaming supportive reply ending with "In a full version, I would…"); markdown fence stripping before JSON.parse; silent fallbacks
+  - [x] `app/app/page.tsx` — Help Me Now flow: passive today card (date, location, next event from context packet); large button with home icon; tapping opens question-selection modal; selected question streams response into slide-up panel; "Recent guidance" link shows last 5 responses; `reorientation_started` and `reorientation_card_viewed` events logged
+  - [x] `app/app/page.tsx` — check-in redesign: on-demand fetch (no auto-load on mount); green-700 full-width trigger button with checkCircle icon (mutes while open); questions slide in via max-height 300ms transition; tap-once-to-select (lime-100/lime-500 highlight, others opacity-60); tap-again-to-confirm; streams supportive response; "Do another check-in" after completion; `checkInDoneThisSession` prevents stale localStorage from blocking questions
+  - [x] `app/app/page.tsx` — emergency tab: permanent 48×80px dark-red toggle tab (left-0, bottom-8) + 320px bright-red slide-out action (overflow-hidden, 200ms transition); auto-collapse 4s; click-outside backdrop; tap action triggers callEmergency()
+  - [x] `app/app/page.tsx` — UI polish: "Today Window"→"Today" (text-4xl centered); time-aware greeting with emoji; removed subtitle and active-scenario line; removed "Main actions" and "Help me understand" headings; check-in column first; Call caregiver and Show helper card replaced with full-width teal buttons (phone/compass icons) with muted hint text; My Insights navy (bg-blue-900); check-in saved box lime-50/lime-200
+  - [x] `app/caregiver/page.tsx` — activity panel excludes `reorientation_started`; includes `reorientation_card_viewed` from systemEvents, sorted by timestamp
+  - [x] `components/EventLogList.tsx` — `reorientation_card_viewed` events now display question from metadata (formatted from underscore key)
+  - Remaining: add `ANTHROPIC_API_KEY` setup instructions to `README.md`; merge to main
 
 ## Blocked Tasks
 
@@ -266,4 +265,4 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
 
 ## Last Updated
 
-2026-05-19 (UTC-7) — Phase 6 complete, /app UI polished, pending merge to main
+2026-05-19 (UTC-7) — Phase 6 fully complete, pending README update and merge to main
