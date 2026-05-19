@@ -6,7 +6,6 @@ const DEMO_CAREGIVER_ID = "00000000-0000-0000-0000-000000000002";
 
 export async function saveProfile(profile: DemoProfile): Promise<void> {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { error } = await supabase.from("profiles").upsert({
       id: DEMO_PROFILE_ID,
       preferred_name: profile.preferredName,
@@ -69,7 +68,6 @@ export async function loadProfile(): Promise<DemoProfile | null> {
 
 export async function saveCaregiverName(caregiverName: string, caregiverRelationshipLabel?: string): Promise<void> {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { error } = await supabase.from("caregivers").upsert({
       id: DEMO_CAREGIVER_ID,
       name: caregiverName,

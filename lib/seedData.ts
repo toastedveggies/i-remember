@@ -275,7 +275,7 @@ function generateDay(
 
 async function insertActivityBatch(rows: ActivityRow[]): Promise<void> {
   for (let i = 0; i < rows.length; i += 50) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     const { error } = await (supabase.from("activity_events") as any).insert(rows.slice(i, i + 50));
     if (error) throw new Error(`activity_events: ${(error as { message: string }).message}`);
   }
@@ -283,7 +283,7 @@ async function insertActivityBatch(rows: ActivityRow[]): Promise<void> {
 
 async function insertBiometricBatch(rows: BiometricRow[]): Promise<void> {
   for (let i = 0; i < rows.length; i += 50) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     const { error } = await (supabase.from("biometric_events") as any).insert(rows.slice(i, i + 50));
     if (error) throw new Error(`biometric_events: ${(error as { message: string }).message}`);
   }
@@ -332,7 +332,7 @@ export async function seedDemoData(): Promise<{ success: boolean; message: strin
 export async function clearSeedData(): Promise<{ success: boolean; message: string }> {
   try {
     for (const table of ["activity_events", "system_events", "biometric_events"] as const) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  
       const { error } = await (supabase.from(table) as any).delete().eq("user_id", DEMO_USER_ID);
       if (error) throw new Error(`${table}: ${(error as { message: string }).message}`);
     }

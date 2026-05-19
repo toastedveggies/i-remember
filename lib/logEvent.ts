@@ -3,7 +3,6 @@ import type { DemoEvent } from "@/data/demoState";
 
 export async function logActivityEvent(event: DemoEvent): Promise<void> {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { error } = await supabase.from("activity_events").insert({
       id: event.id,
       event_type: event.eventType,
@@ -20,7 +19,6 @@ export async function logActivityEvent(event: DemoEvent): Promise<void> {
 
 export async function logSystemEvent(event: DemoEvent): Promise<void> {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { error } = await supabase.from("system_events").insert({
       id: event.id,
       event_type: event.eventType,

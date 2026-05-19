@@ -82,7 +82,6 @@ function rollingYearRange(): {
 
 async function fetchEvents(start: string, end: string): Promise<EventRow[] | null> {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data, error } = await (supabase as any)
       .from("activity_events")
       .select("created_at, event_type, confidence_level")
