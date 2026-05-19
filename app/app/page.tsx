@@ -99,6 +99,15 @@ function recommendedNextAction(question: string, caregiverName: string): string 
   return "Take a short pause and review your next step card.";
 }
 
+function timeGreeting(name: string): string {
+  const hour = new Date().getHours();
+  const n = name || "Alex";
+  if (hour >= 5 && hour < 12) return `Good morning, ${n}! 😊`;
+  if (hour >= 12 && hour < 17) return `Good afternoon, ${n}! 😊`;
+  if (hour >= 17 && hour < 21) return `Good evening, ${n}! 😊`;
+  return `Good night, ${n}! 😊`;
+}
+
 export default function TodayWindowPage() {
   const [helperOpen, setHelperOpen] = useState(false);
   const [callingCaregiver, setCallingCaregiver] = useState(false);
@@ -374,11 +383,9 @@ export default function TodayWindowPage() {
   return (
     <main className="mx-auto min-h-screen w-full max-w-3xl px-4 py-8">
       <div className="space-y-6">
-        <header className="space-y-1">
-          <h1 className="text-3xl font-semibold text-brand-text">Today Window</h1>
-          <p className="text-base font-medium text-brand-text">Hello, {state.profile.preferredName}.</p>
-          <p className="text-base text-brand-muted">Calm, human support for moments of confusion.</p>
-          <p className="text-sm text-brand-muted">Active scenario: {activeScenario.label}</p>
+        <header className="space-y-1 text-center">
+          <h1 className="text-4xl font-semibold text-brand-text">Today</h1>
+          <p className="text-lg text-brand-muted">{timeGreeting(state.profile.preferredName)}</p>
         </header>
 
         {/* Passive today card */}
@@ -392,36 +399,7 @@ export default function TodayWindowPage() {
         </section>
 
         <section className="space-y-3">
-          <h2 className="text-lg font-semibold text-brand-text">Main actions</h2>
           <div className="grid grid-cols-1 gap-4 md:gap-0 md:grid-cols-2 md:divide-x md:divide-brand-border">
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <MemoryIcon name="home" className="h-7 w-7 text-brand-primary" />
-                <h3 className="text-xl font-semibold text-brand-text">Help me understand what is happening</h3>
-              </div>
-
-              <button
-                type="button"
-                onClick={handleHelpMeNow}
-                className="min-h-14 w-full rounded-2xl bg-brand-primary px-4 py-4 text-lg font-semibold text-white focus:outline-none focus:ring-2 focus:ring-brand-compass"
-              >
-                Help Me Now
-              </button>
-              <p className="text-sm text-brand-muted">
-                {lastGuidanceUpdate
-                  ? `Last used at ${lastGuidanceUpdate}.`
-                  : "Tap for step-by-step guidance about where you are and what to do."}
-              </p>
-
-              <button
-                type="button"
-                onClick={() => setRecentGuidanceOpen(true)}
-                className="text-sm text-brand-muted underline underline-offset-2 text-left"
-              >
-                Recent guidance
-              </button>
-            </div>
-
             <div className="space-y-3">
               {/* Check-in trigger button */}
               <button
@@ -458,12 +436,12 @@ export default function TodayWindowPage() {
                         key={i}
                         type="button"
                         onClick={() => handleCheckInTap(q)}
-                        className={`w-full cursor-pointer rounded-xl border p-4 text-left text-sm font-medium transition-colors duration-100 focus:outline-none focus:ring-2 focus:ring-green-400 ${
+                        className={`w-full cursor-pointer rounded-xl border p-4 text-left text-sm font-medium transition-colors duration-100 focus:outline-none focus:ring-2 focus:ring-lime-400 ${
                           isSelected
-                            ? "border-green-600 bg-green-50 text-brand-text"
+                            ? "border-lime-500 bg-lime-100 text-brand-text"
                             : isDeselected
                               ? "border-brand-border bg-white text-brand-text opacity-60"
-                              : "border-brand-border bg-white text-brand-text hover:bg-green-50"
+                              : "border-brand-border bg-white text-brand-text hover:bg-lime-50"
                         }`}
                       >
                         {q}
@@ -485,6 +463,30 @@ export default function TodayWindowPage() {
                   <p className="mt-1 text-xs text-brand-muted">{state.checkInStatus}</p>
                 </div>
               ) : null}
+            </div>
+
+            <div className="space-y-3">
+              <button
+                type="button"
+                onClick={handleHelpMeNow}
+                className="flex min-h-14 w-full items-center gap-3 rounded-2xl bg-brand-primary px-4 py-4 text-base font-semibold text-white focus:outline-none focus:ring-2 focus:ring-brand-compass"
+              >
+                <MemoryIcon name="home" className="h-6 w-6 shrink-0 text-white" />
+                Help Me Now
+              </button>
+              <p className="text-sm text-brand-muted">
+                {lastGuidanceUpdate
+                  ? `Last used at ${lastGuidanceUpdate}.`
+                  : "Tap for step-by-step guidance about where you are and what to do."}
+              </p>
+
+              <button
+                type="button"
+                onClick={() => setRecentGuidanceOpen(true)}
+                className="text-sm text-brand-muted underline underline-offset-2 text-left"
+              >
+                Recent guidance
+              </button>
             </div>
           </div>
         </section>
