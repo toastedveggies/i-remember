@@ -423,30 +423,33 @@ export default function TodayWindowPage() {
             </div>
 
             <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <MemoryIcon name="checkCircle" className="h-7 w-7 text-green-500" />
-                <h3 className="text-xl font-semibold text-brand-text">Do a quick check-in</h3>
-              </div>
-              {!checkInOpen ? (
-                <div className="space-y-2">
-                  {checkInDoneThisSession ? (
-                    <div className="rounded-2xl border border-brand-border bg-green-50 px-4 py-3">
-                      <p className="text-sm font-medium text-green-800">Check-in saved.</p>
-                      <p className="mt-1 text-xs text-brand-muted">{state.checkInStatus}</p>
-                    </div>
-                  ) : null}
-                  <button
-                    type="button"
-                    onClick={handleOpenCheckIn}
-                    className="min-h-12 w-full rounded-2xl border border-brand-border bg-brand-bg px-4 py-3 text-base font-semibold text-brand-text hover:bg-brand-surface focus:outline-none focus:ring-2 focus:ring-brand-compass/40"
-                  >
-                    {checkInDoneThisSession ? "Do another check-in" : "Do a quick check-in"}
-                  </button>
-                </div>
-              ) : checkInQuestionsLoading ? (
-                <p className="text-sm text-brand-muted">Preparing your check-in…</p>
-              ) : (
-                <div className="space-y-2">
+              {/* Check-in trigger button */}
+              <button
+                type="button"
+                onClick={handleOpenCheckIn}
+                disabled={checkInOpen}
+                className={`flex min-h-14 w-full items-center gap-3 rounded-2xl px-4 py-4 text-base font-semibold text-white transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-green-400 ${
+                  checkInOpen ? "bg-green-800 opacity-75" : "bg-green-700"
+                }`}
+              >
+                <MemoryIcon name="checkCircle" className="h-6 w-6 shrink-0 text-white" />
+                {checkInDoneThisSession ? "Do another check-in" : "Do a quick check-in"}
+              </button>
+
+              {/* Loading text */}
+              {checkInOpen && checkInQuestionsLoading ? (
+                <p className="text-xs text-brand-muted">Preparing your check-in…</p>
+              ) : null}
+
+              {/* Questions — slide down with max-height transition */}
+              <div
+                className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                  checkInOpen && !checkInQuestionsLoading && aiCheckInQuestions.length > 0
+                    ? "max-h-[500px] opacity-100"
+                    : "max-h-0 opacity-0"
+                }`}
+              >
+                <div className="space-y-2 pt-1">
                   {aiCheckInQuestions.map((q, i) => {
                     const isSelected = q === checkInSelectedQuestion;
                     const isDeselected = checkInSelectedQuestion !== "" && !isSelected;
@@ -455,12 +458,12 @@ export default function TodayWindowPage() {
                         key={i}
                         type="button"
                         onClick={() => handleCheckInTap(q)}
-                        className={`min-h-12 w-full rounded-2xl border-l-4 border-brand-border px-4 py-3 text-left text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-compass/40 ${
+                        className={`w-full cursor-pointer rounded-xl border p-4 text-left text-sm font-medium transition-colors duration-100 focus:outline-none focus:ring-2 focus:ring-green-400 ${
                           isSelected
-                            ? "bg-green-50 text-brand-text"
+                            ? "border-green-600 bg-green-50 text-brand-text"
                             : isDeselected
-                              ? "bg-brand-bg text-brand-text opacity-40"
-                              : "bg-brand-bg text-brand-text hover:bg-brand-surface"
+                              ? "border-brand-border bg-white text-brand-text opacity-60"
+                              : "border-brand-border bg-white text-brand-text hover:bg-green-50"
                         }`}
                       >
                         {q}
@@ -473,7 +476,15 @@ export default function TodayWindowPage() {
                       : "Tap once to select, tap again to confirm."}
                   </p>
                 </div>
-              )}
+              </div>
+
+              {/* Saved confirmation — shown when collapsed after a check-in */}
+              {checkInDoneThisSession && !checkInOpen ? (
+                <div className="rounded-2xl border border-brand-border bg-green-50 px-4 py-3">
+                  <p className="text-sm font-medium text-green-800">Check-in saved.</p>
+                  <p className="mt-1 text-xs text-brand-muted">{state.checkInStatus}</p>
+                </div>
+              ) : null}
             </div>
           </div>
         </section>
