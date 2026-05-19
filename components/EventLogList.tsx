@@ -89,6 +89,11 @@ export default function EventLogList({
                       {item.eventType === "checkin_submitted" && typeof item.metadata?.question === "string" ? (
                         <p className="mt-1 text-sm text-brand-text italic">&ldquo;{item.metadata.question}&rdquo;</p>
                       ) : null}
+                      {item.eventType === "reorientation_card_viewed" && typeof item.metadata?.question === "string" ? (
+                        <p className="mt-1 text-sm text-brand-text italic">
+                          &ldquo;{(item.metadata.question as string).split("_").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")}&rdquo;
+                        </p>
+                      ) : null}
                       <p className="text-sm text-brand-muted">
                         Source: {item.source}
                         {item.scenarioId ? ` | Scenario: ${item.scenarioId}` : ""}

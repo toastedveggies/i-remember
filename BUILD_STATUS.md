@@ -134,8 +134,8 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
   - Add `ANTHROPIC_API_KEY` setup instructions to `README.md`
   - [x] Phase 6 polish pass: console.error debug logging removed from route (silent error handling); system prompt updated with per-question focus rules (location only / time+activity only / next step only); question buttons moved from inline column to centered modal overlay with "What would you like to know?" title; model corrected from `claude-sonnet-4-20250514` to `claude-sonnet-4-5` after 404 on first test; decision logged in `DECISIONS.md`
   - Phase 6 AI integration complete — pending merge to main
-  - [x] `app/api/checkin/route.ts` (new) — POST route with two modes: "questions" (non-streaming, returns JSON array of 3 AI-generated check-in questions) and "response" (streaming, warm supportive reply ending with "In a full version, I would…"); silent fallbacks for both modes
-  - [x] `app/app/page.tsx` — AI-driven check-in: questions fetched on mount from /api/checkin, shown as tap-to-submit buttons (no Submit button); tapping a question logs checkin_submitted event and streams a supportive response into a slide-up panel matching the Help Me Now panel style; completed state shown after dismiss
+  - [x] `app/api/checkin/route.ts` (new) — POST route with two modes: "questions" (non-streaming, returns JSON array of 3 AI-generated check-in questions) and "response" (streaming, warm supportive reply ending with "In a full version, I would…"); silent fallbacks for both modes; markdown fence stripping before JSON.parse
+  - [x] `app/app/page.tsx` — AI check-in redesign: default state shows "Do a quick check-in" button only; tapping opens section, fetches questions on demand; tap-once-to-select (highlights, greys others), tap-again-to-confirm pattern; commit logs checkin_submitted and streams response in slide-up panel; dismiss collapses section and shows "Check-in saved" + "Do another check-in" button; debug console.log removed; no auto-fetch on mount
   - [x] `app/app/page.tsx` — emergency side tab split into two parts: permanent 48×80px dark red tab (toggle only, shield icon) + 240px bright red slide-out (emergency action only, text only); container uses overflow-hidden + rounded-r-2xl for clean animation; tap tab to expand/collapse, tap slide-out to trigger callEmergency(); auto-collapse 4s, click-outside backdrop
 
 ## Blocked Tasks
@@ -264,4 +264,4 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
 
 ## Last Updated
 
-2026-05-18 (UTC-7) — Phase 6 complete with AI check-in, pending merge to main
+2026-05-18 (UTC-7) — Phase 6 complete, check-in flow redesigned, pending merge to main

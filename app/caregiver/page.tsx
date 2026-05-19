@@ -116,6 +116,12 @@ export default function CaregiverPage() {
   const emergencyCalls = state.activityEvents.filter((e) => e.eventType === "emergency_called").length;
   const hasDistressEvent = state.activityEvents.some((e) => e.eventType === "reorientation_started");
 
+  // Activity panel: exclude reorientation_started, include reorientation_card_viewed
+  const activityPanelItems = [
+    ...state.activityEvents.filter((e) => e.eventType !== "reorientation_started"),
+    ...state.systemEvents.filter((e) => e.eventType === "reorientation_card_viewed"),
+  ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
   const caregiverViewLabel = caregiverDisplayName
     ? caregiverDisplayLabel
       ? `${caregiverDisplayName} (${caregiverDisplayLabel})`
@@ -308,7 +314,7 @@ export default function CaregiverPage() {
           />
           <EventLogList
             title={`${state.profile.preferredName}'s Activity`}
-            items={state.activityEvents}
+            items={activityPanelItems}
             defaultCollapsed={false}
             emptyText="No activity from the app yet."
             initialLimit={5}

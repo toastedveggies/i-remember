@@ -126,51 +126,19 @@ export default function TodayWindowPage() {
   const [recentGuidance, setRecentGuidance] = useState<GuidanceEntry[]>([]);
 
   // AI check-in
+  const [checkInDoneThisSession, setCheckInDoneThisSession] = useState(false);
+  const [checkInOpen, setCheckInOpen] = useState(false);
+  const [checkInQuestionsLoading, setCheckInQuestionsLoading] = useState(false);
   const [aiCheckInQuestions, setAiCheckInQuestions] = useState<string[]>([]);
-  const [checkInQuestionsLoading, setCheckInQuestionsLoading] = useState(true);
+  const [checkInSelectedQuestion, setCheckInSelectedQuestion] = useState("");
   const [checkInResponseOpen, setCheckInResponseOpen] = useState(false);
   const [checkInResponseText, setCheckInResponseText] = useState("");
   const [checkInResponseLoading, setCheckInResponseLoading] = useState(false);
   const [checkInActiveQuestion, setCheckInActiveQuestion] = useState("");
 
   useEffect(() => {
-    const loaded = loadState();
-    setState(loaded);
-    const guidance = loadRecentGuidance();
-    setRecentGuidance(guidance);
-
-    const packet = contextPackets[loaded.activeScenarioId] ?? contextPackets.unknown;
-    const recentQ = guidance[0]?.question ?? null;
-
-    fetch("/api/checkin", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        mode: "questions",
-        context: {
-          ...packet,
-          scenario: loaded.activeScenarioId,
-          ...(recentQ ? { recentHelpMeNowQuestion: recentQ } : {}),
-        },
-        userName: loaded.profile.preferredName,
-      }),
-    })
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed");
-        return res.json() as Promise<string[]>;
-      })
-      .then((qs) => {
-        if (Array.isArray(qs) && qs.length > 0) setAiCheckInQuestions(qs);
-        else throw new Error("Invalid");
-      })
-      .catch(() => {
-        setAiCheckInQuestions([
-          "How are you feeling right now?",
-          "Would you like a moment to sit and breathe?",
-          "Is there anything you need help with?",
-        ]);
-      })
-      .finally(() => setCheckInQuestionsLoading(false));
+    setState(loadState());
+    setRecentGuidance(loadRecentGuidance());
   }, []);
 
   const activeScenario = useMemo(() => findScenario(state.activeScenarioId), [state.activeScenarioId]);
@@ -275,7 +243,55 @@ export default function TodayWindowPage() {
     setStreamedText("");
   };
 
-  const handleCheckInQuestion = async (question: string) => {
+  const handleOpenCheckIn = () => {
+    setCheckInOpen(true);
+    setCheckInQuestionsLoading(true);
+    setAiCheckInQuestions([]);
+    setCheckInSelectedQuestion("");
+
+    const packet = contextPackets[activeScenario.id] ?? contextPackets.unknown;
+    const recentQ = loadRecentGuidance()[0]?.question ?? null;
+
+    fetch("/api/checkin", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        mode: "questions",
+        context: {
+          ...packet,
+          scenario: activeScenario.id,
+          ...(recentQ ? { recentHelpMeNowQuestion: recentQ } : {}),
+        },
+        userName: state.profile.preferredName,
+      }),
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed");
+        return res.json() as Promise<string[]>;
+      })
+      .then((qs) => {
+        if (Array.isArray(qs) && qs.length > 0) setAiCheckInQuestions(qs);
+        else throw new Error("Invalid");
+      })
+      .catch(() => {
+        setAiCheckInQuestions([
+          "How are you feeling right now?",
+          "Would you like a moment to sit and breathe?",
+          "Is there anything you need help with?",
+        ]);
+      })
+      .finally(() => setCheckInQuestionsLoading(false));
+  };
+
+  const handleCheckInTap = (question: string) => {
+    if (question !== checkInSelectedQuestion) {
+      setCheckInSelectedQuestion(question);
+    } else {
+      commitCheckIn(question);
+    }
+  };
+
+  const commitCheckIn = async (question: string) => {
     const nextAction = recommendedNextAction(question, state.profile.caregiverName);
     const next = appendActivityEvent(
       { ...state, checkInStatus: `Check-in saved: ${question} Recommended next action: ${nextAction}` },
@@ -283,6 +299,7 @@ export default function TodayWindowPage() {
     );
     persist(next);
 
+    setCheckInDoneThisSession(true);
     setCheckInActiveQuestion(question);
     setCheckInResponseText("");
     setCheckInResponseLoading(true);
@@ -410,25 +427,51 @@ export default function TodayWindowPage() {
                 <MemoryIcon name="checkCircle" className="h-7 w-7 text-green-500" />
                 <h3 className="text-xl font-semibold text-brand-text">Do a quick check-in</h3>
               </div>
-              {state.checkInStatus !== "Not submitted yet" ? (
-                <div className="rounded-2xl border border-brand-border bg-green-50 px-4 py-3">
-                  <p className="text-sm font-medium text-green-800">Check-in saved.</p>
-                  <p className="mt-1 text-xs text-brand-muted">{state.checkInStatus}</p>
+              {!checkInOpen ? (
+                <div className="space-y-2">
+                  {checkInDoneThisSession ? (
+                    <div className="rounded-2xl border border-brand-border bg-green-50 px-4 py-3">
+                      <p className="text-sm font-medium text-green-800">Check-in saved.</p>
+                      <p className="mt-1 text-xs text-brand-muted">{state.checkInStatus}</p>
+                    </div>
+                  ) : null}
+                  <button
+                    type="button"
+                    onClick={handleOpenCheckIn}
+                    className="min-h-12 w-full rounded-2xl border border-brand-border bg-brand-bg px-4 py-3 text-base font-semibold text-brand-text hover:bg-brand-surface focus:outline-none focus:ring-2 focus:ring-brand-compass/40"
+                  >
+                    {checkInDoneThisSession ? "Do another check-in" : "Do a quick check-in"}
+                  </button>
                 </div>
               ) : checkInQuestionsLoading ? (
                 <p className="text-sm text-brand-muted">Preparing your check-in…</p>
               ) : (
                 <div className="space-y-2">
-                  {aiCheckInQuestions.map((q, i) => (
-                    <button
-                      key={i}
-                      type="button"
-                      onClick={() => handleCheckInQuestion(q)}
-                      className="min-h-12 w-full rounded-2xl border-l-4 border-brand-border bg-brand-bg px-4 py-3 text-left text-sm font-medium text-brand-text hover:bg-brand-surface focus:outline-none focus:ring-2 focus:ring-brand-compass/40"
-                    >
-                      {q}
-                    </button>
-                  ))}
+                  {aiCheckInQuestions.map((q, i) => {
+                    const isSelected = q === checkInSelectedQuestion;
+                    const isDeselected = checkInSelectedQuestion !== "" && !isSelected;
+                    return (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => handleCheckInTap(q)}
+                        className={`min-h-12 w-full rounded-2xl border-l-4 border-brand-border px-4 py-3 text-left text-sm font-medium focus:outline-none focus:ring-2 focus:ring-brand-compass/40 ${
+                          isSelected
+                            ? "bg-green-50 text-brand-text"
+                            : isDeselected
+                              ? "bg-brand-bg text-brand-text opacity-40"
+                              : "bg-brand-bg text-brand-text hover:bg-brand-surface"
+                        }`}
+                      >
+                        {q}
+                      </button>
+                    );
+                  })}
+                  <p className="text-xs text-brand-muted">
+                    {checkInSelectedQuestion
+                      ? "Tap the highlighted option again to confirm."
+                      : "Tap once to select, tap again to confirm."}
+                  </p>
                 </div>
               )}
             </div>
@@ -559,7 +602,7 @@ export default function TodayWindowPage() {
             {!checkInResponseLoading ? (
               <button
                 type="button"
-                onClick={() => { setCheckInResponseOpen(false); setCheckInResponseText(""); }}
+                onClick={() => { setCheckInResponseOpen(false); setCheckInResponseText(""); setCheckInOpen(false); setCheckInSelectedQuestion(""); }}
                 className="mt-5 min-h-12 w-full rounded-2xl bg-brand-primary px-4 py-3 text-base font-semibold text-white focus:outline-none focus:ring-2 focus:ring-brand-compass"
               >
                 Got it

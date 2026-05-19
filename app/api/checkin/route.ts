@@ -39,13 +39,15 @@ export async function POST(req: NextRequest) {
           system: QUESTIONS_SYSTEM,
           messages: [{ role: "user", content: userPrompt }],
         });
-        const raw = message.content[0].type === "text" ? message.content[0].text.trim() : "[]";
-        const parsed = JSON.parse(raw) as string[];
+        const rawText = message.content[0].type === "text" ? message.content[0].text.trim() : "[]";
+        const cleaned = rawText.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "").trim();
+        const parsed = JSON.parse(cleaned) as string[];
         if (Array.isArray(parsed) && parsed.length === 3) {
           return Response.json(parsed);
         }
         return Response.json(FALLBACK_QUESTIONS);
-      } catch {
+      } catch (err) {
+        console.error("[checkin] questions error:", err instanceof Error ? err.message : err, err instanceof Error ? err.stack : "");
         return Response.json(FALLBACK_QUESTIONS);
       }
     }
@@ -68,7 +70,8 @@ export async function POST(req: NextRequest) {
               controller.enqueue(encoder.encode(event.delta.text));
             }
           }
-        } catch {
+        } catch (err) {
+          console.error("[checkin] response stream error:", err instanceof Error ? err.message : err, err instanceof Error ? err.stack : "");
           controller.enqueue(encoder.encode(FALLBACK_RESPONSE));
         } finally {
           controller.close();
