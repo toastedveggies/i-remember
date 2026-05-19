@@ -109,6 +109,15 @@ export default function TodayWindowPage() {
   const [selectedQuestion, setSelectedQuestion] = useState("");
   const [state, setState] = useState<DemoState>(initialDemoState);
 
+  // Floating emergency button
+  const [emergencyExpanded, setEmergencyExpanded] = useState(false);
+
+  useEffect(() => {
+    if (!emergencyExpanded) return;
+    const t = setTimeout(() => setEmergencyExpanded(false), 4000);
+    return () => clearTimeout(t);
+  }, [emergencyExpanded]);
+
   // Help Me Now flow
   const [helpMeNowOpen, setHelpMeNowOpen] = useState(false);
   const [streamingQuestion, setStreamingQuestion] = useState<QuestionKey | null>(null);
@@ -359,32 +368,42 @@ export default function TodayWindowPage() {
         </section>
       </div>
 
-      <section className="sticky bottom-3 mt-6 rounded-3xl border border-brand-border bg-brand-surface p-4 shadow-sm">
-        <h2 className="text-base font-semibold text-brand-text">Need urgent support?</h2>
-        <p className="mt-1 text-sm text-brand-muted">
-          Contact {state.profile.caregiverName} now. If there is immediate danger, call emergency services.
-        </p>
-        <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
-          <button
-            type="button"
-            onClick={callCaregiver}
-            className="flex min-h-12 items-center justify-center rounded-2xl bg-brand-primary px-4 py-3 text-sm font-semibold text-white focus:outline-none focus:ring-2 focus:ring-brand-compass"
-          >
-            {`Call ${state.profile.caregiverName}`}
-          </button>
-          <button
-            type="button"
-            onClick={callEmergency}
-            className="flex min-h-12 items-center justify-center rounded-2xl bg-red-600 px-4 py-3 text-sm font-semibold text-white focus:outline-none focus:ring-2 focus:ring-red-400"
-          >
-            Urgent: call emergency services
-          </button>
-        </div>
-      </section>
-
       <p className="mt-3 text-center text-xs text-brand-muted">
         Prototype note: data is stored in this browser session for demo purposes.
       </p>
+
+      {/* Floating emergency button */}
+      {emergencyExpanded ? (
+        <div
+          className="fixed inset-0 z-30"
+          onClick={() => setEmergencyExpanded(false)}
+          aria-hidden="true"
+        />
+      ) : null}
+      <button
+        type="button"
+        aria-label="Emergency"
+        onClick={() => {
+          if (emergencyExpanded) {
+            callEmergency();
+            setEmergencyExpanded(false);
+          } else {
+            setEmergencyExpanded(true);
+          }
+        }}
+        className={`fixed bottom-4 left-4 z-40 flex h-12 items-center overflow-hidden rounded-full shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-400 ${
+          emergencyExpanded
+            ? "w-[272px] gap-2.5 bg-red-600 px-5"
+            : "w-12 justify-center bg-red-900"
+        }`}
+      >
+        <MemoryIcon name="shield" className="h-5 w-5 shrink-0 text-white" />
+        {emergencyExpanded ? (
+          <span className="whitespace-nowrap text-sm font-semibold text-white">
+            Urgent: Call Emergency Services
+          </span>
+        ) : null}
+      </button>
 
       <HelperModal open={helperOpen} onClose={() => setHelperOpen(false)} profile={state.profile} onCallCaregiver={callCaregiver} onCallEmergency={callEmergency} />
 
