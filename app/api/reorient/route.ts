@@ -54,7 +54,7 @@ Respond directly to ${name} now.`;
       async start(controller) {
         try {
           const anthropicStream = await client.messages.stream({
-            model: "claude-sonnet-4-20250514",
+            model: "claude-sonnet-4-5",
             max_tokens: 300,
             system: SYSTEM_PROMPT,
             messages: [{ role: "user", content: userPrompt }],
@@ -68,7 +68,8 @@ Respond directly to ${name} now.`;
               controller.enqueue(encoder.encode(event.delta.text));
             }
           }
-        } catch {
+        } catch (err) {
+          console.error("[reorient] Anthropic stream error:", err instanceof Error ? err.message : err, err instanceof Error ? err.stack : "");
           controller.enqueue(encoder.encode(FALLBACK));
         } finally {
           controller.close();
@@ -83,7 +84,8 @@ Respond directly to ${name} now.`;
         "Cache-Control": "no-cache",
       },
     });
-  } catch {
+  } catch (err) {
+    console.error("[reorient] Request handler error:", err instanceof Error ? err.message : err, err instanceof Error ? err.stack : "");
     return new Response(FALLBACK, {
       status: 200,
       headers: { "Content-Type": "text/plain; charset=utf-8" },
