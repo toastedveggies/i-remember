@@ -134,7 +134,7 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
   - Add `ANTHROPIC_API_KEY` setup instructions to `README.md`
   - [x] Phase 6 polish pass: console.error debug logging removed from route (silent error handling); system prompt updated with per-question focus rules (location only / time+activity only / next step only); question buttons moved from inline column to centered modal overlay with "What would you like to know?" title; model corrected from `claude-sonnet-4-20250514` to `claude-sonnet-4-5` after 404 on first test; decision logged in `DECISIONS.md`
   - Phase 6 AI integration complete — pending merge to main
-  - [x] `app/app/page.tsx` — removed sticky "Need urgent support?" footer; added floating emergency button fixed bottom-left: collapsed = 48×48px dark red square with shield icon; expanded = 272px bright red pill "Urgent: Call Emergency Services", smooth 200ms transition, auto-collapses after 4s, click-outside backdrop dismisses it, tap triggers existing emergency modal and event log
+  - [x] `app/app/page.tsx` — removed sticky "Need urgent support?" footer; emergency button redesigned as a side tab: fixed to left edge, vertically centered, 48×80px collapsed (dark red, shield icon, rounded right only), expands rightward to 280px bright red pill "Urgent: Call Emergency Services" with 200ms transition, auto-collapses after 4s, click-outside backdrop, tap triggers existing emergency modal and event log
 
 ## Blocked Tasks
 
@@ -262,4 +262,4 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
 
 ## Last Updated
 
-2026-05-18 (UTC-7) — Phase 6 complete, emergency button UI updated, pending merge to main
+2026-05-18 (UTC-7) — Phase 6 complete, emergency side tab UI, pending merge to main

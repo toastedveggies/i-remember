@@ -372,7 +372,7 @@ export default function TodayWindowPage() {
         Prototype note: data is stored in this browser session for demo purposes.
       </p>
 
-      {/* Floating emergency button */}
+      {/* Emergency side tab */}
       {emergencyExpanded ? (
         <div
           className="fixed inset-0 z-30"
@@ -391,15 +391,15 @@ export default function TodayWindowPage() {
             setEmergencyExpanded(true);
           }
         }}
-        className={`fixed bottom-4 left-4 z-40 flex h-12 items-center overflow-hidden rounded-full shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-400 ${
+        className={`fixed top-1/2 left-0 z-40 flex h-20 -translate-y-1/2 items-center overflow-hidden rounded-r-2xl shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-400 ${
           emergencyExpanded
-            ? "w-[272px] gap-2.5 bg-red-600 px-5"
+            ? "w-[280px] gap-3 bg-red-600 px-4"
             : "w-12 justify-center bg-red-900"
         }`}
       >
         <MemoryIcon name="shield" className="h-5 w-5 shrink-0 text-white" />
         {emergencyExpanded ? (
-          <span className="whitespace-nowrap text-sm font-semibold text-white">
+          <span className="whitespace-nowrap text-sm font-bold text-white">
             Urgent: Call Emergency Services
           </span>
         ) : null}
