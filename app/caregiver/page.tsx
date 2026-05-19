@@ -33,6 +33,8 @@ export default function CaregiverPage() {
   const [caregiverDisplayName, setCaregiverDisplayName] = useState<string | null>(null);
   const [caregiverDisplayLabel, setCaregiverDisplayLabel] = useState<string | null>(null);
   const [stabilityScore, setStabilityScore] = useState<number | null>(null);
+  const [activeIsPrimaryContact, setActiveIsPrimaryContact] = useState<boolean>(true);
+  const [primaryContactName, setPrimaryContactName] = useState<string | null>(null);
 
   useEffect(() => {
     const loaded = loadState();
@@ -49,7 +51,7 @@ export default function CaregiverPage() {
         try {
           const { data: rel } = await (supabase as any)
             .from("caregiver_user_relationships")
-            .select("role")
+            .select("role, is_primary_contact")
             .eq("user_id", DEMO_USER_ID)
             .eq("caregiver_id", caregiverId)
             .maybeSingle();
@@ -58,7 +60,31 @@ export default function CaregiverPage() {
             setCaregiverRole(null);
             return;
           }
-          setCaregiverRole((rel as Record<string, unknown>).role as "primary" | "family" | "read_only");
+          const r = rel as Record<string, unknown>;
+          setCaregiverRole(r.role as "primary" | "family" | "read_only");
+          const isPrimary = r.is_primary_contact as boolean;
+          setActiveIsPrimaryContact(isPrimary);
+
+          if (!isPrimary) {
+            // Find who is the primary contact so we can label calls correctly
+            const { data: primaryRel } = await (supabase as any)
+              .from("caregiver_user_relationships")
+              .select("caregiver_id")
+              .eq("user_id", DEMO_USER_ID)
+              .eq("is_primary_contact", true)
+              .maybeSingle();
+            if (primaryRel) {
+              const { data: primaryCg } = await (supabase as any)
+                .from("caregivers")
+                .select("name")
+                .eq("id", (primaryRel as Record<string, unknown>).caregiver_id)
+                .is("deleted_at", null)
+                .maybeSingle();
+              if (primaryCg) {
+                setPrimaryContactName((primaryCg as Record<string, unknown>).name as string);
+              }
+            }
+          }
 
           const { data: cg } = await (supabase as any)
             .from("caregivers")
@@ -95,6 +121,12 @@ export default function CaregiverPage() {
       ? `${caregiverDisplayName} (${caregiverDisplayLabel})`
       : caregiverDisplayName
     : null;
+
+  const missedCallsLabel = activeIsPrimaryContact
+    ? "Missed calls"
+    : primaryContactName
+      ? `Calls to ${primaryContactName}`
+      : "Caregiver calls";
 
   if (state.profile.independentMode) {
     return (
@@ -207,7 +239,7 @@ export default function CaregiverPage() {
           <div className="grid grid-cols-2 gap-4">
             <div className="rounded-2xl border border-brand-border bg-brand-surface p-4 text-center">
               <p className="text-3xl font-bold text-brand-text">{missedCalls}</p>
-              <p className="mt-1 text-xs text-brand-muted">Missed calls</p>
+              <p className="mt-1 text-xs text-brand-muted">{missedCallsLabel}</p>
             </div>
             <div className="rounded-2xl border border-brand-border bg-brand-surface p-4 text-center">
               <p className={`text-3xl font-bold ${emergencyCalls > 0 ? "text-red-600" : "text-brand-text"}`}>
@@ -272,6 +304,7 @@ export default function CaregiverPage() {
             todaysEvents={state.activityEvents.length}
             missedCalls={missedCalls}
             emergencyCalls={emergencyCalls}
+            missedCallsLabel={missedCallsLabel}
           />
           <EventLogList
             title={`${state.profile.preferredName}'s Activity`}

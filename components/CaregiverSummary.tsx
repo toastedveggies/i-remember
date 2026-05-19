@@ -7,9 +7,10 @@ type CaregiverSummaryProps = {
   todaysEvents: number;
   missedCalls?: number;
   emergencyCalls?: number;
+  missedCallsLabel?: string;
 };
 
-export default function CaregiverSummary({ personName, lastCheckIn, status, todaysEvents, missedCalls = 0, emergencyCalls = 0 }: CaregiverSummaryProps) {
+export default function CaregiverSummary({ personName, lastCheckIn, status, todaysEvents, missedCalls = 0, emergencyCalls = 0, missedCallsLabel = "Missed calls" }: CaregiverSummaryProps) {
   return (
     <section className="rounded-3xl border border-brand-border bg-brand-surface p-5 shadow-sm">
       <h2 className="flex items-center gap-2 text-xl font-semibold text-brand-text">
@@ -37,7 +38,7 @@ export default function CaregiverSummary({ personName, lastCheckIn, status, toda
         ) : null}
         {missedCalls > 0 ? (
           <div className="flex items-center justify-between gap-3 rounded-xl bg-red-50 px-3 py-2">
-            <dt className="font-medium text-red-700">Missed calls</dt>
+            <dt className="font-medium text-red-700">{missedCallsLabel}</dt>
             <dd className="font-semibold text-red-700">{missedCalls}</dd>
           </div>
         ) : null}
