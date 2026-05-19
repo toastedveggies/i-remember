@@ -99,6 +99,14 @@ Tracks notable project decisions and rationale.
 - **Why:** Lowers onboarding barrier, respects user agency for early-stage users, and maps to pricing tiers (solo free, caregiver access paid).
 - **Implication:** Caregiver invite/onboarding flow is a future feature.
 
+### 2026-05-18 - Phase 5 schema additions to caregiver_user_relationships
+- **Decision:** Added `permissions` JSONB (NOT NULL, all-false default) and `is_primary_contact` BOOLEAN (NOT NULL, DEFAULT false) to `caregiver_user_relationships` during Phase 5 schema prep.
+- **permissions JSONB:** Stores granular per-caregiver permission flags (e.g. `can_see_activity_log`, `can_see_insights`). The toggle UI for editing these flags is intentionally deferred to a future phase to avoid scope creep.
+- **is_primary_contact:** Controls which caregiver the call button in `/app` targets, independent of dashboard role. Enforced unique per user via partial index `one_primary_contact_per_user`.
+- **Role remains the Phase 5 visibility mechanism:** The `role` column (`primary` / `family` / `read_only`) drives the caregiver dashboard view split in Phase 5. Primary sees everything; family and read_only see a summary-only view.
+- **Why:** Separating `is_primary_contact` from `role` allows a family member to be the emergency call contact without having full dashboard access.
+- **Implication:** The fixed demo caregiver UUID `00000000-0000-0000-0000-000000000002` remains the original primary caregiver. New caregivers added via the roster UI receive fresh UUIDs generated client-side using the existing `generateId()` helper (not `crypto.randomUUID()`, which fails on Safari/iOS).
+
 ## Open Decisions (To Resolve Later)
 
 - Data model for routines/events/check-ins
