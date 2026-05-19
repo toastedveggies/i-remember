@@ -132,6 +132,8 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
   - [x] `app/api/reorient/route.ts` — POST route; accepts `{ question, context, userName }`; maps question key to natural-language prompt; calls Claude claude-sonnet-4-20250514 with streaming; streams response back via `ReadableStream`; falls back to calm message on error; API key server-side only
   - [x] `app/app/page.tsx` — passive today card added (date, location, next event from context packet); Help Me Now button replaces static reorientation cards; tapping opens three question buttons; tapping a question streams Claude response into a slide-up panel with "Got it" dismiss; recent guidance stored in localStorage (capped at 10, showing last 5); "Recent guidance" link opens history panel; `reorientation_started` logged on Help Me Now tap; `reorientation_card_viewed` logged on successful AI response
   - Add `ANTHROPIC_API_KEY` setup instructions to `README.md`
+  - [x] Phase 6 polish pass: console.error debug logging removed from route (silent error handling); system prompt updated with per-question focus rules (location only / time+activity only / next step only); question buttons moved from inline column to centered modal overlay with "What would you like to know?" title; model corrected from `claude-sonnet-4-20250514` to `claude-sonnet-4-5` after 404 on first test; decision logged in `DECISIONS.md`
+  - Phase 6 AI integration complete — pending merge to main
 
 ## Blocked Tasks
 
@@ -259,4 +261,4 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
 
 ## Last Updated
 
-2026-05-18 (UTC-7) — Phase 6 (AI integration) complete
+2026-05-18 (UTC-7) — Phase 6 complete, polish pass done, pending merge to main

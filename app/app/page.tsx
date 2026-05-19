@@ -285,44 +285,18 @@ export default function TodayWindowPage() {
                 <h3 className="text-xl font-semibold text-brand-text">Help me understand what is happening</h3>
               </div>
 
-              {!helpMeNowOpen ? (
-                <>
-                  <button
-                    type="button"
-                    onClick={handleHelpMeNow}
-                    className="min-h-14 w-full rounded-2xl bg-brand-primary px-4 py-4 text-lg font-semibold text-white focus:outline-none focus:ring-2 focus:ring-brand-compass"
-                  >
-                    Help Me Now
-                  </button>
-                  <p className="text-sm text-brand-muted">
-                    {lastGuidanceUpdate
-                      ? `Last used at ${lastGuidanceUpdate}.`
-                      : "Tap for step-by-step guidance about where you are and what to do."}
-                  </p>
-                </>
-              ) : (
-                <div className="space-y-3">
-                  <p className="text-sm text-brand-muted">Choose what you would like to know:</p>
-                  {(["where_am_i", "what_is_happening", "what_should_i_do_next"] as QuestionKey[]).map((key) => (
-                    <button
-                      key={key}
-                      type="button"
-                      onClick={() => askQuestion(key)}
-                      disabled={streamingLoading}
-                      className="min-h-12 w-full rounded-2xl border border-brand-border bg-brand-bg px-4 py-3 text-left text-base font-medium text-brand-text hover:bg-brand-surface focus:outline-none focus:ring-2 focus:ring-brand-compass/40 disabled:opacity-50"
-                    >
-                      {questionLabels[key]}
-                    </button>
-                  ))}
-                  <button
-                    type="button"
-                    onClick={() => setHelpMeNowOpen(false)}
-                    className="text-sm text-brand-muted underline underline-offset-2"
-                  >
-                    Back
-                  </button>
-                </div>
-              )}
+              <button
+                type="button"
+                onClick={handleHelpMeNow}
+                className="min-h-14 w-full rounded-2xl bg-brand-primary px-4 py-4 text-lg font-semibold text-white focus:outline-none focus:ring-2 focus:ring-brand-compass"
+              >
+                Help Me Now
+              </button>
+              <p className="text-sm text-brand-muted">
+                {lastGuidanceUpdate
+                  ? `Last used at ${lastGuidanceUpdate}.`
+                  : "Tap for step-by-step guidance about where you are and what to do."}
+              </p>
 
               <button
                 type="button"
@@ -413,6 +387,35 @@ export default function TodayWindowPage() {
       </p>
 
       <HelperModal open={helperOpen} onClose={() => setHelperOpen(false)} profile={state.profile} onCallCaregiver={callCaregiver} onCallEmergency={callEmergency} />
+
+      {/* Question selection modal */}
+      {helpMeNowOpen && !streamPanelOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-sm rounded-3xl border border-brand-border bg-brand-surface p-6 shadow-xl space-y-4">
+            <h2 className="text-xl font-semibold text-brand-text">What would you like to know?</h2>
+            <div className="space-y-3">
+              {(["where_am_i", "what_is_happening", "what_should_i_do_next"] as QuestionKey[]).map((key) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => askQuestion(key)}
+                  disabled={streamingLoading}
+                  className="min-h-12 w-full rounded-2xl border border-brand-border bg-brand-bg px-4 py-3 text-left text-base font-medium text-brand-text hover:bg-brand-surface focus:outline-none focus:ring-2 focus:ring-brand-compass/40 disabled:opacity-50"
+                >
+                  {questionLabels[key]}
+                </button>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={() => setHelpMeNowOpen(false)}
+              className="text-sm text-brand-muted underline underline-offset-2"
+            >
+              Back
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       {/* Streaming response panel */}
       {streamPanelOpen ? (

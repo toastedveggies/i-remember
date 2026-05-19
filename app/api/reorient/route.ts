@@ -14,7 +14,11 @@ Rules you must follow:
 - Never mention memory loss, dementia, or any condition directly.
 - Never invent facts not present in the context.
 - If context is incomplete, acknowledge what is known and suggest contacting the caregiver.
-- End with one grounding, reassuring sentence.`;
+- End with one grounding, reassuring sentence.
+
+When answering "where am I": focus only on physical location and immediate surroundings. Do not mention the schedule, upcoming events, or what to do next.
+When answering "what is happening": focus on the time of day, day of week, and what is currently going on. Do not give next-step instructions or re-explain the location.
+When answering "what should I do next": focus only on the single immediate next action. Do not re-explain where the person is or what time it is.`;
 
 const questionPrompts: Record<string, string> = {
   where_am_i: "The person is asking: where am I right now? Using only the context below, tell them clearly and warmly where they are.",
@@ -68,8 +72,7 @@ Respond directly to ${name} now.`;
               controller.enqueue(encoder.encode(event.delta.text));
             }
           }
-        } catch (err) {
-          console.error("[reorient] Anthropic stream error:", err instanceof Error ? err.message : err, err instanceof Error ? err.stack : "");
+        } catch {
           controller.enqueue(encoder.encode(FALLBACK));
         } finally {
           controller.close();
@@ -84,8 +87,7 @@ Respond directly to ${name} now.`;
         "Cache-Control": "no-cache",
       },
     });
-  } catch (err) {
-    console.error("[reorient] Request handler error:", err instanceof Error ? err.message : err, err instanceof Error ? err.stack : "");
+  } catch {
     return new Response(FALLBACK, {
       status: 200,
       headers: { "Content-Type": "text/plain; charset=utf-8" },

@@ -117,6 +117,11 @@ Tracks notable project decisions and rationale.
 - **Why:** Streaming dramatically improves perceived responsiveness and demo impact — the user sees words appearing rather than a blank screen followed by a full response.
 - **Implication:** The client must handle a streaming response (e.g. via `ReadableStream` or `fetch` with incremental reads). The route is at `app/api/reorient/route.ts`.
 
+### 2026-05-18 - Use claude-sonnet-4-5 instead of claude-sonnet-4-20250514
+- **Decision:** The initial model string `claude-sonnet-4-20250514` was replaced with `claude-sonnet-4-5` in `app/api/reorient/route.ts`.
+- **Why:** First live test returned a `404 not_found_error` — the dated model string was not recognized by the API. The `claude-sonnet-4-5` alias resolved correctly.
+- **Implication:** Use the short alias (`claude-sonnet-4-5`) rather than a dated string for this model going forward.
+
 ### 2026-05-18 - Pre-written context packets per scenario for Phase 6 demo
 - **Decision:** AI responses in Phase 6 use pre-written context packets keyed to the active demo scenario rather than dynamically assembled live data.
 - **Why:** Demo reliability is more important than dynamic accuracy for a class prototype. Pre-written packets ensure consistent, safe responses during the presentation and avoid latency from data assembly.
