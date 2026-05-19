@@ -5,7 +5,6 @@ import Link from "next/link";
 import EventLogList from "@/components/EventLogList";
 import HelperModal from "@/components/HelperModal";
 import ResponseCard from "@/components/ResponseCard";
-import SupportActionCard from "@/components/SupportActionCard";
 import TodayCard from "@/components/TodayCard";
 import MemoryIcon from "@/components/MemoryIcon";
 import {
@@ -458,8 +457,8 @@ export default function TodayWindowPage() {
 
               {/* Saved confirmation — shown when collapsed after a check-in */}
               {checkInDoneThisSession && !checkInOpen ? (
-                <div className="rounded-2xl border border-brand-border bg-green-50 px-4 py-3">
-                  <p className="text-sm font-medium text-green-800">Check-in saved.</p>
+                <div className="rounded-2xl border border-lime-200 bg-lime-50 px-4 py-3">
+                  <p className="text-sm font-medium text-lime-800">Check-in saved.</p>
                   <p className="mt-1 text-xs text-brand-muted">{state.checkInStatus}</p>
                 </div>
               ) : null}
@@ -474,48 +473,54 @@ export default function TodayWindowPage() {
                 <MemoryIcon name="home" className="h-6 w-6 shrink-0 text-white" />
                 Help Me Now
               </button>
-              <p className="text-sm text-brand-muted">
-                {lastGuidanceUpdate
-                  ? `Last used at ${lastGuidanceUpdate}.`
-                  : "Tap for step-by-step guidance about where you are and what to do."}
-              </p>
+              {lastGuidanceUpdate ? (
+                <p className="text-sm text-brand-muted">Last used at {lastGuidanceUpdate}.</p>
+              ) : null}
 
-              <button
-                type="button"
-                onClick={() => setRecentGuidanceOpen(true)}
-                className="text-sm text-brand-muted underline underline-offset-2 text-left"
-              >
-                Recent guidance
-              </button>
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setRecentGuidanceOpen(true)}
+                  className="text-sm text-brand-muted underline underline-offset-2"
+                >
+                  Recent guidance
+                </button>
+              </div>
             </div>
           </div>
         </section>
 
         <section className="space-y-3">
-          <h2 className="text-lg font-semibold text-brand-text">Support actions</h2>
-          <div className="grid grid-cols-1 gap-4 md:gap-0 md:grid-cols-2 md:divide-x md:divide-brand-border">
-            <SupportActionCard
-              iconName="phone"
-              title="Call caregiver"
-              description={`Call ${state.profile.caregiverName} for reassurance.`}
-              buttonLabel={`Call ${state.profile.caregiverName}`}
+          <div className="space-y-3">
+            <button
+              type="button"
               onClick={callCaregiver}
-            />
+              className="flex min-h-14 w-full items-center gap-3 rounded-2xl bg-brand-primary px-4 py-4 text-base font-semibold text-white focus:outline-none focus:ring-2 focus:ring-brand-compass"
+            >
+              <MemoryIcon name="phone" className="h-6 w-6 shrink-0 text-white" />
+              {`Call ${state.profile.caregiverName}`}
+            </button>
+            <p className="text-sm text-brand-muted">{`Call ${state.profile.caregiverName} for reassurance.`}</p>
+          </div>
 
-            <SupportActionCard
-              iconName="shield"
-              title="Show helper card"
-              description="A simple screen you can show to a nearby person."
-              buttonLabel="Show helper card"
+          <div className="space-y-3">
+            <button
+              type="button"
               onClick={() => {
                 persist(appendActivityEvent(state, createEvent("helper_card_shown", "app", activeScenario.id, undefined, state.profile.userId)));
                 setHelperOpen(true);
               }}
-            />
+              className="flex min-h-14 w-full items-center gap-3 rounded-2xl bg-brand-primary px-4 py-4 text-base font-semibold text-white focus:outline-none focus:ring-2 focus:ring-brand-compass"
+            >
+              <MemoryIcon name="compass" className="h-6 w-6 shrink-0 text-white" />
+              Show helper card
+            </button>
+            <p className="text-sm text-brand-muted">A simple screen you can show to a nearby person.</p>
           </div>
+
           <Link
             href="/app/insights"
-            className="flex min-h-12 w-full items-center justify-center rounded-2xl border border-indigo-300 bg-indigo-100 px-4 py-3 text-base font-semibold text-indigo-700 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-indigo-300"
+            className="flex min-h-12 w-full items-center justify-center rounded-2xl bg-blue-900 px-4 py-3 text-base font-semibold text-white hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-700"
           >
             My Insights
           </Link>
