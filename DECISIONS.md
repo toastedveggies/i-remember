@@ -107,6 +107,21 @@ Tracks notable project decisions and rationale.
 - **Why:** Separating `is_primary_contact` from `role` allows a family member to be the emergency call contact without having full dashboard access.
 - **Implication:** The fixed demo caregiver UUID `00000000-0000-0000-0000-000000000002` remains the original primary caregiver. New caregivers added via the roster UI receive fresh UUIDs generated client-side using the existing `generateId()` helper (not `crypto.randomUUID()`, which fails on Safari/iOS).
 
+### 2026-05-18 - Use Claude (Anthropic) as the AI provider
+- **Decision:** Phase 6 AI integration uses the Anthropic Claude API, not OpenAI.
+- **Why:** The project already operates within the Anthropic ecosystem; using the same provider reduces integration friction and keeps the stack coherent.
+- **Implication:** The API key is stored as `ANTHROPIC_API_KEY` in `.env.local` and Vercel environment variables. It must never be committed to version control or exposed to the browser.
+
+### 2026-05-18 - Stream AI responses rather than waiting for full completion
+- **Decision:** The server-side API route streams Claude's response back to the client using the Anthropic SDK's streaming interface.
+- **Why:** Streaming dramatically improves perceived responsiveness and demo impact — the user sees words appearing rather than a blank screen followed by a full response.
+- **Implication:** The client must handle a streaming response (e.g. via `ReadableStream` or `fetch` with incremental reads). The route is at `app/api/reorient/route.ts`.
+
+### 2026-05-18 - Pre-written context packets per scenario for Phase 6 demo
+- **Decision:** AI responses in Phase 6 use pre-written context packets keyed to the active demo scenario rather than dynamically assembled live data.
+- **Why:** Demo reliability is more important than dynamic accuracy for a class prototype. Pre-written packets ensure consistent, safe responses during the presentation and avoid latency from data assembly.
+- **Implication:** Each scenario (`morning`, `afternoon`, `evening`) has a corresponding context packet that describes location, time, and next steps. Dynamic context assembly from real data is a future enhancement.
+
 ## Open Decisions (To Resolve Later)
 
 - Data model for routines/events/check-ins

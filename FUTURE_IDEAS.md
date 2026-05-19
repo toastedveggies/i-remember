@@ -10,6 +10,9 @@ Parking lot for ideas that are intentionally out of current MVP scope.
 
 ## Idea Backlog
 
+- Dynamic question options based on active scenario — e.g. "Who am I talking to?" at a clinic visit vs "What is my morning routine?" at home; questions would be pulled from the scenario context packet rather than hardcoded
+- Location-aware passive today card — pulls real GPS coordinates once location integration is added, replacing the current scenario-based location placeholder
+
 - Narrative presets for seed data — allow facilitators to select from pre-defined story arcs (e.g. "stable phase", "gradual progression", "crisis week") when seeding Supabase demo data, rather than always generating the same one-year pattern
 - Caregiver invite flow — allow Alex to invite a caregiver by email from within the app, creating a `caregiver_user_relationships` row with a role assignment
 - Role-based caregiver dashboard visibility — primary caregivers see full metrics; family/secondary caregivers see summary only (missed calls, emergency events, stability score)

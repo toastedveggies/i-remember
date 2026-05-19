@@ -22,11 +22,13 @@ Read all of the following first:
 7. Keep setup instructions current as the project evolves:
    - Supabase setup
    - Vercel setup
-   - OpenAI/server-side API setup (when introduced)
+   - Anthropic API setup (`ANTHROPIC_API_KEY` in `.env.local` and Vercel)
 
 ## Guardrails
 
-- Do not add OpenAI integration until explicitly planned.
+- Phase 6 introduces Claude (Anthropic) AI integration via a server-side API route. The API key is stored in `.env.local` as `ANTHROPIC_API_KEY` and in Vercel environment variables. It must never be exposed to the browser or committed to version control.
+- The AI integration uses streaming responses via the Anthropic SDK. The server-side route is at `app/api/reorient/route.ts`.
+- Do not add real-time location integration or Fitbit integration until explicitly planned.
 - Do not implement push notifications yet (stretch only, later).
 - Prefer clear, small, reviewable changes.
 - The app supports Independent Mode (no caregiver connected). This is intentional and not a bug.

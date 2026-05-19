@@ -69,7 +69,16 @@ Memory Assistant answers:
 - Caregiver roster UI on `/demo`: add and edit caregivers with role assignment (primary, family, read-only), saved to Supabase `caregivers` and `caregiver_user_relationships` tables
 - Role-based dashboard visibility: `/demo` gets a "View as caregiver" selector; primary role sees full dashboard; family/secondary sees summary only (missed calls, emergency events, stability score — no detailed activity log)
 
-### Phase 6 - Stretch (optional)
+### Phase 6 - AI integration
+- Replace the three static reorientation cards with a **Help Me Now** button that presents three question options: "Where am I?", "What is happening?", "What should I do next?"
+- Tapping a question sends a structured context packet to Claude (Anthropic) via a server-side API route at `app/api/reorient/route.ts` and streams the response back to the user in a modal or slide-up panel
+- User can dismiss the response and return to the main dashboard
+- Past AI responses are accessible via a "Recent guidance" link on the main dashboard
+- Passive today card remains at the top of `/app` showing date, location (scenario-based for now), and next event
+- Context packets are pre-written per scenario for the demo rather than dynamically assembled from live data
+- API key stored in `.env.local` as `ANTHROPIC_API_KEY` and in Vercel environment variables; never exposed to the browser
+
+### Phase 7 - Stretch (optional)
 - Simple push notification demo
 
 ## Phase 2 Definition of Done
@@ -145,7 +154,8 @@ Phase 2 is complete when the following MVP criteria are met using route-based ro
 
 ## Non-Goals for Current Stage
 
-- OpenAI/API integration now
+- Real-time location integration now
+- Fitbit or wearable integration now
 - Push notifications now
 - Full auth/roles hardening
 - Clinical workflows

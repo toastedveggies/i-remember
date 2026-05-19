@@ -2,8 +2,9 @@
 
 ## Current Phase
 
-**Phase 5 - Multiple Caregiver Support (complete)**
+**Phase 6 - AI Integration (starting)**
 
+Phase 5 - Multiple Caregiver Support: complete as of 2026-05-18 (UTC-7)
 Phase 4 - Supabase Backend Integration: complete as of 2026-05-18 (UTC-7)
 Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
 
@@ -125,35 +126,15 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
 
 ## Active / Next Task
 
-- Phase 4 - Supabase backend integration (in progress):
-  - [x] Initial schema defined and saved to `supabase/migrations/20260518_initial_schema.sql`
-  - [x] Supabase client initialized at `lib/supabaseClient.ts`
-  - [x] Event logging helpers created at `lib/logEvent.ts` (`logActivityEvent`, `logSystemEvent`)
-  - [x] `appendActivityEvent` and `appendSystemEvent` added to `data/demoState.ts`; call Supabase logger fire-and-forget alongside local state update
-  - [x] All three page components migrated to use `appendActivityEvent`/`appendSystemEvent` from `demoState.ts`; local duplicates removed
-  - [x] Profile persistence helpers created at `lib/profile.ts` (`saveProfile`, `loadProfile`, `saveCaregiverName`); fixed demo UUIDs used until auth is added
-  - [x] `app/demo/page.tsx` wired to Supabase profile helpers: saves on each profile/caregiver field change; loads from Supabase on first visit (localStorage takes priority)
-  - Set up Supabase project and configure environment variables (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`)
-  - Apply schema migration in Supabase dashboard (SQL editor)
-  - Migrate state from localStorage (`demoState.ts`) to Supabase persistence
-  - Verify reads/writes work end-to-end across `/app`, `/caregiver`, and `/demo`
-  - [x] Insights screen built at `app/caregiver/insights/page.tsx` — week/month/year tabs, bar charts, line chart, time-of-day breakdown, stat cards, stability score, sundowning heatmap; all static placeholder data for now
-  - [x] "My Insights" link added to support actions in `app/app/page.tsx`; "Insights →" link added to `app/caregiver/page.tsx`
-  - [x] Alex's personal Insights view created at `app/app/insights/page.tsx`; back button navigates to `/app`; "My Insights" link in `/app` updated to point to `/app/insights`
-  - [x] Seed script created at `lib/seedData.ts` — generates one year of synthetic narrative data (4 phases, emergency clustering, biometric events); `clearSeedData` deletes by user_id
-  - [x] `app/demo/page.tsx` — "Supabase Demo Data" section added with event count, Seed and Clear buttons, loading states, and status messages
-  - [x] `lib/insightsData.ts` created — `getWeeklyData`, `getMonthlyData`, `getYearlyData` query Supabase and return aggregated data; silent null return on error
-  - [x] Both insights pages wired to live Supabase data via `useEffect`; static placeholders used as fallback when Supabase returns null; loading indicator shown during fetch
-  - [x] Rolling 12-month window: `seedDemoData` generates past 12 months from today; `getYearlyData` queries same rolling range with dynamic month labels; year tab labels updated to "Past 12 Months"
-  - [x] Insights yearly chart bug resolved: root cause was Supabase PostgREST `max_rows` default of 1000 silently capping the yearly query despite `.limit(5000)`. Fixed by increasing `max_rows` to 10000 in Supabase Project Settings → API. No code change required.
-  - [x] Independent Mode UI implemented: `independentMode` field added to `DemoProfile`; `/caregiver` shows calm "Your care space is ready" view when enabled; `/demo` toggle controls the flag; `setIndependentMode()` helper in `demoState.ts`
-
-- Phase 5 - Multiple caregiver support (complete):
-  - [x] `DECISIONS.md` — Phase 5 schema additions entry: `permissions` JSONB, `is_primary_contact` BOOLEAN, partial unique index, role as visibility mechanism
-  - [x] `data/demoState.ts` — `activeCaregiverId` added to `DemoProfile` (default `00000000-0000-0000-0000-000000000002`); `generateId` exported; `setActiveCaregiverId` helper added; `normalizeDemoState` handles missing field
-  - [x] `lib/profile.ts` — `saveProfile` persists `active_caregiver_id`; `loadProfile` selects and returns it (cast via `Record<string, unknown>`)
-  - [x] `app/demo/page.tsx` — Caregiver Roster section: fetches live from Supabase, shows name/role/primary-contact status, Add/Edit/Remove (soft-delete only, no remove button on demo default UUID), inline form with is_primary_contact lock when another caregiver already holds it; View as Caregiver section: button group highlights active, calls `setActiveCaregiverId`
-  - [x] `app/caregiver/page.tsx` — On mount, fetches relationship row and caregiver name for `activeCaregiverId`; loading state while fetch is in flight; `null` role falls back to Independent Mode view; `family`/`read_only` roles render summary-only view (missed calls, emergency calls, stability score, distress alert, no activity log); `primary` role renders full dashboard with "Viewing as [name]" banner
+- Phase 6 - AI integration (starting):
+  - Install Anthropic SDK (`@anthropic-ai/sdk`) and add `ANTHROPIC_API_KEY` to `.env.local` and Vercel environment variables
+  - Create `data/contextPackets.ts` — pre-written context packets keyed by scenario ID (`morning`, `afternoon`, `evening`), each describing location, time of day, and next step
+  - Create server-side API route at `app/api/reorient/route.ts` — accepts `{ question, scenarioId }`, looks up the context packet, calls Claude with a bounded system prompt, streams the response back
+  - Replace the three static reorientation cards in `app/app/page.tsx` with a **Help Me Now** button presenting three question options: "Where am I?", "What is happening?", "What should I do next?"
+  - Add a streaming response modal/slide-up panel in `/app` — tapping a question calls the API route and streams Claude's response into the panel; user can dismiss and return to dashboard
+  - Store each AI response in localStorage under a `recentGuidance` array (capped at 5); add a "Recent guidance" link on the main dashboard that shows this list
+  - Passive today card remains at the top of `/app` (date, scenario-based location, next event) — no changes needed
+  - Add `ANTHROPIC_API_KEY` setup instructions to `README.md`
 
 ## Blocked Tasks
 
@@ -281,4 +262,4 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
 
 ## Last Updated
 
-2026-05-18 (UTC-7) — Phase 5 complete; missed-calls label fix for non-primary-contact caregivers
+2026-05-18 (UTC-7) — Phase 6 (AI integration) starting; Phase 5 complete
