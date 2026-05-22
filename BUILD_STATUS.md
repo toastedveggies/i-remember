@@ -145,10 +145,11 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
 
 ## Known Issues
 
-- No backend persistence or API integration yet (intentional)
-- Supabase not configured yet (intentional)
-- OpenAI not configured yet (intentional)
-- Vercel project not connected yet (intentional)
+- `BUILD_STATUS.md` previously drifted from repo reality; this section now reflects the current codebase as of 2026-05-21 (UTC-7)
+- The app has partial Supabase integration (`lib/supabaseClient.ts`, migration, profile/event helpers), but runtime state is still primarily local/demo-driven rather than fully database-backed
+- Anthropic AI routes are implemented in `app/api/reorient/route.ts` and `app/api/checkin/route.ts`; setup/docs should refer to Anthropic rather than OpenAI
+- `lib/profile.ts` reads and writes `profiles.active_caregiver_id`, but that column does not exist in `supabase/migrations/20260518_initial_schema.sql`; schema and app code need to be reconciled before further profile/location persistence work
+- Vercel project may still be unlinked or unverified for deployment; this repo status file should not assume deployment readiness without a fresh check
 - Phone number links and demo text are placeholders (replace later when real contact/routing is defined)
 - `next lint` command is functional and clean, but the tool itself is deprecated by Next.js and should later migrate to ESLint CLI.
 
@@ -255,14 +256,13 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
 ## Notes for the Next AI Agent
 
 - Start from `PROJECT_PLAN.md` and preserve strict MVP boundaries.
-- This is Phase 4: Supabase backend integration.
-- Set up the Supabase project and confirm environment variables are in `.env.local` before writing any integration code.
-- Define and apply the database schema for events, profile, and check-in data.
-- Migrate `data/demoState.ts` (currently localStorage-backed) to read/write from Supabase.
-- Verify end-to-end reads and writes work across `/app`, `/caregiver`, and `/demo` before marking Phase 4 complete.
-- Do not add OpenAI or push notifications yet.
+- Phase 6 AI work is complete in-app, but docs/status still need cleanup and the next product iteration is location handling.
+- Before implementing trusted-location features, reconcile the existing Supabase schema with current code usage, especially `profiles.active_caregiver_id`.
+- The database already contains a `places` table plus `scheduled_events.place_id` and `activity_events.place_id`; prefer extending that model rather than inventing a parallel location system.
+- Current demo/app location copy is still hardcoded in `data/demoData.ts` and `data/demoState.ts`; the next iteration should move scenarios toward structured place-aware context.
+- Do not add push notifications yet.
 - After making changes, update this file (status, files, timestamp, and next task).
 
 ## Last Updated
 
-2026-05-19 (UTC-7) — Phase 6 fully complete, pending README update and merge to main
+2026-05-21 (UTC-7) — Status doc corrected to match current repo reality; next iteration is trusted-location planning/integration
