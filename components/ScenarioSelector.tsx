@@ -1,7 +1,8 @@
-﻿type Scenario = {
+type Scenario = {
   id: string;
   label: string;
   guidance: string;
+  locationLine?: string;
 };
 
 type ScenarioSelectorProps = {
@@ -21,6 +22,11 @@ export default function ScenarioSelector({ scenarios, activeScenarioId, onPrevie
               {scenario.label} {activeScenarioId === scenario.id ? "(active)" : ""}
             </h3>
             <p className="mt-1 text-base text-brand-muted">{scenario.guidance}</p>
+            {scenario.locationLine ? (
+              <p className="mt-2 text-sm text-brand-muted">
+                <span className="font-medium text-brand-text">Location:</span> {scenario.locationLine}
+              </p>
+            ) : null}
             <button
               type="button"
               onClick={() => onPreview?.(scenario.id)}

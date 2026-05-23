@@ -21,6 +21,10 @@ export type DemoScenario = {
   happening: string;
   nextStep: string;
   uncertainty: UncertaintyLevel;
+  locationMode: "trusted" | "other";
+  trustedSlot?: 1 | 2 | 3;
+  otherLocationLabel?: string;
+  locationDetail?: string;
 };
 
 export type DemoState = {
@@ -29,6 +33,7 @@ export type DemoState = {
   activityEvents: DemoEvent[];
   systemEvents: DemoEvent[];
   profile: DemoProfile;
+  trustedLocations: TrustedLocation[];
 };
 
 export type PronounSet = "he/him" | "she/her" | "they/them" | "custom";
@@ -42,6 +47,14 @@ export type DemoProfile = {
   caregiverRelationshipLabel?: string;
   independentMode?: boolean;
   activeCaregiverId?: string | null;
+};
+
+export type TrustedLocation = {
+  id?: string;
+  trustedSlot: 1 | 2 | 3;
+  name: string;
+  address?: string;
+  instructions?: string;
 };
 
 export const defaultDemoProfile: DemoProfile = {
@@ -59,28 +72,37 @@ export const demoScenarios: DemoScenario[] = [
     id: "morning",
     label: "Morning confusion",
     guidance: "You just woke up. Open curtains and check today's date.",
-    where: "You are at home in your bedroom.",
+    where: "You are at your trusted home location, in your bedroom.",
     happening: "It is Tuesday morning. Breakfast is planned at 8:00 AM.",
     nextStep: "Open the curtains, drink water, and check your morning checklist.",
-    uncertainty: "low"
+    uncertainty: "low",
+    locationMode: "trusted",
+    trustedSlot: 1,
+    locationDetail: "bedroom"
   },
   {
     id: "afternoon",
     label: "Afternoon routine",
     guidance: "It is after lunch. Next: short walk, then rest.",
-    where: "You are in your living room at home.",
+    where: "You are at your trusted home location, in the living room.",
     happening: "It is Tuesday afternoon and your routine block is light activity.",
     nextStep: "Take a short walk in the hallway, then return to rest.",
-    uncertainty: "medium"
+    uncertainty: "medium",
+    locationMode: "trusted",
+    trustedSlot: 1,
+    locationDetail: "living room"
   },
   {
     id: "evening",
     label: "Evening uncertainty",
     guidance: "It is evening. Review dinner plan and medication checklist.",
-    where: "Location details are limited right now.",
+    where: "You may be somewhere outside your saved trusted locations.",
     happening: "It appears to be evening, but the next activity is not confirmed.",
     nextStep: "Pause, take a slow breath, and review the next activity card.",
-    uncertainty: "high"
+    uncertainty: "high",
+    locationMode: "other",
+    otherLocationLabel: "somewhere unfamiliar",
+    locationDetail: "near the entrance"
   }
 ];
 
@@ -97,7 +119,30 @@ export const initialDemoState: DemoState = {
   checkInStatus: "Not submitted yet",
   activityEvents: [],
   systemEvents: [],
-  profile: defaultDemoProfile
+  profile: defaultDemoProfile,
+  trustedLocations: [
+    {
+      id: "trusted-place-1",
+      trustedSlot: 1,
+      name: "Home",
+      address: "215 Cedar Street",
+      instructions: "Bedroom upstairs. Living room near the front windows."
+    },
+    {
+      id: "trusted-place-2",
+      trustedSlot: 2,
+      name: "Community Center",
+      address: "18 Oak Avenue",
+      instructions: "Front desk can help call Maria if reassurance is needed."
+    },
+    {
+      id: "trusted-place-3",
+      trustedSlot: 3,
+      name: "Maria's House",
+      address: "44 Pine Lane",
+      instructions: "Blue door with a porch light. Maria usually answers quickly."
+    }
+  ]
 };
 
 // Event types that belong in activityEvents (user-facing actions)
@@ -117,6 +162,7 @@ export function normalizeDemoState(raw: unknown): DemoState {
 
   const value = raw as Partial<DemoState> & {
     profile?: Partial<DemoProfile>;
+    trustedLocations?: TrustedLocation[];
     events?: DemoEvent[]; // legacy single-array field
   };
   const validScenario = demoScenarios.some((scenario) => scenario.id === value.activeScenarioId);
@@ -153,7 +199,22 @@ export function normalizeDemoState(raw: unknown): DemoState {
       activeCaregiverId: value.profile?.activeCaregiverId !== undefined
         ? value.profile.activeCaregiverId
         : "00000000-0000-0000-0000-000000000002"
-    }
+    },
+    trustedLocations: Array.isArray(value.trustedLocations) && value.trustedLocations.length > 0
+      ? value.trustedLocations
+          .filter((location): location is TrustedLocation =>
+            (location.trustedSlot === 1 || location.trustedSlot === 2 || location.trustedSlot === 3) &&
+            typeof location.name === "string"
+          )
+          .map((location) => ({
+            id: location.id,
+            trustedSlot: location.trustedSlot,
+            name: location.name,
+            address: location.address,
+            instructions: location.instructions
+          }))
+          .sort((a, b) => a.trustedSlot - b.trustedSlot)
+      : initialDemoState.trustedLocations
   };
 }
 
@@ -219,6 +280,11 @@ export function appendSystemEvent(state: DemoState, event: DemoEvent): DemoState
 
 export function findScenario(scenarioId: string): DemoScenario {
   return demoScenarios.find((scenario) => scenario.id === scenarioId) ?? demoScenarios[0];
+}
+
+export function findTrustedLocation(locations: TrustedLocation[], slot?: 1 | 2 | 3): TrustedLocation | null {
+  if (!slot) return null;
+  return locations.find((location) => location.trustedSlot === slot) ?? null;
 }
 
 export function pronounWords(pronouns: PronounSet, customPronouns?: string): { subject: string; object: string; possessive: string } {

@@ -10,6 +10,7 @@ import MemoryIcon from "@/components/MemoryIcon";
 import {
   appendActivityEvent,
   appendSystemEvent,
+  findTrustedLocation,
   createEvent,
   findScenario,
   initialDemoState,
@@ -18,7 +19,7 @@ import {
   type DemoState,
   type UncertaintyLevel
 } from "@/data/demoState";
-import { contextPackets } from "@/data/demoData";
+import { buildContextPacket, describeScenarioLocation } from "@/data/demoData";
 
 const RECENT_GUIDANCE_KEY = "recentGuidance";
 
@@ -150,7 +151,18 @@ export default function TodayWindowPage() {
   }, []);
 
   const activeScenario = useMemo(() => findScenario(state.activeScenarioId), [state.activeScenarioId]);
-  const contextPacket = contextPackets[state.activeScenarioId] ?? contextPackets.unknown;
+  const contextPacket = useMemo(
+    () => buildContextPacket(state.activeScenarioId, state.profile, state.trustedLocations),
+    [state.activeScenarioId, state.profile, state.trustedLocations]
+  );
+  const activeTrustedLocation = useMemo(
+    () => findTrustedLocation(state.trustedLocations, activeScenario.trustedSlot),
+    [activeScenario.trustedSlot, state.trustedLocations]
+  );
+  const locationSummary = useMemo(
+    () => describeScenarioLocation(activeScenario, state.trustedLocations),
+    [activeScenario, state.trustedLocations]
+  );
 
   const persist = (nextState: DemoState) => {
     setState(nextState);
@@ -189,7 +201,7 @@ export default function TodayWindowPage() {
   };
 
   const askQuestion = async (key: QuestionKey) => {
-    const packet = contextPackets[activeScenario.id] ?? contextPackets.unknown;
+    const packet = buildContextPacket(activeScenario.id, state.profile, state.trustedLocations);
     setStreamingQuestion(key);
     setStreamedText("");
     setStreamingLoading(true);
@@ -257,7 +269,7 @@ export default function TodayWindowPage() {
     setAiCheckInQuestions([]);
     setCheckInSelectedQuestion("");
 
-    const packet = contextPackets[activeScenario.id] ?? contextPackets.unknown;
+    const packet = buildContextPacket(activeScenario.id, state.profile, state.trustedLocations);
     const recentQ = loadRecentGuidance()[0]?.question ?? null;
 
     fetch("/api/checkin", {
@@ -314,7 +326,7 @@ export default function TodayWindowPage() {
     setCheckInResponseOpen(true);
 
     try {
-      const packet = contextPackets[activeScenario.id] ?? contextPackets.unknown;
+      const packet = buildContextPacket(activeScenario.id, state.profile, state.trustedLocations);
       const res = await fetch("/api/checkin", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -394,6 +406,14 @@ export default function TodayWindowPage() {
             <h2 className="text-lg font-semibold text-brand-text">{new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}</h2>
           </div>
           <p className="text-sm text-brand-muted"><span className="font-medium text-brand-text">Where:</span> {contextPacket.location}</p>
+          {activeScenario.locationMode === "trusted" && activeTrustedLocation?.address ? (
+            <p className="text-xs text-brand-muted">
+              Trusted place {activeTrustedLocation.trustedSlot}: {activeTrustedLocation.address}
+            </p>
+          ) : null}
+          {activeScenario.locationMode === "other" ? (
+            <p className="text-xs text-brand-muted">This scenario is currently using Other rather than one of the saved trusted places.</p>
+          ) : null}
           <p className="text-sm text-brand-muted"><span className="font-medium text-brand-text">Next:</span> {contextPacket.next_event}</p>
         </section>
 
@@ -527,6 +547,12 @@ export default function TodayWindowPage() {
         </section>
 
         <section className="space-y-3">
+          <div className="rounded-2xl border border-brand-border bg-brand-surface px-4 py-3">
+            <p className="text-sm font-medium text-brand-text">Location mode</p>
+            <p className="mt-1 text-sm text-brand-muted">
+              {locationSummary.label}
+            </p>
+          </div>
           <h2 className="text-lg font-semibold text-brand-text">Recent demo events</h2>
           <EventLogList items={eventItems} defaultCollapsed />
         </section>
