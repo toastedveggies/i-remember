@@ -78,6 +78,13 @@ Memory Assistant answers:
 - Context packets are pre-written per scenario for the demo rather than dynamically assembled from live data
 - API key stored in `.env.local` as `ANTHROPIC_API_KEY` and in Vercel environment variables; never exposed to the browser
 
+### Current Iteration - Trusted location handling
+- Extend the existing `places` schema to support up to 3 trusted locations per user plus an app-level "Other" state
+- Keep location modeling compatible with `scheduled_events.place_id` and `activity_events.place_id`
+- Replace hardcoded scenario location strings with structured location-aware context derived from saved trusted places
+- Add trusted-location editing controls to `/demo` so the class demo can switch between saved places and "Other"
+- Update scenario copy and reorientation context so "Where am I?" reflects trusted-place context when available
+
 ### Phase 7 - Stretch (optional)
 - Simple push notification demo
 
@@ -159,3 +166,4 @@ Phase 2 is complete when the following MVP criteria are met using route-based ro
 - Push notifications now
 - Full auth/roles hardening
 - Clinical workflows
+- GPS/geofencing automation now

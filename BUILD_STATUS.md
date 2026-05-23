@@ -4,6 +4,8 @@
 
 **Phase 6 - AI Integration (complete)**
 
+**Current iteration - Trusted location handling (in progress)**
+
 Phase 5 - Multiple Caregiver Support: complete as of 2026-05-18 (UTC-7)
 Phase 4 - Supabase Backend Integration: complete as of 2026-05-18 (UTC-7)
 Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
@@ -123,12 +125,29 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
 - Safari/iOS compatibility fix:
     - Replaced `crypto.randomUUID()` in `createEvent` (`data/demoState.ts`) with a `generateId()` fallback using `Math.random()`
     - `crypto.randomUUID()` throws on Safari/iPhone; the fallback works across all browsers
+- Trusted location iteration kickoff:
+    - Supabase schema was updated outside this repo to support trusted locations on `places` plus `profiles.active_caregiver_id`
+    - Added `trustedLocations` to `DemoState` and seeded default trusted places in `data/demoState.ts`
+    - Reworked `data/demoData.ts` to build scenario context dynamically from trusted places instead of hardcoded `contextPackets`
+    - Added `lib/places.ts` for loading/saving/clearing trusted locations in Supabase
+    - Updated `/demo` to edit and persist trusted locations 1, 2, and 3 and explain the app-level "Other" location state
+    - Updated `/app` so passive Today context and AI prompt payloads now use trusted-location-aware context
 
 ## Active / Next Task
 
+- Trusted location handling (in progress as of 2026-05-23, UTC-7):
+  - [x] Supabase schema updated to support trusted locations and `profiles.active_caregiver_id`
+  - [x] `.env.local` updated with Supabase URL, Supabase anon key, and `ANTHROPIC_API_KEY`
+  - [x] `data/demoState.ts` updated with shared trusted-location state
+  - [x] `data/demoData.ts` updated to build context dynamically from trusted places and "Other"
+  - [x] `app/demo/page.tsx` updated with trusted-location editing and persistence
+  - [x] `app/app/page.tsx` updated to consume trusted-location-aware context for Today + AI flows
+  - [ ] Update caregiver/demo summaries to surface trusted-place context where useful
+  - [ ] Start writing `place_id` into activity events when a scenario maps to a trusted place
+  - [ ] Verify end-to-end runtime after dependency/env refresh
 - Phase 6 - AI Integration (complete as of 2026-05-19, UTC-7):
   - [x] Installed `@anthropic-ai/sdk`
-  - [x] `data/demoData.ts` — `ContextPacket` type and `contextPackets` keyed by scenario ID (`morning`, `afternoon`, `evening`, `unknown`)
+  - [x] `data/demoData.ts` — `ContextPacket` model and server prompt context generation for scenario-based guidance
   - [x] `app/api/reorient/route.ts` — server-side POST route; accepts `{ question, context, userName }`; per-question system prompt rules (location only / time+activity only / next step only); streams via `ReadableStream`; model `claude-sonnet-4-5`; silent fallback; API key server-side only
   - [x] `app/api/checkin/route.ts` (new) — dual-mode POST: "questions" (non-streaming JSON array of 3 AI check-in questions, generated on demand); "response" (streaming supportive reply ending with "In a full version, I would…"); markdown fence stripping before JSON.parse; silent fallbacks
   - [x] `app/app/page.tsx` — Help Me Now flow: passive today card (date, location, next event from context packet); large button with home icon; tapping opens question-selection modal; selected question streams response into slide-up panel; "Recent guidance" link shows last 5 responses; `reorientation_started` and `reorientation_card_viewed` events logged
@@ -148,10 +167,11 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
 - `BUILD_STATUS.md` previously drifted from repo reality; this section now reflects the current codebase as of 2026-05-21 (UTC-7)
 - The app has partial Supabase integration (`lib/supabaseClient.ts`, migration, profile/event helpers), but runtime state is still primarily local/demo-driven rather than fully database-backed
 - Anthropic AI routes are implemented in `app/api/reorient/route.ts` and `app/api/checkin/route.ts`; setup/docs should refer to Anthropic rather than OpenAI
-- `lib/profile.ts` reads and writes `profiles.active_caregiver_id`, but that column does not exist in `supabase/migrations/20260518_initial_schema.sql`; schema and app code need to be reconciled before further profile/location persistence work
+- Trusted-location schema changes were applied in Supabase, but the checked-in SQL migration file in this repo has not yet been updated to reflect that external change
 - Vercel project may still be unlinked or unverified for deployment; this repo status file should not assume deployment readiness without a fresh check
 - Phone number links and demo text are placeholders (replace later when real contact/routing is defined)
 - `next lint` command is functional and clean, but the tool itself is deprecated by Next.js and should later migrate to ESLint CLI.
+- `npx tsc --noEmit` is currently blocked by unresolved `@anthropic-ai/sdk` module resolution in the local workspace even though app-side location code linted cleanly
 
 ## Demo Access Note
 
@@ -220,6 +240,8 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
 - `app/app/page.tsx`
 - `app/caregiver/page.tsx`
 - `app/demo/page.tsx`
+- `app/api/checkin/route.ts`
+- `app/api/reorient/route.ts`
 - `components/MemoryIcon.tsx`
 - `components/BrandLogo.tsx`
 - `components/SiteHeader.tsx`
@@ -232,8 +254,10 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
 - `components/ScenarioSelector.tsx`
 - `components/CaregiverSummary.tsx`
 - `components/EventLogList.tsx`
+- `lib/places.ts`
 - `data/demoData.ts`
 - `data/demoState.ts`
+- `.env.local`
 
 ## Manual Setup Steps (For Later)
 
@@ -256,13 +280,13 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
 ## Notes for the Next AI Agent
 
 - Start from `PROJECT_PLAN.md` and preserve strict MVP boundaries.
-- Phase 6 AI work is complete in-app, but docs/status still need cleanup and the next product iteration is location handling.
-- Before implementing trusted-location features, reconcile the existing Supabase schema with current code usage, especially `profiles.active_caregiver_id`.
-- The database already contains a `places` table plus `scheduled_events.place_id` and `activity_events.place_id`; prefer extending that model rather than inventing a parallel location system.
-- Current demo/app location copy is still hardcoded in `data/demoData.ts` and `data/demoState.ts`; the next iteration should move scenarios toward structured place-aware context.
+- Phase 6 AI work is complete in-app and the trusted-location iteration has started.
+- Supabase now supports the trusted-location schema needed for `places` and `profiles.active_caregiver_id`.
+- The database already contains a `places` table plus `scheduled_events.place_id` and `activity_events.place_id`; continue extending that model rather than inventing a parallel location system.
+- Current priority is integrating trusted locations more deeply into caregiver views and event logging.
 - Do not add push notifications yet.
 - After making changes, update this file (status, files, timestamp, and next task).
 
 ## Last Updated
 
-2026-05-21 (UTC-7) — Status doc corrected to match current repo reality; next iteration is trusted-location planning/integration
+2026-05-23 (UTC-7) — Trusted-location iteration started; app and demo now use structured trusted-place context

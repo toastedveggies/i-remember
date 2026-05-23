@@ -4,3 +4,11 @@
 
    ▲ Next.js 15.5.15
 
+
+> Build error occurred
+[Error: UNKNOWN: unknown error, unlink 'C:\Users\ramor\OneDrive\Documents\GitHub\i-remember\.next\app-build-manifest.json'] {
+  errno: -4094,
+  code: 'UNKNOWN',
+  syscall: 'unlink',
+  path: 'C:\\Users\\ramor\\OneDrive\\Documents\\GitHub\\i-remember\\.next\\app-build-manifest.json'
+}
