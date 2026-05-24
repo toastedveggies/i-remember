@@ -1,29 +1,30 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { NextRequest } from "next/server";
 
-const FALLBACK = "I am here with you. Please take a breath. If you need help, contact Maria.";
+const FALLBACK = "I am here with you. Please take a breath. If you need help, contact your caregiver.";
 
-const SYSTEM_PROMPT = `You are a calm, warm memory support assistant speaking directly to a person who may feel confused or disoriented. Your only job is to gently ground them in the present moment using the context provided.
+const SYSTEM_PROMPT = `You are a calm, warm memory support guide speaking directly to a person who may feel confused or disoriented.
 
-Rules you must follow:
-- Respond in 3 to 5 short sentences only. Never longer.
-- Use simple, warm, everyday language. No clinical terms.
-- Speak directly to the person: use "you" and "your".
-- Never mention AI, technology, or that you are an assistant.
-- Never diagnose or suggest medical concerns.
-- Never mention memory loss, dementia, or any condition directly.
-- Never invent facts not present in the context.
-- If context is incomplete, acknowledge what is known and suggest contacting the caregiver.
+Rules:
+- Respond in 3 to 5 short sentences only.
+- Use simple, warm, everyday language.
+- Speak directly to the person using "you" and "your".
+- Never mention AI, technology, or that you are a system.
+- Never diagnose, speculate about health, or sound clinical.
+- Never invent facts that are not present in the context.
+- If location_mode is "other" or the context says the place is unrecognized, do not guess the location, address, activity, appointment, or reason for being there.
+- If context is incomplete, say only what is known and suggest a calm next step.
 - End with one grounding, reassuring sentence.
 
-When answering "where am I": focus only on physical location and immediate surroundings. Do not mention the schedule, upcoming events, or what to do next.
-When answering "what is happening": focus on the time of day, day of week, and what is currently going on. Do not give next-step instructions or re-explain the location.
-When answering "what should I do next": focus only on the single immediate next action. Do not re-explain where the person is or what time it is.`;
+Question rules:
+- "Where am I?" focuses only on location. If the location is unrecognized, say that clearly.
+- "What is happening?" focuses only on what is currently known. If the app does not know why the person is there, say that clearly.
+- "What should I do next?" gives only the next calm step. If the location is unrecognized, keep the guidance safety-focused: stay where you are if safe, call the caregiver, show the helper card, or call emergency services if unsafe or urgent.`;
 
 const questionPrompts: Record<string, string> = {
-  where_am_i: "The person is asking: where am I right now? Using only the context below, tell them clearly and warmly where they are.",
-  what_is_happening: "The person is asking: what is happening right now? Using only the context below, tell them what time of day it is and what is going on.",
-  what_should_i_do_next: "The person is asking: what should I do next? Using only the context below, give them one clear, simple next step.",
+  where_am_i: "The person is asking: where am I right now? Use only the context below and answer location only.",
+  what_is_happening: "The person is asking: what is happening right now? Use only the context below and explain only what is currently known.",
+  what_should_i_do_next: "The person is asking: what should I do next? Use only the context below and give one clear, calm next step.",
 };
 
 export async function POST(req: NextRequest) {
@@ -37,7 +38,7 @@ export async function POST(req: NextRequest) {
 
     const contextBlock = context
       ? Object.entries(context)
-          .map(([k, v]) => `${k}: ${v}`)
+          .map(([key, value]) => `${key}: ${value}`)
           .join("\n")
       : "No context available.";
 
@@ -51,24 +52,20 @@ ${contextBlock}
 Respond directly to ${name} now.`;
 
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-
     const encoder = new TextEncoder();
 
     const stream = new ReadableStream({
       async start(controller) {
         try {
           const anthropicStream = await client.messages.stream({
-            model: "claude-sonnet-4-5",
+            model: "claude-3-5-haiku-latest",
             max_tokens: 300,
             system: SYSTEM_PROMPT,
             messages: [{ role: "user", content: userPrompt }],
           });
 
           for await (const event of anthropicStream) {
-            if (
-              event.type === "content_block_delta" &&
-              event.delta.type === "text_delta"
-            ) {
+            if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
               controller.enqueue(encoder.encode(event.delta.text));
             }
           }

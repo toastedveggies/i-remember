@@ -1,6 +1,6 @@
 # Supabase Location Migration
 
-This file is a handoff for applying the next schema update in Supabase.
+This file records the trusted-location schema alignment that has now been folded into the checked-in migration.
 
 ## Goal
 
@@ -12,6 +12,13 @@ Extend the existing `places` table so the app can support:
 - compatibility with the current schema, especially `scheduled_events.place_id` and `activity_events.place_id`
 
 Also reconcile an existing schema/code mismatch around `profiles.active_caregiver_id`.
+
+For the current MVP:
+
+- human-readable trusted-place text can stay in `places.name` and `places.address`
+- `places.latitude` and `places.longitude` are the source of truth for matching
+- trusted-place radius should stay in seeded app/demo configuration for now rather than adding a `radius_meters` column
+- do not add reverse geocoding, browser-derived addresses, or external mapping infrastructure as part of this migration
 
 ## Summary
 
@@ -100,10 +107,12 @@ After this migration:
 - each trusted place can occupy slot `1`, `2`, or `3`
 - non-trusted places can still exist in `places`
 - the app can later map a scenario to a trusted place or to "Other"
+- address text remains human-readable UI data, while coordinate matching uses `latitude` / `longitude`
+- radius handling remains app-side demo/config data for MVP
 
 ## Notes For Follow-Up App Work
 
-Once this is applied, the next app changes should:
+Now that the migration file reflects these fields, the next app changes should:
 
 - move demo/app location handling away from hardcoded strings
 - map trusted demo locations to real `places` records

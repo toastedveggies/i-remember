@@ -1,3 +1,4 @@
+import { defaultTrustedLocations, demoScenarios } from "@/data/demoState";
 import { supabase } from "./supabaseClient";
 
 const DEMO_USER_ID = "00000000-0000-0000-0000-000000000001";
@@ -11,6 +12,9 @@ type ActivityRow = {
   source: string;
   confidence_level?: string | null;
   scenario_id?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  place_id?: string | null;
   metadata?: Record<string, unknown> | null;
   created_at: string;
 };
@@ -116,9 +120,19 @@ function randomConfidence(phase: Phase): string {
 }
 
 function scenarioForHour(hour: number): string {
-  if (hour >= 6 && hour < 12) return "morning";
-  if (hour >= 12 && hour < 18) return "afternoon";
-  return "evening";
+  if (hour >= 6 && hour < 11) return "home_reorientation";
+  if (hour >= 11 && hour < 14) return "doctor_appointment_prep";
+  if (hour >= 14 && hour < 18) return "pharmacy_confusion";
+  return "lost_unknown_location";
+}
+
+function scenarioDetails(scenarioId: string): { placeId: string | null; latitude: number | null; longitude: number | null } {
+  const scenario = demoScenarios.find((entry) => entry.id === scenarioId);
+  return {
+    placeId: scenario?.scenarioPlaceId ?? null,
+    latitude: scenario?.seededCoordinates.latitude ?? null,
+    longitude: scenario?.seededCoordinates.longitude ?? null,
+  };
 }
 
 // ── Per-day event generation ─────────────────────────────────────────────────
@@ -149,13 +163,18 @@ function generateDay(
   for (let i = 0; i < reorientCount; i++) {
     const h = randomHour(phase);
     const confidence = randomConfidence(phase);
+    const scenarioId = scenarioForHour(h);
+    const location = scenarioDetails(scenarioId);
     activity.push({
       id: generateId(),
       user_id: DEMO_USER_ID,
       event_type: "reorientation_started",
       source: "app",
       confidence_level: confidence,
-      scenario_id: scenarioForHour(h),
+      scenario_id: scenarioId,
+      latitude: location.latitude,
+      longitude: location.longitude,
+      place_id: location.placeId,
       metadata: { uncertainty: confidence },
       created_at: isoTs(year, month, day, h, randInt(0, 59)),
     });
@@ -163,13 +182,20 @@ function generateDay(
 
   // 2. Check-in (~60% of days)
   if (Math.random() < 0.60) {
+    const hour = randomHour(phase);
+    const scenarioId = scenarioForHour(hour);
+    const location = scenarioDetails(scenarioId);
     activity.push({
       id: generateId(),
       user_id: DEMO_USER_ID,
       event_type: "checkin_submitted",
       source: "app",
+      scenario_id: scenarioId,
+      latitude: location.latitude,
+      longitude: location.longitude,
+      place_id: location.placeId,
       metadata: { question: pick(CHECK_IN_QUESTIONS) },
-      created_at: isoTs(year, month, day, randomHour(phase), randInt(0, 59)),
+      created_at: isoTs(year, month, day, hour, randInt(0, 59)),
     });
   }
 
@@ -183,12 +209,19 @@ function generateDay(
     default: helperCount = isHardDay ? randInt(2, 4) : randInt(1, 2); break;
   }
   for (let i = 0; i < helperCount; i++) {
+    const hour = randomHour(phase);
+    const scenarioId = scenarioForHour(hour);
+    const location = scenarioDetails(scenarioId);
     activity.push({
       id: generateId(),
       user_id: DEMO_USER_ID,
       event_type: "helper_card_shown",
       source: "app",
-      created_at: isoTs(year, month, day, randomHour(phase), randInt(0, 59)),
+      scenario_id: scenarioId,
+      latitude: location.latitude,
+      longitude: location.longitude,
+      place_id: location.placeId,
+      created_at: isoTs(year, month, day, hour, randInt(0, 59)),
     });
   }
 
@@ -214,22 +247,35 @@ function generateDay(
       for (let i = 0; i < caregiverCount; i++) {
         const offsetMin = randInt(0, 89);
         const totalMin = panicHour * 60 + offsetMin;
+        const scenarioId = scenarioForHour(panicHour);
+        const location = scenarioDetails(scenarioId);
         activity.push({
           id: generateId(),
           user_id: DEMO_USER_ID,
           event_type: "caregiver_called",
           source: "app",
+          scenario_id: scenarioId,
+          latitude: location.latitude,
+          longitude: location.longitude,
+          place_id: location.placeId,
           created_at: isoTs(year, month, day, Math.min(Math.floor(totalMin / 60), 23), totalMin % 60),
         });
       }
     } else {
       for (let i = 0; i < caregiverCount; i++) {
+        const hour = randomHour(phase);
+        const scenarioId = scenarioForHour(hour);
+        const location = scenarioDetails(scenarioId);
         activity.push({
           id: generateId(),
           user_id: DEMO_USER_ID,
           event_type: "caregiver_called",
           source: "app",
-          created_at: isoTs(year, month, day, randomHour(phase), randInt(0, 59)),
+          scenario_id: scenarioId,
+          latitude: location.latitude,
+          longitude: location.longitude,
+          place_id: location.placeId,
+          created_at: isoTs(year, month, day, hour, randInt(0, 59)),
         });
       }
     }
@@ -237,12 +283,19 @@ function generateDay(
 
   // 5. Emergency event
   if (isEmergencyDay) {
+    const hour = randInt(18, 21);
+    const scenarioId = scenarioForHour(hour);
+    const location = scenarioDetails(scenarioId);
     activity.push({
       id: generateId(),
       user_id: DEMO_USER_ID,
       event_type: "emergency_called",
       source: "app",
-      created_at: isoTs(year, month, day, randInt(18, 21), randInt(0, 59)),
+      scenario_id: scenarioId,
+      latitude: location.latitude,
+      longitude: location.longitude,
+      place_id: location.placeId,
+      created_at: isoTs(year, month, day, hour, randInt(0, 59)),
     });
   }
 
@@ -281,6 +334,56 @@ async function insertActivityBatch(rows: ActivityRow[]): Promise<void> {
   }
 }
 
+async function seedCoreDemoRows(): Promise<void> {
+  await (supabase.from("profiles") as any).upsert({
+    id: DEMO_USER_ID,
+    preferred_name: "Alex",
+    pronouns: "he/him",
+    active_caregiver_id: "00000000-0000-0000-0000-000000000002",
+  });
+
+  await (supabase.from("caregivers") as any).upsert({
+    id: "00000000-0000-0000-0000-000000000002",
+    name: "Maria",
+    relationship_label: "daughter",
+  });
+
+  await (supabase.from("caregiver_user_relationships") as any).upsert({
+    user_id: DEMO_USER_ID,
+    caregiver_id: "00000000-0000-0000-0000-000000000002",
+    role: "primary",
+    is_primary_contact: true,
+    permissions: {},
+  });
+
+  for (const location of defaultTrustedLocations) {
+    await (supabase.from("places") as any).upsert({
+      id: location.id,
+      user_id: DEMO_USER_ID,
+      name: location.name,
+      address: location.address ?? null,
+      latitude: location.latitude ?? null,
+      longitude: location.longitude ?? null,
+      place_type: location.placeType ?? "trusted",
+      instructions: location.instructions ?? null,
+      is_home: location.id === "place_home",
+      is_trusted: true,
+      trusted_slot: location.trustedSlot,
+    });
+  }
+
+  await (supabase.from("scheduled_events") as any).upsert({
+    id: "event_doctor_appointment",
+    user_id: DEMO_USER_ID,
+    title: "Doctor appointment",
+    description: "Routine follow-up visit",
+    location: "Doctor's Office",
+    place_id: "place_doctor_office",
+    start_time: new Date().toISOString(),
+    notes: "Bring ID, insurance card, phone, keys, and medication list.",
+  });
+}
+
 async function insertBiometricBatch(rows: BiometricRow[]): Promise<void> {
   for (let i = 0; i < rows.length; i += 50) {
 
@@ -293,6 +396,8 @@ async function insertBiometricBatch(rows: BiometricRow[]): Promise<void> {
 
 export async function seedDemoData(): Promise<{ success: boolean; message: string }> {
   try {
+    await seedCoreDemoRows();
+
     const allActivity: ActivityRow[] = [];
     const allBiometric: BiometricRow[] = [];
 

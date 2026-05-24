@@ -84,6 +84,9 @@ Memory Assistant answers:
 - Replace hardcoded scenario location strings with structured location-aware context derived from saved trusted places
 - Add trusted-location editing controls to `/demo` so the class demo can switch between saved places and "Other"
 - Update scenario copy and reorientation context so "Where am I?" reflects trusted-place context when available
+- Refresh demo scenarios so each scenario clearly maps to a trusted place or to "Other"
+- Seed location-aware demo data in Supabase so scenario behavior aligns with saved trusted places
+- Update the AI model calls from Claude Sonnet to Claude Haiku for the reorientation and check-in routes
 
 ### Phase 7 - Stretch (optional)
 - Simple push notification demo

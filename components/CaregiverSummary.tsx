@@ -8,9 +8,21 @@ type CaregiverSummaryProps = {
   missedCalls?: number;
   emergencyCalls?: number;
   missedCallsLabel?: string;
+  locationLabel?: string;
+  locationModeLabel?: string;
 };
 
-export default function CaregiverSummary({ personName, lastCheckIn, status, todaysEvents, missedCalls = 0, emergencyCalls = 0, missedCallsLabel = "Missed calls" }: CaregiverSummaryProps) {
+export default function CaregiverSummary({
+  personName,
+  lastCheckIn,
+  status,
+  todaysEvents,
+  missedCalls = 0,
+  emergencyCalls = 0,
+  missedCallsLabel = "Missed calls",
+  locationLabel,
+  locationModeLabel,
+}: CaregiverSummaryProps) {
   return (
     <section className="rounded-3xl border border-brand-border bg-brand-surface p-5 shadow-sm">
       <h2 className="flex items-center gap-2 text-xl font-semibold text-brand-text">
@@ -30,6 +42,18 @@ export default function CaregiverSummary({ personName, lastCheckIn, status, toda
           <dt>Today events</dt>
           <dd className="font-medium">{todaysEvents}</dd>
         </div>
+        {locationLabel ? (
+          <div className="flex items-center justify-between gap-3">
+            <dt>Location</dt>
+            <dd className="font-medium">{locationLabel}</dd>
+          </div>
+        ) : null}
+        {locationModeLabel ? (
+          <div className="flex items-center justify-between gap-3">
+            <dt>Location mode</dt>
+            <dd className="font-medium">{locationModeLabel}</dd>
+          </div>
+        ) : null}
         {emergencyCalls > 0 ? (
           <div className="flex items-center justify-between gap-3 rounded-xl bg-red-600 px-3 py-2">
             <dt className="font-bold text-white">Emergency calls</dt>

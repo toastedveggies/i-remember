@@ -142,6 +142,11 @@ Tracks notable project decisions and rationale.
 - **Why:** The slide-down keeps the questions spatially connected to the trigger button, matching the directional metaphor of the emergency tab slide-out. It avoids modal fatigue (the page already has multiple modals for Help Me Now and AI responses) and feels grounded on mobile.
 - **Implication:** The trigger button remains visible and muted (green-800, opacity-75) while questions are shown, providing clear visual feedback that the section is active. Dismissal is handled by the response modal's "Got it" action, which collapses the questions and resets selection state.
 
+### 2026-05-23 - Keep trusted-place matching simple for the MVP
+- **Decision:** Trusted-place matching uses the existing `places.latitude` and `places.longitude` fields plus an app-side radius value from seeded/demo configuration.
+- **Why:** The current prototype needs deterministic location-aware scenarios without taking on PostGIS, external geocoding, reverse geocoding, or a new `radius_meters` schema dependency.
+- **Implication:** Human-readable place text stays in `name` / `address`, coordinate matching stays simple and local, and unknown locations resolve to "Other" rather than being guessed or learned automatically.
+
 ## Open Decisions (To Resolve Later)
 
 - Data model for routines/events/check-ins

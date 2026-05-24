@@ -94,9 +94,25 @@ export default function EventLogList({
                           &ldquo;{(item.metadata.question as string).split("_").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")}&rdquo;
                         </p>
                       ) : null}
+                      {typeof item.metadata?.trustedPlace === "string" && item.metadata.trustedPlace ? (
+                        <p className="mt-1 text-sm text-brand-muted">
+                          Trusted place: {item.metadata.trustedPlace as string}
+                        </p>
+                      ) : null}
+                      {typeof item.metadata?.locationMode === "string" ? (
+                        <p className="mt-1 text-sm text-brand-muted">
+                          Location mode: {item.metadata.locationMode as string}
+                        </p>
+                      ) : null}
+                      {item.placeId === null && item.metadata?.reason === "unrecognized_location" ? (
+                        <p className="mt-1 text-sm text-amber-800">
+                          Location was not recognized as a saved trusted place.
+                        </p>
+                      ) : null}
                       <p className="text-sm text-brand-muted">
                         Source: {item.source}
                         {item.scenarioId ? ` | Scenario: ${item.scenarioId}` : ""}
+                        {item.placeId ? ` | Place: ${item.placeId}` : ""}
                       </p>
                     </li>
                   );

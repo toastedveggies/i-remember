@@ -1,11 +1,13 @@
 ﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import ResponseCard from "@/components/ResponseCard";
 import ScenarioSelector from "@/components/ScenarioSelector";
-import { describeScenarioLocation } from "@/data/demoData";
+import { buildActiveLocationSummary, describeScenarioLocation } from "@/data/demoData";
 import {
   appendSystemEvent,
+  defaultTrustedLocations,
   createEvent,
   demoScenarios,
   findScenario,
@@ -15,11 +17,13 @@ import {
   setActiveCaregiverId,
   setIndependentMode,
   storageKey,
+  type BrowserLocation,
   type DemoState,
+  type LocationSource,
   type PronounSet,
   type TrustedLocation
 } from "@/data/demoState";
-import { clearTrustedLocation, loadTrustedLocations, saveTrustedLocation } from "@/lib/places";
+import { clearTrustedLocation, loadTrustedLocations, MAX_DEMO_BROWSER_ACCURACY_METERS, saveTrustedLocation } from "@/lib/places";
 import { loadProfile, saveCaregiverName, saveProfile } from "@/lib/profile";
 import { clearSeedData, seedDemoData } from "@/lib/seedData";
 import { supabase } from "@/lib/supabaseClient";
@@ -80,6 +84,8 @@ export default function DemoPage() {
   const [isSavingCaregiver, setIsSavingCaregiver] = useState(false);
   const [rosterMessage, setRosterMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [locationMessage, setLocationMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [browserLocationMessage, setBrowserLocationMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [isCapturingBrowserLocation, setIsCapturingBrowserLocation] = useState(false);
 
   useEffect(() => {
     const hasLocalData = window.localStorage.getItem(storageKey) !== null;
@@ -104,13 +110,27 @@ export default function DemoPage() {
 
   const activeScenario = useMemo(() => findScenario(state.activeScenarioId), [state.activeScenarioId]);
   const scenarioLocationPreview = useMemo(
-    () => describeScenarioLocation(activeScenario, state.trustedLocations).label,
+    () => describeScenarioLocation(activeScenario, state.trustedLocations),
     [activeScenario, state.trustedLocations]
+  );
+  const activeLocationSummary = useMemo(
+    () => buildActiveLocationSummary({
+      scenarioId: state.activeScenarioId,
+      profile: state.profile,
+      trustedLocations: state.trustedLocations,
+      activeLocationSource: state.activeLocationSource,
+      browserLocation: state.browserLocation,
+    }),
+    [state.activeLocationSource, state.activeScenarioId, state.browserLocation, state.profile, state.trustedLocations]
   );
 
   const persist = (next: DemoState) => {
     setState(next);
     window.localStorage.setItem(storageKey, JSON.stringify(next));
+  };
+
+  const setLocationSource = (source: LocationSource) => {
+    persist({ ...state, activeLocationSource: source });
   };
 
   const selectScenario = (scenarioId: string) => {
@@ -139,6 +159,7 @@ export default function DemoPage() {
 
   const trustedLocationForSlot = (slot: 1 | 2 | 3): TrustedLocation => {
     return state.trustedLocations.find((location) => location.trustedSlot === slot) ?? {
+      ...defaultTrustedLocations.find((location) => location.trustedSlot === slot),
       trustedSlot: slot,
       name: "",
       address: "",
@@ -157,6 +178,65 @@ export default function DemoPage() {
       .sort((a, b) => a.trustedSlot - b.trustedSlot);
     persist({ ...state, trustedLocations: nextLocations });
     setLocationMessage(null);
+  };
+
+  const handleUseBrowserLocation = async () => {
+    if (typeof window === "undefined" || !("geolocation" in navigator)) {
+      setBrowserLocationMessage({
+        type: "error",
+        text: "This browser could not provide a current location, so the demo is staying on seeded scenario coordinates.",
+      });
+      setLocationSource("scenario_seed");
+      return;
+    }
+
+    setIsCapturingBrowserLocation(true);
+    setBrowserLocationMessage(null);
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const nextBrowserLocation: BrowserLocation = {
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          accuracyMeters: position.coords.accuracy,
+          timestamp: new Date(position.timestamp).toISOString(),
+        };
+
+        if (position.coords.accuracy > MAX_DEMO_BROWSER_ACCURACY_METERS) {
+          persist({
+            ...state,
+            browserLocation: nextBrowserLocation,
+            activeLocationSource: "scenario_seed",
+          });
+          setBrowserLocationMessage({
+            type: "error",
+            text: `Live location accuracy was too broad (${Math.round(position.coords.accuracy)} meters), so the demo is continuing with seeded scenario coordinates.`,
+          });
+          setIsCapturingBrowserLocation(false);
+          return;
+        }
+
+        persist({
+          ...state,
+          browserLocation: nextBrowserLocation,
+          activeLocationSource: "browser_geolocation",
+        });
+        setBrowserLocationMessage({
+          type: "success",
+          text: `Using this device's current location for demo matching (accuracy ${Math.round(position.coords.accuracy)} meters).`,
+        });
+        setIsCapturingBrowserLocation(false);
+      },
+      (error) => {
+        const message = error.code === error.PERMISSION_DENIED
+          ? "Location permission was denied, so the demo is continuing with seeded scenario coordinates."
+          : "Current location was unavailable, so the demo is continuing with seeded scenario coordinates.";
+        setBrowserLocationMessage({ type: "error", text: message });
+        setLocationSource("scenario_seed");
+        setIsCapturingBrowserLocation(false);
+      },
+      { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
+    );
   };
 
   const handleSaveTrustedLocation = async (slot: 1 | 2 | 3) => {
@@ -644,7 +724,102 @@ export default function DemoPage() {
           </section>
         ) : null}
 
-        <ResponseCard title="Active scenario" message={`${activeScenario.label}: ${activeScenario.guidance} Current location: ${scenarioLocationPreview}.`} />
+        <ResponseCard
+          title="Active scenario"
+          message={`${activeScenario.label}: ${activeScenario.guidance} Scenario mapping: ${scenarioLocationPreview.label}. Active location mode: ${activeLocationSummary.locationModeLabel}.`}
+        />
+
+        <div className="flex justify-end">
+          <Link
+            href="/debug"
+            className="rounded-xl border border-brand-border bg-brand-bg px-3 py-2 text-sm font-medium text-brand-text focus:outline-none focus:ring-2 focus:ring-brand-compass/40"
+          >
+            Open debug screen
+          </Link>
+        </div>
+
+        <section className="rounded-3xl border border-brand-border bg-brand-surface p-5 shadow-sm space-y-3">
+          <h2 className="text-xl font-semibold text-brand-text">Scenario breakdown</h2>
+          <div className="rounded-2xl border border-brand-border bg-brand-bg px-4 py-3">
+            <p className="text-sm font-medium text-brand-text">Maps to</p>
+            <p className="mt-1 text-sm text-brand-muted">{scenarioLocationPreview.label}</p>
+            <p className="mt-1 text-xs text-brand-muted">{scenarioLocationPreview.notes}</p>
+          </div>
+          <div className="rounded-2xl border border-brand-border bg-brand-bg px-4 py-3">
+            <p className="text-sm font-medium text-brand-text">Where am I?</p>
+            <p className="mt-1 text-sm text-brand-muted">{activeScenario.where}</p>
+          </div>
+          <div className="rounded-2xl border border-brand-border bg-brand-bg px-4 py-3">
+            <p className="text-sm font-medium text-brand-text">What is happening?</p>
+            <p className="mt-1 text-sm text-brand-muted">{activeScenario.happening}</p>
+          </div>
+          <div className="rounded-2xl border border-brand-border bg-brand-bg px-4 py-3">
+            <p className="text-sm font-medium text-brand-text">What should I do next?</p>
+            <p className="mt-1 text-sm text-brand-muted">{activeScenario.nextStep}</p>
+          </div>
+          <p className="text-xs text-brand-muted">
+            Caregiver-facing takeaway: {activeLocationSummary.placeId ? `this scenario should read as a trusted-place support moment at ${activeLocationSummary.label}.` : "this scenario should clearly show that the app did not recognize the location and that the user may need direct support."}
+          </p>
+        </section>
+
+        <section className="rounded-3xl border border-brand-border bg-brand-surface p-5 shadow-sm space-y-4">
+          <div className="space-y-1">
+            <h2 className="text-xl font-semibold text-brand-text">Demo location source</h2>
+            <p className="text-sm text-brand-muted">
+              Seeded scenario coordinates are the default. You can optionally use this device&apos;s live browser coordinates as a presentation-room demo override.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <button
+              type="button"
+              onClick={() => setLocationSource("scenario_seed")}
+              className={`rounded-2xl border px-4 py-3 text-left text-sm focus:outline-none focus:ring-2 focus:ring-brand-compass/40 ${
+                state.activeLocationSource === "scenario_seed"
+                  ? "border-brand-primary bg-brand-bg text-brand-text"
+                  : "border-brand-border bg-brand-surface text-brand-muted"
+              }`}
+            >
+              <span className="block font-semibold text-brand-text">Use seeded scenario location</span>
+              <span className="mt-1 block">Reliable default for class demo playback.</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => void handleUseBrowserLocation()}
+              disabled={isCapturingBrowserLocation}
+              className={`rounded-2xl border px-4 py-3 text-left text-sm focus:outline-none focus:ring-2 focus:ring-brand-compass/40 ${
+                state.activeLocationSource === "browser_geolocation"
+                  ? "border-brand-primary bg-brand-bg text-brand-text"
+                  : "border-brand-border bg-brand-surface text-brand-muted"
+              } disabled:opacity-60`}
+            >
+              <span className="block font-semibold text-brand-text">
+                {isCapturingBrowserLocation ? "Checking current location..." : "Use this device's current location for demo"}
+              </span>
+              <span className="mt-1 block">Scenario story stays selected, but trusted-place matching uses live browser coordinates when accuracy is good enough.</span>
+            </button>
+          </div>
+
+          <div className="rounded-2xl border border-brand-border bg-brand-bg px-4 py-3 text-sm text-brand-muted">
+            <p><span className="font-medium text-brand-text">Current source:</span> {activeLocationSummary.sourceLabel}</p>
+            <p className="mt-1"><span className="font-medium text-brand-text">Current match:</span> {activeLocationSummary.label}</p>
+            <p className="mt-1"><span className="font-medium text-brand-text">Scenario mapping:</span> {scenarioLocationPreview.label}</p>
+            {state.browserLocation ? (
+              <p className="mt-1">
+                <span className="font-medium text-brand-text">Last browser sample:</span> {state.browserLocation.latitude.toFixed(5)}, {state.browserLocation.longitude.toFixed(5)} · accuracy {Math.round(state.browserLocation.accuracyMeters)} meters
+              </p>
+            ) : null}
+          </div>
+
+          {browserLocationMessage ? (
+            <p className={`text-sm ${browserLocationMessage.type === "success" ? "text-brand-primary" : "text-amber-800"}`}>
+              {browserLocationMessage.text}
+            </p>
+          ) : null}
+          {activeLocationSummary.fallbackMessage ? (
+            <p className="text-sm text-amber-800">{activeLocationSummary.fallbackMessage}</p>
+          ) : null}
+        </section>
 
         <section className="rounded-3xl border border-brand-border bg-brand-surface p-5 shadow-sm space-y-4">
           <div className="space-y-1">
@@ -706,6 +881,10 @@ export default function DemoPage() {
                       className="w-full rounded-xl border border-brand-border bg-brand-surface px-3 py-2 text-base text-brand-text"
                     />
                   </label>
+                  <div className="rounded-xl border border-brand-border bg-brand-surface px-3 py-2 text-sm text-brand-muted md:col-span-2">
+                    <p><span className="font-medium text-brand-text">Seeded coordinates:</span> {typeof location.latitude === "number" && typeof location.longitude === "number" ? `${location.latitude.toFixed(5)}, ${location.longitude.toFixed(5)}` : "Not set"}</p>
+                    <p className="mt-1"><span className="font-medium text-brand-text">Match radius:</span> {location.radiusMeters ?? 75} meters</p>
+                  </div>
                 </div>
               </div>
             );
@@ -743,7 +922,7 @@ export default function DemoPage() {
         <ScenarioSelector
           scenarios={demoScenarios.map((scenario) => ({
             ...scenario,
-            locationLine: describeScenarioLocation(scenario, state.trustedLocations).label
+            locationLine: `${describeScenarioLocation(scenario, state.trustedLocations).label} · ${describeScenarioLocation(scenario, state.trustedLocations).notes}`
           }))}
           activeScenarioId={state.activeScenarioId}
           onPreview={selectScenario}

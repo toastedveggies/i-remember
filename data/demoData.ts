@@ -1,4 +1,12 @@
-import { findScenario, findTrustedLocation, type DemoProfile, type DemoScenario, type TrustedLocation } from "@/data/demoState";
+import {
+  findScenario,
+  findTrustedLocationById,
+  type DemoProfile,
+  type DemoScenario,
+  type LocationSource,
+  type TrustedLocation
+} from "@/data/demoState";
+import { resolveActiveLocationContext } from "@/lib/places";
 
 export type EventLogItem = {
   id: string;
@@ -8,123 +16,235 @@ export type EventLogItem = {
 
 export const todaySummary = {
   greeting: "You are safe and supported.",
-  where: "Your current location can come from one of your trusted places or from Other.",
-  happening: "The current scenario and saved locations shape the grounding context.",
-  nextStep: "Review the current location, then confirm the next routine step."
+  where: "Your current location is matched against your saved trusted places or shown as Other.",
+  happening: "The active scenario and location context shape the grounding response.",
+  nextStep: "Review the location summary, then take the next calm step."
 };
 
 export const checkInQuestions = [
   "Would you like to sit down and take a slow breath?",
-  "Do you want a quick reminder of your plan for tonight?",
+  "Do you want a quick reminder of your plan for today?",
   "Would calling your caregiver help right now?"
 ];
 
 export type ContextPacket = {
   location: string;
+  location_mode: string;
+  location_source: string;
+  trusted_place: string;
+  trusted_place_address: string;
+  location_coordinates: string;
   time_of_day: string;
   next_event: string;
+  current_activity: string;
   who_is_expected: string;
   caregiver_name: string;
   notes: string;
+  safety_fallback: string;
 };
 
-function fallbackTrustedLocation(slot: 1 | 2 | 3): TrustedLocation {
-  const defaults: Record<1 | 2 | 3, TrustedLocation> = {
-    1: {
-      trustedSlot: 1,
-      name: "Home",
-      address: "215 Cedar Street",
-      instructions: "Bedroom upstairs. Living room near the front windows."
-    },
-    2: {
-      trustedSlot: 2,
-      name: "Community Center",
-      address: "18 Oak Avenue",
-      instructions: "Front desk can help contact Maria."
-    },
-    3: {
-      trustedSlot: 3,
-      name: "Maria's House",
-      address: "44 Pine Lane",
-      instructions: "Blue door with a porch light."
-    }
-  };
+export type ActiveLocationSummary = {
+  label: string;
+  detail: string;
+  trustedPlaceName: string | null;
+  trustedPlaceAddress: string | null;
+  sourceLabel: string;
+  locationModeLabel: string;
+  fallbackMessage?: string;
+  placeId: string | null;
+};
 
-  return defaults[slot];
+function formatCoordinate(value: number): string {
+  return value.toFixed(5);
+}
+
+function buildBringItemsText(items?: string[]): string {
+  if (!items || items.length === 0) {
+    return "No extra items listed.";
+  }
+
+  return items.join(", ");
+}
+
+function scenarioTimeOfDay(scenario: DemoScenario): string {
+  if (scenario.id === "home_reorientation") {
+    return "Tuesday morning";
+  }
+
+  if (scenario.id === "pharmacy_confusion") {
+    return "Tuesday afternoon";
+  }
+
+  if (scenario.id === "doctor_appointment_prep") {
+    return "Tuesday early afternoon";
+  }
+
+  return "Tuesday evening";
+}
+
+function scenarioNextEvent(scenario: DemoScenario, trustedLocations: TrustedLocation[]): string {
+  if (scenario.scheduledEvent) {
+    const scheduledPlace = findTrustedLocationById(trustedLocations, scenario.scheduledEvent.placeId);
+    const placeLabel = scheduledPlace?.name ? ` at ${scheduledPlace.name}` : "";
+    return `${scenario.scheduledEvent.title}${placeLabel}. ${scenario.scheduledEvent.timeLabel}. Bring ${buildBringItemsText(scenario.scheduledEvent.bringItems)}.`;
+  }
+
+  if (scenario.id === "pharmacy_confusion") {
+    return "Pick up the prescription, then head back home.";
+  }
+
+  if (scenario.id === "lost_unknown_location") {
+    return "Focus on staying safe and contacting support.";
+  }
+
+  return "Continue the current home routine at an easy pace.";
+}
+
+function scenarioExpectedVisitor(scenario: DemoScenario, profile: DemoProfile): string {
+  if (scenario.id === "doctor_appointment_prep") {
+    return `${profile.caregiverName} can help if leaving feels confusing.`;
+  }
+
+  if (scenario.id === "lost_unknown_location") {
+    return `${profile.caregiverName} is the best support contact if this still feels unclear.`;
+  }
+
+  return "No other people are required right now.";
 }
 
 export function describeScenarioLocation(
   scenario: DemoScenario,
   trustedLocations: TrustedLocation[]
 ): { label: string; notes: string; trustedLocation: TrustedLocation | null } {
-  if (scenario.locationMode === "trusted" && scenario.trustedSlot) {
-    const trustedLocation = findTrustedLocation(trustedLocations, scenario.trustedSlot) ?? fallbackTrustedLocation(scenario.trustedSlot);
-    const label = scenario.locationDetail
-      ? `${trustedLocation.name}, ${scenario.locationDetail}`
-      : trustedLocation.name;
-    const notes = trustedLocation.instructions
-      ? `${scenario.guidance} Trusted place note: ${trustedLocation.instructions}`
-      : scenario.guidance;
-    return { label, notes, trustedLocation };
+  const trustedLocation = findTrustedLocationById(trustedLocations, scenario.scenarioPlaceId);
+
+  if (scenario.expectedLocationMode === "trusted_place" && trustedLocation) {
+    const suffix = scenario.scheduledEvent ? " + Doctor Appointment" : "";
+    return {
+      label: `${trustedLocation.name}${suffix}`,
+      notes: trustedLocation.displayAddress ?? trustedLocation.address ?? trustedLocation.name,
+      trustedLocation
+    };
   }
 
-  const otherLabel = scenario.otherLocationLabel ?? "other";
-  const detail = scenario.locationDetail ? `, ${scenario.locationDetail}` : "";
   return {
-    label: `Other: ${otherLabel}${detail}`,
-    notes: `${scenario.guidance} This location is outside the saved trusted places.`,
+    label: "Other",
+    notes: "This scenario should fall back to unrecognized-location guidance.",
     trustedLocation: null
   };
 }
 
-export function buildContextPacket(
-  scenarioId: string,
-  profile: DemoProfile,
-  trustedLocations: TrustedLocation[]
-): ContextPacket {
-  const scenario = findScenario(scenarioId);
-  const location = describeScenarioLocation(scenario, trustedLocations);
+export function buildActiveLocationSummary(params: {
+  scenarioId: string;
+  profile: DemoProfile;
+  trustedLocations: TrustedLocation[];
+  activeLocationSource: LocationSource;
+  browserLocation: {
+    latitude: number;
+    longitude: number;
+    accuracyMeters: number;
+    timestamp: string;
+  } | null;
+}): ActiveLocationSummary {
+  const scenario = findScenario(params.scenarioId);
+  const resolved = resolveActiveLocationContext({
+    scenario,
+    trustedLocations: params.trustedLocations,
+    activeLocationSource: params.activeLocationSource,
+    browserLocation: params.browserLocation
+  });
 
-  if (scenario.id === "morning") {
-    return {
-      location: location.label,
-      time_of_day: "Tuesday morning",
-      next_event: "Breakfast at 8:00 AM",
-      who_is_expected: `${profile.caregiverName} visiting at noon`,
-      caregiver_name: profile.caregiverName,
-      notes: `${location.notes} ${profile.preferredName} just woke up.`
-    };
-  }
+  const sourceLabel = resolved.source === "browser_geolocation"
+    ? "Browser geolocation"
+    : "Seeded scenario coordinates";
 
-  if (scenario.id === "afternoon") {
-    return {
-      location: location.label,
-      time_of_day: "Tuesday afternoon",
-      next_event: "Short walk at 2:00 PM, then rest",
-      who_is_expected: "No visitors expected",
-      caregiver_name: profile.caregiverName,
-      notes: `${location.notes} This is part of the after-lunch routine.`
-    };
-  }
+  const fallbackMessage = resolved.fallbackReason === "browser_unavailable"
+    ? "Live device location was not available, so the demo is using the scenario's seeded coordinates."
+    : resolved.fallbackReason === "browser_inaccurate"
+      ? "Live device location was too inaccurate for a safe demo match, so the demo is using the scenario's seeded coordinates."
+      : undefined;
 
-  if (scenario.id === "evening") {
+  if (resolved.matchedTrustedPlace) {
     return {
-      location: location.label,
-      time_of_day: "Tuesday evening",
-      next_event: "Dinner at 6:30 PM, medication checklist after",
-      who_is_expected: `${profile.caregiverName} calling at 7:00 PM`,
-      caregiver_name: profile.caregiverName,
-      notes: `${location.notes} Evening context is less certain and may require reassurance.`
+      label: resolved.matchedTrustedPlace.name,
+      detail: resolved.matchedTrustedPlace.displayAddress ?? resolved.matchedTrustedPlace.address ?? "Saved trusted place",
+      trustedPlaceName: resolved.matchedTrustedPlace.name,
+      trustedPlaceAddress: resolved.matchedTrustedPlace.displayAddress ?? resolved.matchedTrustedPlace.address ?? null,
+      sourceLabel,
+      locationModeLabel: "Trusted place",
+      fallbackMessage,
+      placeId: resolved.matchedTrustedPlace.id ?? null
     };
   }
 
   return {
-    location: "unknown",
-    time_of_day: "unknown",
-    next_event: "Check with caregiver",
-    who_is_expected: "unknown",
-    caregiver_name: profile.caregiverName,
-    notes: "Context unavailable"
+    label: "Other",
+    detail: "I do not recognize this as one of your saved trusted places.",
+    trustedPlaceName: null,
+    trustedPlaceAddress: null,
+    sourceLabel,
+    locationModeLabel: "Other",
+    fallbackMessage,
+    placeId: null
+  };
+}
+
+export function buildContextPacket(params: {
+  scenarioId: string;
+  profile: DemoProfile;
+  trustedLocations: TrustedLocation[];
+  activeLocationSource: LocationSource;
+  browserLocation: {
+    latitude: number;
+    longitude: number;
+    accuracyMeters: number;
+    timestamp: string;
+  } | null;
+}): ContextPacket {
+  const scenario = findScenario(params.scenarioId);
+  const resolved = resolveActiveLocationContext({
+    scenario,
+    trustedLocations: params.trustedLocations,
+    activeLocationSource: params.activeLocationSource,
+    browserLocation: params.browserLocation
+  });
+
+  const trustedPlace = resolved.matchedTrustedPlace;
+  const location = trustedPlace
+    ? trustedPlace.name
+    : "I do not recognize this as one of your saved trusted places.";
+  const trustedPlaceAddress = trustedPlace?.displayAddress ?? trustedPlace?.address ?? "No saved trusted-place address available.";
+
+  const notes = trustedPlace
+    ? [
+        scenario.guidance,
+        trustedPlace.instructions ?? "",
+        scenario.currentActivity ? `Current activity: ${scenario.currentActivity}.` : "",
+        scenario.scheduledEvent ? `Bring items: ${buildBringItemsText(scenario.scheduledEvent.bringItems)}.` : "",
+        resolved.source === "browser_geolocation"
+          ? "The current coordinates came from browser geolocation."
+          : "The current coordinates came from seeded demo data."
+      ].filter(Boolean).join(" ")
+    : [
+        "Do not guess a place name, address, reason for being here, or who is nearby.",
+        "Say clearly that this is not a recognized trusted place.",
+        "Offer calm support: stay where you are if safe, call the caregiver, show the helper card, or call emergency services if unsafe or urgent."
+      ].join(" ");
+
+  return {
+    location,
+    location_mode: resolved.locationMode,
+    location_source: resolved.source,
+    trusted_place: trustedPlace?.name ?? "Other",
+    trusted_place_address: trustedPlaceAddress,
+    location_coordinates: `${formatCoordinate(resolved.coordinates.latitude)}, ${formatCoordinate(resolved.coordinates.longitude)}`,
+    time_of_day: scenarioTimeOfDay(scenario),
+    next_event: scenarioNextEvent(scenario, params.trustedLocations),
+    current_activity: scenario.currentActivity ?? "No specific current activity is confirmed.",
+    who_is_expected: scenarioExpectedVisitor(scenario, params.profile),
+    caregiver_name: params.profile.caregiverName,
+    notes,
+    safety_fallback: "If the user feels unsafe or urgently needs help, tell them to call their caregiver or emergency services right away."
   };
 }
 
@@ -136,8 +256,8 @@ export const caregiverSummary = {
 };
 
 export const eventLog: EventLogItem[] = [
-  { id: "1", time: "6:05 PM", message: "Opened Today Window and viewed next step." },
+  { id: "1", time: "6:05 PM", message: "Opened Today Window and reviewed trusted-place context." },
   { id: "2", time: "6:07 PM", message: "Completed quick check-in question set." },
-  { id: "3", time: "6:10 PM", message: "Ran demo scenario with location-aware context." },
-  { id: "4", time: "6:12 PM", message: "Caregiver dashboard reviewed status summary." }
+  { id: "3", time: "6:10 PM", message: "Ran demo scenario with trusted-place matching." },
+  { id: "4", time: "6:12 PM", message: "Caregiver dashboard reviewed current location summary." }
 ];

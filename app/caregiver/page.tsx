@@ -1,9 +1,10 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import CaregiverSummary from "@/components/CaregiverSummary";
 import EventLogList from "@/components/EventLogList";
-import Link from "next/link";
+import { buildActiveLocationSummary } from "@/data/demoData";
 import { appendSystemEvent, createEvent, findScenario, initialDemoState, normalizeDemoState, storageKey, type DemoState } from "@/data/demoState";
 import { getMonthlyData } from "@/lib/insightsData";
 import { supabase } from "@/lib/supabaseClient";
@@ -47,56 +48,58 @@ export default function CaregiverPage() {
 
     const caregiverId = loaded.profile.activeCaregiverId;
     if (caregiverId) {
-      (async () => {
+      void (async () => {
         try {
-          const { data: rel } = await (supabase as any)
+          const { data: relationship } = await (supabase as any)
             .from("caregiver_user_relationships")
             .select("role, is_primary_contact")
             .eq("user_id", DEMO_USER_ID)
             .eq("caregiver_id", caregiverId)
             .maybeSingle();
 
-          if (!rel) {
+          if (!relationship) {
             setCaregiverRole(null);
             return;
           }
-          const r = rel as Record<string, unknown>;
-          setCaregiverRole(r.role as "primary" | "family" | "read_only");
-          const isPrimary = r.is_primary_contact as boolean;
-          setActiveIsPrimaryContact(isPrimary);
 
-          if (!isPrimary) {
-            // Find who is the primary contact so we can label calls correctly
-            const { data: primaryRel } = await (supabase as any)
+          const relationshipRecord = relationship as Record<string, unknown>;
+          setCaregiverRole(relationshipRecord.role as "primary" | "family" | "read_only");
+          const isPrimaryContact = relationshipRecord.is_primary_contact as boolean;
+          setActiveIsPrimaryContact(isPrimaryContact);
+
+          if (!isPrimaryContact) {
+            const { data: primaryRelationship } = await (supabase as any)
               .from("caregiver_user_relationships")
               .select("caregiver_id")
               .eq("user_id", DEMO_USER_ID)
               .eq("is_primary_contact", true)
               .maybeSingle();
-            if (primaryRel) {
-              const { data: primaryCg } = await (supabase as any)
+
+            if (primaryRelationship) {
+              const { data: primaryCaregiver } = await (supabase as any)
                 .from("caregivers")
                 .select("name")
-                .eq("id", (primaryRel as Record<string, unknown>).caregiver_id)
+                .eq("id", (primaryRelationship as Record<string, unknown>).caregiver_id)
                 .is("deleted_at", null)
                 .maybeSingle();
-              if (primaryCg) {
-                setPrimaryContactName((primaryCg as Record<string, unknown>).name as string);
+
+              if (primaryCaregiver) {
+                setPrimaryContactName((primaryCaregiver as Record<string, unknown>).name as string);
               }
             }
           }
 
-          const { data: cg } = await (supabase as any)
+          const { data: caregiver } = await (supabase as any)
             .from("caregivers")
             .select("name, relationship_label")
             .eq("id", caregiverId)
             .is("deleted_at", null)
             .maybeSingle();
 
-          if (cg) {
-            const c = cg as Record<string, unknown>;
-            setCaregiverDisplayName(c.name as string);
-            setCaregiverDisplayLabel((c.relationship_label as string | null) ?? null);
+          if (caregiver) {
+            const caregiverRecord = caregiver as Record<string, unknown>;
+            setCaregiverDisplayName(caregiverRecord.name as string);
+            setCaregiverDisplayLabel((caregiverRecord.relationship_label as string | null) ?? null);
           }
         } catch {
           setCaregiverRole(null);
@@ -106,20 +109,32 @@ export default function CaregiverPage() {
       setCaregiverRole(null);
     }
 
-    getMonthlyData().then((data) => {
-      if (data) setStabilityScore(data.stabilityScore);
+    void getMonthlyData().then((data) => {
+      if (data) {
+        setStabilityScore(data.stabilityScore);
+      }
     });
   }, []);
 
   const activeScenario = useMemo(() => findScenario(state.activeScenarioId), [state.activeScenarioId]);
-  const missedCalls = state.activityEvents.filter((e) => e.eventType === "caregiver_called").length;
-  const emergencyCalls = state.activityEvents.filter((e) => e.eventType === "emergency_called").length;
-  const hasDistressEvent = state.activityEvents.some((e) => e.eventType === "reorientation_started");
+  const activeLocationSummary = useMemo(
+    () => buildActiveLocationSummary({
+      scenarioId: state.activeScenarioId,
+      profile: state.profile,
+      trustedLocations: state.trustedLocations,
+      activeLocationSource: state.activeLocationSource,
+      browserLocation: state.browserLocation,
+    }),
+    [state.activeLocationSource, state.activeScenarioId, state.browserLocation, state.profile, state.trustedLocations]
+  );
 
-  // Activity panel: exclude reorientation_started, include reorientation_card_viewed
+  const missedCalls = state.activityEvents.filter((event) => event.eventType === "caregiver_called").length;
+  const emergencyCalls = state.activityEvents.filter((event) => event.eventType === "emergency_called").length;
+  const hasDistressEvent = state.activityEvents.some((event) => event.eventType === "reorientation_started");
+
   const activityPanelItems = [
-    ...state.activityEvents.filter((e) => e.eventType !== "reorientation_started"),
-    ...state.systemEvents.filter((e) => e.eventType === "reorientation_card_viewed"),
+    ...state.activityEvents.filter((event) => event.eventType !== "reorientation_started"),
+    ...state.systemEvents.filter((event) => event.eventType === "reorientation_card_viewed"),
   ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
   const caregiverViewLabel = caregiverDisplayName
@@ -133,6 +148,14 @@ export default function CaregiverPage() {
     : primaryContactName
       ? `Calls to ${primaryContactName}`
       : "Caregiver calls";
+
+  const locationStatusText = activeLocationSummary.placeId
+    ? `${state.profile.preferredName} is currently matched to the trusted place "${activeLocationSummary.label}".`
+    : `${state.profile.preferredName} is at an unrecognized location and may need direct support.`;
+
+  const caregiverSituationText = activeLocationSummary.placeId
+    ? `${activeScenario.happening} Next support should stay grounded in ${activeLocationSummary.label}.`
+    : "The app did not recognize this location, so the safest caregiver response is calm clarification and direct support.";
 
   if (state.profile.independentMode) {
     return (
@@ -148,10 +171,10 @@ export default function CaregiverPage() {
           <section className="rounded-3xl border border-brand-border bg-brand-surface p-5 shadow-sm space-y-3">
             <h2 className="text-xl font-semibold text-brand-text">What a connected caregiver can see</h2>
             <p className="text-sm text-brand-muted">When a caregiver is invited and connected, they will be able to view:</p>
-            <ul className="space-y-2 text-sm text-brand-muted list-disc list-inside">
+            <ul className="list-disc list-inside space-y-2 text-sm text-brand-muted">
               <li>Activity summary and recent check-in status</li>
+              <li>Trusted-place context and unrecognized-location support moments</li>
               <li>Support events, caregiver calls, and emergency actions</li>
-              <li>Reorientation patterns and stability trends over time</li>
             </ul>
           </section>
 
@@ -163,7 +186,7 @@ export default function CaregiverPage() {
             <button
               type="button"
               disabled
-              className="min-h-12 rounded-2xl border border-brand-border bg-brand-bg px-4 py-3 text-sm font-semibold text-brand-text opacity-60 cursor-not-allowed focus:outline-none"
+              className="min-h-12 cursor-not-allowed rounded-2xl border border-brand-border bg-brand-bg px-4 py-3 text-sm font-semibold text-brand-text opacity-60 focus:outline-none"
             >
               Invite a caregiver
             </button>
@@ -181,16 +204,14 @@ export default function CaregiverPage() {
     );
   }
 
-  // Still waiting for relationship fetch
   if (caregiverRole === undefined) {
     return (
       <main className="mx-auto min-h-screen w-full max-w-3xl px-4 py-8">
-        <p className="text-sm text-brand-muted">Loading caregiver view…</p>
+        <p className="text-sm text-brand-muted">Loading caregiver view...</p>
       </main>
     );
   }
 
-  // No relationship row found — show independent mode view
   if (caregiverRole === null) {
     return (
       <main className="mx-auto min-h-screen w-full max-w-3xl px-4 py-8">
@@ -204,13 +225,16 @@ export default function CaregiverPage() {
           <section className="rounded-3xl border border-brand-border bg-brand-surface p-5 shadow-sm space-y-3">
             <h2 className="text-xl font-semibold text-brand-text">What a connected caregiver can see</h2>
             <p className="text-sm text-brand-muted">When a caregiver is invited and connected, they will be able to view:</p>
-            <ul className="space-y-2 text-sm text-brand-muted list-disc list-inside">
+            <ul className="list-disc list-inside space-y-2 text-sm text-brand-muted">
               <li>Activity summary and recent check-in status</li>
+              <li>Trusted-place context and unrecognized-location support moments</li>
               <li>Support events, caregiver calls, and emergency actions</li>
-              <li>Reorientation patterns and stability trends over time</li>
             </ul>
           </section>
-          <Link href="/app" className="inline-flex items-center rounded-2xl border border-brand-border bg-brand-bg px-4 py-2 text-sm font-semibold text-brand-text hover:bg-brand-surface focus:outline-none focus:ring-2 focus:ring-brand-compass/40">
+          <Link
+            href="/app"
+            className="inline-flex items-center rounded-2xl border border-brand-border bg-brand-bg px-4 py-2 text-sm font-semibold text-brand-text hover:bg-brand-surface focus:outline-none focus:ring-2 focus:ring-brand-compass/40"
+          >
             ← Back to Today
           </Link>
         </div>
@@ -218,9 +242,9 @@ export default function CaregiverPage() {
     );
   }
 
-  // Summary-only view for family and read_only roles
   if (caregiverRole === "family" || caregiverRole === "read_only") {
     const roleLabel = caregiverRole === "read_only" ? "read only" : "family";
+
     return (
       <main className="mx-auto min-h-screen w-full max-w-3xl px-4 py-8">
         <div className="space-y-6">
@@ -241,6 +265,13 @@ export default function CaregiverPage() {
               </p>
             </div>
           ) : null}
+
+          <section className={`rounded-2xl border px-4 py-3 ${activeLocationSummary.placeId ? "border-brand-border bg-brand-surface" : "border-amber-200 bg-amber-50"}`}>
+            <p className="text-sm font-semibold text-brand-text">Location context</p>
+            <p className="mt-1 text-sm text-brand-muted">{locationStatusText}</p>
+            <p className="mt-1 text-sm text-brand-muted">{caregiverSituationText}</p>
+            <p className="mt-1 text-xs text-brand-muted">Source: {activeLocationSummary.sourceLabel}</p>
+          </section>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="rounded-2xl border border-brand-border bg-brand-surface p-4 text-center">
@@ -269,7 +300,10 @@ export default function CaregiverPage() {
             Full activity log is visible to primary caregivers only.
           </p>
 
-          <Link href="/app" className="inline-flex items-center rounded-2xl border border-brand-border bg-brand-bg px-4 py-2 text-sm font-semibold text-brand-text hover:bg-brand-surface focus:outline-none focus:ring-2 focus:ring-brand-compass/40">
+          <Link
+            href="/app"
+            className="inline-flex items-center rounded-2xl border border-brand-border bg-brand-bg px-4 py-2 text-sm font-semibold text-brand-text hover:bg-brand-surface focus:outline-none focus:ring-2 focus:ring-brand-compass/40"
+          >
             ← Back to Today
           </Link>
         </div>
@@ -277,7 +311,6 @@ export default function CaregiverPage() {
     );
   }
 
-  // Full dashboard for primary role
   return (
     <main className="mx-auto min-h-screen w-full max-w-3xl px-4 py-8">
       <div className="space-y-6">
@@ -293,7 +326,20 @@ export default function CaregiverPage() {
           )}
         </header>
 
-        <div>
+        <div className="space-y-3">
+          <section className={`rounded-2xl border px-4 py-3 ${activeLocationSummary.placeId ? "border-brand-border bg-brand-surface" : "border-amber-200 bg-amber-50"}`}>
+            <p className="text-sm font-semibold text-brand-text">Current location context</p>
+            <p className="mt-1 text-sm text-brand-muted">{locationStatusText}</p>
+            <p className="mt-1 text-sm text-brand-muted">Scenario: {activeScenario.label}</p>
+            <p className="mt-1 text-sm text-brand-muted">{caregiverSituationText}</p>
+            <p className="mt-1 text-xs text-brand-muted">Source: {activeLocationSummary.sourceLabel}</p>
+            {activeLocationSummary.placeId ? (
+              <p className="mt-1 text-xs text-brand-muted">Trusted place: {activeLocationSummary.detail}</p>
+            ) : (
+              <p className="mt-1 text-xs text-amber-900">The app did not recognize this location, so support guidance should stay transparent and safety-focused.</p>
+            )}
+          </section>
+
           <Link
             href="/caregiver/insights"
             className="inline-flex items-center rounded-2xl border border-brand-border bg-brand-bg px-4 py-2 text-sm font-semibold text-brand-text hover:bg-brand-surface focus:outline-none focus:ring-2 focus:ring-brand-compass/40"
@@ -306,11 +352,13 @@ export default function CaregiverPage() {
           <CaregiverSummary
             personName={state.profile.preferredName}
             lastCheckIn={state.checkInStatus === "Not submitted yet" ? "No check-in yet" : "In current session"}
-            status={`Active scenario: ${activeScenario.label}`}
+            status={locationStatusText}
             todaysEvents={state.activityEvents.length}
             missedCalls={missedCalls}
             emergencyCalls={emergencyCalls}
             missedCallsLabel={missedCallsLabel}
+            locationLabel={activeLocationSummary.label}
+            locationModeLabel={activeLocationSummary.locationModeLabel}
           />
           <EventLogList
             title={`${state.profile.preferredName}'s Activity`}

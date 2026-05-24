@@ -9,9 +9,9 @@ const FALLBACK_QUESTIONS = [
 
 const FALLBACK_RESPONSE = "I hear you. Take a gentle breath. You are doing well, and support is close if you need it.";
 
-const QUESTIONS_SYSTEM = `You are a calm memory support assistant. Generate exactly 3 short, warm check-in questions for someone with memory impairment. Each question should be one sentence, supportive, and relevant to the current context. If recentHelpMeNowQuestion is provided, make one of the three questions relevant to that recent interaction. Return only a JSON array of 3 strings, no preamble, no markdown.`;
+const QUESTIONS_SYSTEM = `You are a calm memory support guide. Generate exactly 3 short, warm check-in questions for someone who may feel confused or unsettled. Each question should be one sentence, supportive, and relevant to the current context. If recentHelpMeNowQuestion is provided, make one question relevant to that recent interaction. Return only a JSON array of 3 strings.`;
 
-const RESPONSE_SYSTEM = `You are a calm memory support assistant speaking directly to a person with memory impairment. Respond warmly and briefly to their check-in selection. End with one sentence describing what a full version of this app would do next, phrased as "In a full version, I would [action]." Keep the whole response under 4 sentences. Never mention AI, never be clinical. Speak directly to the person using "you" and "your".`;
+const RESPONSE_SYSTEM = `You are a calm memory support guide speaking directly to a person who may feel confused or unsettled. Respond warmly and briefly to their selected check-in question. Keep the whole response under 4 sentences. End with one sentence phrased exactly like "In a full version, I would [action]." Never mention AI or be clinical.`;
 
 export async function POST(req: NextRequest) {
   try {
@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
     const name = userName ?? "you";
 
     const contextBlock = context
-      ? Object.entries(context).map(([k, v]) => `${k}: ${v}`).join("\n")
+      ? Object.entries(context).map(([key, value]) => `${key}: ${value}`).join("\n")
       : "No context available.";
 
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
       const userPrompt = `Generate 3 check-in questions for ${name} based on this context:\n${contextBlock}`;
       try {
         const message = await client.messages.create({
-          model: "claude-sonnet-4-5",
+          model: "claude-3-5-haiku-latest",
           max_tokens: 200,
           system: QUESTIONS_SYSTEM,
           messages: [{ role: "user", content: userPrompt }],
@@ -46,13 +46,12 @@ export async function POST(req: NextRequest) {
           return Response.json(parsed);
         }
         return Response.json(FALLBACK_QUESTIONS);
-      } catch (err) {
-        console.error("[checkin] questions error:", err instanceof Error ? err.message : err, err instanceof Error ? err.stack : "");
+      } catch (error) {
+        console.error("[checkin] questions error:", error instanceof Error ? error.message : error);
         return Response.json(FALLBACK_QUESTIONS);
       }
     }
 
-    // mode === "response" — streaming
     const userPrompt = `${name} selected this check-in option: "${selectedQuestion ?? ""}"\n\nContext:\n${contextBlock}\n\nRespond directly to ${name} now.`;
 
     const encoder = new TextEncoder();
@@ -60,7 +59,7 @@ export async function POST(req: NextRequest) {
       async start(controller) {
         try {
           const anthropicStream = await client.messages.stream({
-            model: "claude-sonnet-4-5",
+            model: "claude-3-5-haiku-latest",
             max_tokens: 200,
             system: RESPONSE_SYSTEM,
             messages: [{ role: "user", content: userPrompt }],
@@ -70,8 +69,8 @@ export async function POST(req: NextRequest) {
               controller.enqueue(encoder.encode(event.delta.text));
             }
           }
-        } catch (err) {
-          console.error("[checkin] response stream error:", err instanceof Error ? err.message : err, err instanceof Error ? err.stack : "");
+        } catch (error) {
+          console.error("[checkin] response stream error:", error instanceof Error ? error.message : error);
           controller.enqueue(encoder.encode(FALLBACK_RESPONSE));
         } finally {
           controller.close();

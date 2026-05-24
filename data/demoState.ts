@@ -2,6 +2,16 @@ import { logActivityEvent, logSystemEvent } from "@/lib/logEvent";
 
 export type EventSource = "app" | "caregiver" | "demo";
 export type UncertaintyLevel = "low" | "medium" | "high";
+export type LocationSource = "scenario_seed" | "browser_geolocation";
+export type LocationMode = "trusted_place" | "other";
+export type ResponsePosture = "calm_grounding" | "public_place_support" | "transition_support" | "safety_fallback";
+
+export type BrowserLocation = {
+  latitude: number;
+  longitude: number;
+  accuracyMeters: number;
+  timestamp: string;
+};
 
 export type DemoEvent = {
   id: string;
@@ -11,6 +21,19 @@ export type DemoEvent = {
   scenarioId?: string;
   source: EventSource;
   metadata?: Record<string, unknown>;
+  placeId?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  accuracyMeters?: number | null;
+  locationSource?: LocationSource;
+};
+
+export type ScheduledEventSummary = {
+  id: string;
+  title: string;
+  timeLabel: string;
+  placeId?: string | null;
+  bringItems?: string[];
 };
 
 export type DemoScenario = {
@@ -21,10 +44,15 @@ export type DemoScenario = {
   happening: string;
   nextStep: string;
   uncertainty: UncertaintyLevel;
-  locationMode: "trusted" | "other";
-  trustedSlot?: 1 | 2 | 3;
-  otherLocationLabel?: string;
-  locationDetail?: string;
+  responsePosture: ResponsePosture;
+  seededCoordinates: {
+    latitude: number;
+    longitude: number;
+  };
+  expectedLocationMode: LocationMode;
+  scenarioPlaceId?: string | null;
+  currentActivity?: string;
+  scheduledEvent?: ScheduledEventSummary;
 };
 
 export type DemoState = {
@@ -34,6 +62,8 @@ export type DemoState = {
   systemEvents: DemoEvent[];
   profile: DemoProfile;
   trustedLocations: TrustedLocation[];
+  activeLocationSource: LocationSource;
+  browserLocation: BrowserLocation | null;
 };
 
 export type PronounSet = "he/him" | "she/her" | "they/them" | "custom";
@@ -54,11 +84,16 @@ export type TrustedLocation = {
   trustedSlot: 1 | 2 | 3;
   name: string;
   address?: string;
+  displayAddress?: string;
   instructions?: string;
+  latitude?: number;
+  longitude?: number;
+  radiusMeters?: number;
+  placeType?: "home" | "pharmacy" | "clinic" | "trusted";
 };
 
 export const defaultDemoProfile: DemoProfile = {
-  userId: "demo-user",
+  userId: "00000000-0000-0000-0000-000000000001",
   preferredName: "Alex",
   pronouns: "he/him",
   caregiverName: "Maria",
@@ -67,48 +102,123 @@ export const defaultDemoProfile: DemoProfile = {
   activeCaregiverId: "00000000-0000-0000-0000-000000000002"
 };
 
+export const defaultTrustedLocations: TrustedLocation[] = [
+  {
+    id: "place_home",
+    trustedSlot: 1,
+    name: "Home",
+    address: "215 Cedar Street",
+    displayAddress: "215 Cedar Street",
+    instructions: "Take a slow breath, check the Today card, and continue your usual home routine.",
+    latitude: 34.13672,
+    longitude: -118.29434,
+    radiusMeters: 80,
+    placeType: "home"
+  },
+  {
+    id: "place_pharmacy",
+    trustedSlot: 2,
+    name: "Pharmacy",
+    address: "98 Maple Avenue",
+    displayAddress: "Sunrise Pharmacy, 98 Maple Avenue",
+    instructions: "Go to the counter and say you are here to pick up a prescription. Show your helper card if you want support.",
+    latitude: 34.13758,
+    longitude: -118.30084,
+    radiusMeters: 65,
+    placeType: "pharmacy"
+  },
+  {
+    id: "place_doctor_office",
+    trustedSlot: 3,
+    name: "Doctor's Office",
+    address: "410 Wellness Plaza",
+    displayAddress: "Northside Clinic, 410 Wellness Plaza",
+    instructions: "Check in at the front desk with your ID and insurance card.",
+    latitude: 34.13158,
+    longitude: -118.28942,
+    radiusMeters: 90,
+    placeType: "clinic"
+  }
+];
+
 export const demoScenarios: DemoScenario[] = [
   {
-    id: "morning",
-    label: "Morning confusion",
-    guidance: "You just woke up. Open curtains and check today's date.",
-    where: "You are at your trusted home location, in your bedroom.",
-    happening: "It is Tuesday morning. Breakfast is planned at 8:00 AM.",
-    nextStep: "Open the curtains, drink water, and check your morning checklist.",
+    id: "home_reorientation",
+    label: "Home reorientation",
+    guidance: "Alex is at Home and needs calm grounding.",
+    where: "You are at Home.",
+    happening: "This looks like a normal time at home. The app should keep the explanation calm and simple.",
+    nextStep: "Take a slow breath, check the Today card, continue your home routine, or call Maria if you want support.",
     uncertainty: "low",
-    locationMode: "trusted",
-    trustedSlot: 1,
-    locationDetail: "bedroom"
+    responsePosture: "calm_grounding",
+    seededCoordinates: {
+      latitude: 34.13675,
+      longitude: -118.2943
+    },
+    expectedLocationMode: "trusted_place",
+    scenarioPlaceId: "place_home"
   },
   {
-    id: "afternoon",
-    label: "Afternoon routine",
-    guidance: "It is after lunch. Next: short walk, then rest.",
-    where: "You are at your trusted home location, in the living room.",
-    happening: "It is Tuesday afternoon and your routine block is light activity.",
-    nextStep: "Take a short walk in the hallway, then return to rest.",
+    id: "pharmacy_confusion",
+    label: "Pharmacy confusion",
+    guidance: "Alex is at the Pharmacy and needs help remembering that he came to pick up a prescription.",
+    where: "You are at the Pharmacy.",
+    happening: "You planned to stop by the pharmacy to pick up a prescription.",
+    nextStep: "Go to the pharmacy counter, ask about prescription pickup, show the helper card if needed, or call Maria if you are still unsure.",
     uncertainty: "medium",
-    locationMode: "trusted",
-    trustedSlot: 1,
-    locationDetail: "living room"
+    responsePosture: "public_place_support",
+    seededCoordinates: {
+      latitude: 34.13755,
+      longitude: -118.30088
+    },
+    expectedLocationMode: "trusted_place",
+    scenarioPlaceId: "place_pharmacy",
+    currentActivity: "Picking up a prescription"
   },
   {
-    id: "evening",
-    label: "Evening uncertainty",
-    guidance: "It is evening. Review dinner plan and medication checklist.",
-    where: "You may be somewhere outside your saved trusted locations.",
-    happening: "It appears to be evening, but the next activity is not confirmed.",
-    nextStep: "Pause, take a slow breath, and review the next activity card.",
+    id: "doctor_appointment_prep",
+    label: "Doctor appointment preparation",
+    guidance: "Alex is at Home and needs help getting ready to leave for a doctor's appointment.",
+    where: "You are at Home.",
+    happening: "A doctor's appointment is coming up soon.",
+    nextStep: "Bring your ID, insurance card, phone, keys, and medication list, then leave at the planned time.",
+    uncertainty: "low",
+    responsePosture: "transition_support",
+    seededCoordinates: {
+      latitude: 34.1367,
+      longitude: -118.29438
+    },
+    expectedLocationMode: "trusted_place",
+    scenarioPlaceId: "place_home",
+    scheduledEvent: {
+      id: "event_doctor_appointment",
+      title: "Doctor appointment",
+      timeLabel: "Leave at 1:40 PM for a 2:00 PM appointment",
+      placeId: "place_doctor_office",
+      bringItems: ["ID", "Insurance card", "Phone", "Keys", "Medication list"]
+    }
+  },
+  {
+    id: "lost_unknown_location",
+    label: "Lost / unknown location",
+    guidance: "Alex is not at a recognized trusted place and needs safe fallback guidance without overclaiming.",
+    where: "I do not recognize this as one of your saved trusted places.",
+    happening: "The app does not have enough information to know why you are here.",
+    nextStep: "Stay where you are if it feels safe, call Maria, show the helper card if needed, and call emergency services if this feels unsafe or urgent.",
     uncertainty: "high",
-    locationMode: "other",
-    otherLocationLabel: "somewhere unfamiliar",
-    locationDetail: "near the entrance"
+    responsePosture: "safety_fallback",
+    seededCoordinates: {
+      latitude: 34.14188,
+      longitude: -118.31215
+    },
+    expectedLocationMode: "other",
+    scenarioPlaceId: null
   }
 ];
 
 export const checkInQuestions = [
   "Would you like to sit down and take a slow breath?",
-  "Do you want a quick reminder of your plan for tonight?",
+  "Do you want a quick reminder of your plan for today?",
   "Would calling your caregiver help right now?"
 ];
 
@@ -120,32 +230,11 @@ export const initialDemoState: DemoState = {
   activityEvents: [],
   systemEvents: [],
   profile: defaultDemoProfile,
-  trustedLocations: [
-    {
-      id: "trusted-place-1",
-      trustedSlot: 1,
-      name: "Home",
-      address: "215 Cedar Street",
-      instructions: "Bedroom upstairs. Living room near the front windows."
-    },
-    {
-      id: "trusted-place-2",
-      trustedSlot: 2,
-      name: "Community Center",
-      address: "18 Oak Avenue",
-      instructions: "Front desk can help call Maria if reassurance is needed."
-    },
-    {
-      id: "trusted-place-3",
-      trustedSlot: 3,
-      name: "Maria's House",
-      address: "44 Pine Lane",
-      instructions: "Blue door with a porch light. Maria usually answers quickly."
-    }
-  ]
+  trustedLocations: defaultTrustedLocations,
+  activeLocationSource: "scenario_seed",
+  browserLocation: null
 };
 
-// Event types that belong in activityEvents (user-facing actions)
 const activityEventTypes = new Set([
   "reorientation_started",
   "checkin_submitted",
@@ -155,6 +244,23 @@ const activityEventTypes = new Set([
   "emergency_called"
 ]);
 
+function normalizeTrustedLocation(location: TrustedLocation): TrustedLocation {
+  const fallback = defaultTrustedLocations.find((entry) => entry.trustedSlot === location.trustedSlot);
+
+  return {
+    id: location.id ?? fallback?.id,
+    trustedSlot: location.trustedSlot,
+    name: typeof location.name === "string" && location.name.trim() ? location.name : fallback?.name ?? "",
+    address: location.address ?? fallback?.address,
+    displayAddress: location.displayAddress ?? location.address ?? fallback?.displayAddress ?? fallback?.address,
+    instructions: location.instructions ?? fallback?.instructions,
+    latitude: typeof location.latitude === "number" ? location.latitude : fallback?.latitude,
+    longitude: typeof location.longitude === "number" ? location.longitude : fallback?.longitude,
+    radiusMeters: typeof location.radiusMeters === "number" ? location.radiusMeters : fallback?.radiusMeters ?? 75,
+    placeType: location.placeType ?? fallback?.placeType ?? "trusted"
+  };
+}
+
 export function normalizeDemoState(raw: unknown): DemoState {
   if (!raw || typeof raw !== "object") {
     return initialDemoState;
@@ -163,25 +269,38 @@ export function normalizeDemoState(raw: unknown): DemoState {
   const value = raw as Partial<DemoState> & {
     profile?: Partial<DemoProfile>;
     trustedLocations?: TrustedLocation[];
-    events?: DemoEvent[]; // legacy single-array field
+    browserLocation?: Partial<BrowserLocation> | null;
+    events?: DemoEvent[];
   };
   const validScenario = demoScenarios.some((scenario) => scenario.id === value.activeScenarioId);
 
-  // Migrate legacy state that used a single `events` array by splitting on event type
   let activityEvents: DemoEvent[] = [];
   let systemEvents: DemoEvent[] = [];
 
   if (Array.isArray(value.activityEvents)) {
     activityEvents = value.activityEvents;
   } else if (Array.isArray(value.events)) {
-    activityEvents = value.events.filter((e) => activityEventTypes.has(e.eventType));
+    activityEvents = value.events.filter((event) => activityEventTypes.has(event.eventType));
   }
 
   if (Array.isArray(value.systemEvents)) {
     systemEvents = value.systemEvents;
   } else if (Array.isArray(value.events)) {
-    systemEvents = value.events.filter((e) => !activityEventTypes.has(e.eventType));
+    systemEvents = value.events.filter((event) => !activityEventTypes.has(event.eventType));
   }
+
+  const browserLocation = value.browserLocation
+    && typeof value.browserLocation.latitude === "number"
+    && typeof value.browserLocation.longitude === "number"
+    && typeof value.browserLocation.accuracyMeters === "number"
+    && typeof value.browserLocation.timestamp === "string"
+      ? {
+          latitude: value.browserLocation.latitude,
+          longitude: value.browserLocation.longitude,
+          accuracyMeters: value.browserLocation.accuracyMeters,
+          timestamp: value.browserLocation.timestamp
+        }
+      : null;
 
   return {
     activeScenarioId: validScenario ? (value.activeScenarioId as string) : initialDemoState.activeScenarioId,
@@ -198,7 +317,7 @@ export function normalizeDemoState(raw: unknown): DemoState {
       independentMode: value.profile?.independentMode ?? false,
       activeCaregiverId: value.profile?.activeCaregiverId !== undefined
         ? value.profile.activeCaregiverId
-        : "00000000-0000-0000-0000-000000000002"
+        : defaultDemoProfile.activeCaregiverId
     },
     trustedLocations: Array.isArray(value.trustedLocations) && value.trustedLocations.length > 0
       ? value.trustedLocations
@@ -206,15 +325,13 @@ export function normalizeDemoState(raw: unknown): DemoState {
             (location.trustedSlot === 1 || location.trustedSlot === 2 || location.trustedSlot === 3) &&
             typeof location.name === "string"
           )
-          .map((location) => ({
-            id: location.id,
-            trustedSlot: location.trustedSlot,
-            name: location.name,
-            address: location.address,
-            instructions: location.instructions
-          }))
+          .map(normalizeTrustedLocation)
           .sort((a, b) => a.trustedSlot - b.trustedSlot)
-      : initialDemoState.trustedLocations
+      : defaultTrustedLocations,
+    activeLocationSource: value.activeLocationSource === "browser_geolocation"
+      ? "browser_geolocation"
+      : "scenario_seed",
+    browserLocation
   };
 }
 
@@ -231,7 +348,8 @@ export function createEvent(
   source: EventSource,
   scenarioId?: string,
   metadata?: Record<string, unknown>,
-  userId = defaultDemoProfile.userId
+  userId = defaultDemoProfile.userId,
+  locationDetails?: Pick<DemoEvent, "placeId" | "latitude" | "longitude" | "accuracyMeters" | "locationSource">
 ): DemoEvent {
   return {
     id: generateId(),
@@ -240,7 +358,12 @@ export function createEvent(
     userId,
     source,
     scenarioId,
-    metadata
+    metadata,
+    placeId: locationDetails?.placeId ?? null,
+    latitude: locationDetails?.latitude ?? null,
+    longitude: locationDetails?.longitude ?? null,
+    accuracyMeters: locationDetails?.accuracyMeters ?? null,
+    locationSource: locationDetails?.locationSource
   };
 }
 
@@ -285,6 +408,11 @@ export function findScenario(scenarioId: string): DemoScenario {
 export function findTrustedLocation(locations: TrustedLocation[], slot?: 1 | 2 | 3): TrustedLocation | null {
   if (!slot) return null;
   return locations.find((location) => location.trustedSlot === slot) ?? null;
+}
+
+export function findTrustedLocationById(locations: TrustedLocation[], placeId?: string | null): TrustedLocation | null {
+  if (!placeId) return null;
+  return locations.find((location) => location.id === placeId) ?? null;
 }
 
 export function pronounWords(pronouns: PronounSet, customPronouns?: string): { subject: string; object: string; possessive: string } {

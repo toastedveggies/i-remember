@@ -48,6 +48,9 @@ create trigger caregivers_updated_at
   before update on caregivers
   for each row execute function update_updated_at();
 
+alter table profiles
+  add column active_caregiver_id uuid references caregivers(id);
+
 alter table caregivers enable row level security;
 create policy "allow all" on caregivers for all using (true);
 
@@ -59,6 +62,8 @@ create table caregiver_user_relationships (
   user_id uuid not null references profiles(id),
   caregiver_id uuid not null references caregivers(id),
   role text not null default 'family',
+  permissions jsonb not null default '{}'::jsonb,
+  is_primary_contact boolean not null default false,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   unique(user_id, caregiver_id)
@@ -67,6 +72,10 @@ create table caregiver_user_relationships (
 create trigger caregiver_user_relationships_updated_at
   before update on caregiver_user_relationships
   for each row execute function update_updated_at();
+
+create unique index one_primary_contact_per_user
+  on caregiver_user_relationships(user_id)
+  where is_primary_contact = true;
 
 alter table caregiver_user_relationships enable row level security;
 create policy "allow all" on caregiver_user_relationships for all using (true);
@@ -106,13 +115,27 @@ create table places (
   place_type text,
   instructions text,
   is_home boolean not null default false,
+  is_trusted boolean not null default false,
+  trusted_slot smallint,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
 
+alter table places
+  add constraint places_trusted_slot_valid
+  check (trusted_slot is null or trusted_slot in (1, 2, 3));
+
+alter table places
+  add constraint places_trusted_slot_requires_trusted
+  check (trusted_slot is null or is_trusted = true);
+
 create trigger places_updated_at
   before update on places
   for each row execute function update_updated_at();
+
+create unique index places_user_trusted_slot_idx
+  on places(user_id, trusted_slot)
+  where trusted_slot is not null;
 
 alter table places enable row level security;
 create policy "allow all" on places for all using (true);

@@ -1,25 +1,21 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import EventLogList from "@/components/EventLogList";
 import HelperModal from "@/components/HelperModal";
-import ResponseCard from "@/components/ResponseCard";
-import TodayCard from "@/components/TodayCard";
 import MemoryIcon from "@/components/MemoryIcon";
 import {
   appendActivityEvent,
-  appendSystemEvent,
-  findTrustedLocation,
   createEvent,
   findScenario,
   initialDemoState,
   normalizeDemoState,
   storageKey,
   type DemoState,
-  type UncertaintyLevel
 } from "@/data/demoState";
-import { buildContextPacket, describeScenarioLocation } from "@/data/demoData";
+import { buildActiveLocationSummary, buildContextPacket } from "@/data/demoData";
+import { resolveActiveLocationContext } from "@/lib/places";
 
 const RECENT_GUIDANCE_KEY = "recentGuidance";
 
@@ -48,18 +44,6 @@ function saveRecentGuidance(entry: GuidanceEntry): void {
   window.localStorage.setItem(RECENT_GUIDANCE_KEY, JSON.stringify(updated));
 }
 
-function fallbackCopy(level: UncertaintyLevel): string {
-  if (level === "low") {
-    return "I can confirm your current routine context. A few details are missing, so we will focus on the next simple step.";
-  }
-
-  if (level === "medium") {
-    return "I am not fully sure about every detail right now. Please check your next activity card, and contact your caregiver if this still feels unclear.";
-  }
-
-  return "I do not have enough context to guide this safely. Please pause and contact your caregiver now. If this feels urgent or unsafe, call emergency services immediately.";
-}
-
 function loadState(): DemoState {
   if (typeof window === "undefined") {
     return initialDemoState;
@@ -85,27 +69,27 @@ function saveState(nextState: DemoState): void {
 
 function recommendedNextAction(question: string, caregiverName: string): string {
   if (question.includes("slow breath")) {
-    return "Take three slow breaths, then re-read the 'What should I do next?' card.";
+    return "Take three slow breaths, then look at the next step card again.";
   }
 
-  if (question.includes("plan for tonight")) {
-    return "Review your next routine step, then refresh guidance if anything still feels unclear.";
+  if (question.includes("plan")) {
+    return "Review the next event and gather only the items you need right now.";
   }
 
   if (question.includes("calling your caregiver")) {
     return `Call ${caregiverName} for reassurance now.`;
   }
 
-  return "Take a short pause and review your next step card.";
+  return "Pause, read the next step slowly, and ask for support if you want it.";
 }
 
 function timeGreeting(name: string): string {
   const hour = new Date().getHours();
-  const n = name || "Alex";
-  if (hour >= 5 && hour < 12) return `Good morning, ${n}! 😊`;
-  if (hour >= 12 && hour < 17) return `Good afternoon, ${n}! 😊`;
-  if (hour >= 17 && hour < 21) return `Good evening, ${n}! 😊`;
-  return `Good night, ${n}! 😊`;
+  const preferredName = name || "Alex";
+  if (hour >= 5 && hour < 12) return `Good morning, ${preferredName}.`;
+  if (hour >= 12 && hour < 17) return `Good afternoon, ${preferredName}.`;
+  if (hour >= 17 && hour < 21) return `Good evening, ${preferredName}.`;
+  return `Good night, ${preferredName}.`;
 }
 
 export default function TodayWindowPage() {
@@ -113,19 +97,16 @@ export default function TodayWindowPage() {
   const [callingCaregiver, setCallingCaregiver] = useState(false);
   const [callingEmergency, setCallingEmergency] = useState(false);
   const [lastGuidanceUpdate, setLastGuidanceUpdate] = useState<string | null>(null);
-  const [selectedQuestion, setSelectedQuestion] = useState("");
   const [state, setState] = useState<DemoState>(initialDemoState);
 
-  // Floating emergency button
   const [emergencyExpanded, setEmergencyExpanded] = useState(false);
 
   useEffect(() => {
     if (!emergencyExpanded) return;
-    const t = setTimeout(() => setEmergencyExpanded(false), 4000);
-    return () => clearTimeout(t);
+    const timeout = setTimeout(() => setEmergencyExpanded(false), 4000);
+    return () => clearTimeout(timeout);
   }, [emergencyExpanded]);
 
-  // Help Me Now flow
   const [helpMeNowOpen, setHelpMeNowOpen] = useState(false);
   const [streamingQuestion, setStreamingQuestion] = useState<QuestionKey | null>(null);
   const [streamedText, setStreamedText] = useState("");
@@ -134,7 +115,6 @@ export default function TodayWindowPage() {
   const [recentGuidanceOpen, setRecentGuidanceOpen] = useState(false);
   const [recentGuidance, setRecentGuidance] = useState<GuidanceEntry[]>([]);
 
-  // AI check-in
   const [checkInDoneThisSession, setCheckInDoneThisSession] = useState(false);
   const [checkInOpen, setCheckInOpen] = useState(false);
   const [checkInQuestionsLoading, setCheckInQuestionsLoading] = useState(false);
@@ -151,17 +131,37 @@ export default function TodayWindowPage() {
   }, []);
 
   const activeScenario = useMemo(() => findScenario(state.activeScenarioId), [state.activeScenarioId]);
+
+  const resolvedLocation = useMemo(
+    () => resolveActiveLocationContext({
+      scenario: activeScenario,
+      trustedLocations: state.trustedLocations,
+      activeLocationSource: state.activeLocationSource,
+      browserLocation: state.browserLocation,
+    }),
+    [activeScenario, state.activeLocationSource, state.browserLocation, state.trustedLocations]
+  );
+
+  const activeLocationSummary = useMemo(
+    () => buildActiveLocationSummary({
+      scenarioId: state.activeScenarioId,
+      profile: state.profile,
+      trustedLocations: state.trustedLocations,
+      activeLocationSource: state.activeLocationSource,
+      browserLocation: state.browserLocation,
+    }),
+    [state.activeScenarioId, state.activeLocationSource, state.browserLocation, state.profile, state.trustedLocations]
+  );
+
   const contextPacket = useMemo(
-    () => buildContextPacket(state.activeScenarioId, state.profile, state.trustedLocations),
-    [state.activeScenarioId, state.profile, state.trustedLocations]
-  );
-  const activeTrustedLocation = useMemo(
-    () => findTrustedLocation(state.trustedLocations, activeScenario.trustedSlot),
-    [activeScenario.trustedSlot, state.trustedLocations]
-  );
-  const locationSummary = useMemo(
-    () => describeScenarioLocation(activeScenario, state.trustedLocations),
-    [activeScenario, state.trustedLocations]
+    () => buildContextPacket({
+      scenarioId: state.activeScenarioId,
+      profile: state.profile,
+      trustedLocations: state.trustedLocations,
+      activeLocationSource: state.activeLocationSource,
+      browserLocation: state.browserLocation,
+    }),
+    [state.activeScenarioId, state.activeLocationSource, state.browserLocation, state.profile, state.trustedLocations]
   );
 
   const persist = (nextState: DemoState) => {
@@ -169,62 +169,77 @@ export default function TodayWindowPage() {
     saveState(nextState);
   };
 
-  const refreshGuidance = () => {
-    const withStart = appendActivityEvent(
-      state,
-      createEvent("reorientation_started", "app", activeScenario.id, { uncertainty: activeScenario.uncertainty }, state.profile.userId)
+  const eventLocationDetails = useMemo(
+    () => ({
+      placeId: resolvedLocation.matchedPlaceId,
+      latitude: resolvedLocation.coordinates.latitude,
+      longitude: resolvedLocation.coordinates.longitude,
+      accuracyMeters: resolvedLocation.accuracyMeters,
+      locationSource: resolvedLocation.source,
+    }),
+    [resolvedLocation]
+  );
+
+  const createLocationEvent = (eventType: string, metadata?: Record<string, unknown>) =>
+    createEvent(
+      eventType,
+      "app",
+      activeScenario.id,
+      metadata,
+      state.profile.userId,
+      eventLocationDetails
     );
-    const withViewed = appendSystemEvent(
-      withStart,
-      createEvent("reorientation_card_viewed", "app", activeScenario.id, undefined, state.profile.userId)
-    );
-    if (activeScenario.uncertainty === "high") {
-      const withFallback = appendActivityEvent(
-        withViewed,
-        createEvent("fallback_shown", "app", activeScenario.id, { level: activeScenario.uncertainty }, state.profile.userId)
-      );
-      persist(withFallback);
-    } else {
-      persist(withViewed);
-    }
-    setLastGuidanceUpdate(new Date().toLocaleTimeString());
-  };
 
   const handleHelpMeNow = () => {
-    const withStart = appendActivityEvent(
+    let nextState = appendActivityEvent(
       state,
-      createEvent("reorientation_started", "app", activeScenario.id, { uncertainty: activeScenario.uncertainty }, state.profile.userId)
+      createLocationEvent("reorientation_started", {
+        uncertainty: activeScenario.uncertainty,
+        locationMode: resolvedLocation.locationMode,
+        trustedPlace: activeLocationSummary.trustedPlaceName,
+      })
     );
-    persist(withStart);
+
+    if (resolvedLocation.locationMode === "other") {
+      nextState = appendActivityEvent(
+        nextState,
+        createLocationEvent("fallback_shown", {
+          level: "high",
+          reason: "unrecognized_location",
+          message: "I do not recognize this as one of your saved trusted places.",
+        })
+      );
+    }
+
+    persist(nextState);
     setHelpMeNowOpen(true);
     setLastGuidanceUpdate(new Date().toLocaleTimeString());
   };
 
   const askQuestion = async (key: QuestionKey) => {
-    const packet = buildContextPacket(activeScenario.id, state.profile, state.trustedLocations);
     setStreamingQuestion(key);
     setStreamedText("");
     setStreamingLoading(true);
     setStreamPanelOpen(true);
 
     try {
-      const res = await fetch("/api/reorient", {
+      const response = await fetch("/api/reorient", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           question: key,
-          context: packet,
+          context: contextPacket,
           userName: state.profile.preferredName,
         }),
       });
 
-      if (!res.ok || !res.body) {
+      if (!response.ok || !response.body) {
         setStreamedText("I am here with you. Please take a breath. If you need help, contact your caregiver.");
         setStreamingLoading(false);
         return;
       }
 
-      const reader = res.body.getReader();
+      const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let fullText = "";
 
@@ -246,11 +261,16 @@ export default function TodayWindowPage() {
       saveRecentGuidance(entry);
       setRecentGuidance(loadRecentGuidance());
 
-      const withViewed = appendActivityEvent(
-        state,
-        createEvent("reorientation_card_viewed", "app", activeScenario.id, { question: key }, state.profile.userId)
+      persist(
+        appendActivityEvent(
+          state,
+          createLocationEvent("reorientation_card_viewed", {
+            question: key,
+            locationMode: resolvedLocation.locationMode,
+            trustedPlace: activeLocationSummary.trustedPlaceName,
+          })
+        )
       );
-      persist(withViewed);
     } catch {
       setStreamedText("I am here with you. Please take a breath. If you need help, contact your caregiver.");
       setStreamingLoading(false);
@@ -269,8 +289,7 @@ export default function TodayWindowPage() {
     setAiCheckInQuestions([]);
     setCheckInSelectedQuestion("");
 
-    const packet = buildContextPacket(activeScenario.id, state.profile, state.trustedLocations);
-    const recentQ = loadRecentGuidance()[0]?.question ?? null;
+    const recentQuestion = loadRecentGuidance()[0]?.question ?? null;
 
     fetch("/api/checkin", {
       method: "POST",
@@ -278,20 +297,23 @@ export default function TodayWindowPage() {
       body: JSON.stringify({
         mode: "questions",
         context: {
-          ...packet,
+          ...contextPacket,
           scenario: activeScenario.id,
-          ...(recentQ ? { recentHelpMeNowQuestion: recentQ } : {}),
+          ...(recentQuestion ? { recentHelpMeNowQuestion: recentQuestion } : {}),
         },
         userName: state.profile.preferredName,
       }),
     })
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed");
-        return res.json() as Promise<string[]>;
+      .then((response) => {
+        if (!response.ok) throw new Error("Failed");
+        return response.json() as Promise<string[]>;
       })
-      .then((qs) => {
-        if (Array.isArray(qs) && qs.length > 0) setAiCheckInQuestions(qs);
-        else throw new Error("Invalid");
+      .then((questions) => {
+        if (Array.isArray(questions) && questions.length > 0) {
+          setAiCheckInQuestions(questions);
+          return;
+        }
+        throw new Error("Invalid");
       })
       .catch(() => {
         setAiCheckInQuestions([
@@ -306,18 +328,23 @@ export default function TodayWindowPage() {
   const handleCheckInTap = (question: string) => {
     if (question !== checkInSelectedQuestion) {
       setCheckInSelectedQuestion(question);
-    } else {
-      commitCheckIn(question);
+      return;
     }
+
+    void commitCheckIn(question);
   };
 
   const commitCheckIn = async (question: string) => {
     const nextAction = recommendedNextAction(question, state.profile.caregiverName);
-    const next = appendActivityEvent(
+    const nextState = appendActivityEvent(
       { ...state, checkInStatus: `Check-in saved: ${question} Recommended next action: ${nextAction}` },
-      createEvent("checkin_submitted", "app", activeScenario.id, { question }, state.profile.userId)
+      createLocationEvent("checkin_submitted", {
+        question,
+        locationMode: resolvedLocation.locationMode,
+        trustedPlace: activeLocationSummary.trustedPlaceName,
+      })
     );
-    persist(next);
+    persist(nextState);
 
     setCheckInDoneThisSession(true);
     setCheckInActiveQuestion(question);
@@ -326,33 +353,34 @@ export default function TodayWindowPage() {
     setCheckInResponseOpen(true);
 
     try {
-      const packet = buildContextPacket(activeScenario.id, state.profile, state.trustedLocations);
-      const res = await fetch("/api/checkin", {
+      const response = await fetch("/api/checkin", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           mode: "response",
-          context: packet,
+          context: contextPacket,
           selectedQuestion: question,
           userName: state.profile.preferredName,
         }),
       });
 
-      if (!res.ok || !res.body) {
+      if (!response.ok || !response.body) {
         setCheckInResponseText("I hear you. Take a gentle breath. You are doing well.");
         setCheckInResponseLoading(false);
         return;
       }
 
-      const reader = res.body.getReader();
+      const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let fullText = "";
+
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
         fullText += decoder.decode(value, { stream: true });
         setCheckInResponseText(fullText);
       }
+
       setCheckInResponseLoading(false);
     } catch {
       setCheckInResponseText("I hear you. Take a gentle breath. You are doing well.");
@@ -360,36 +388,32 @@ export default function TodayWindowPage() {
     }
   };
 
-  const submitCheckIn = () => {
-    if (!selectedQuestion) {
-      return;
-    }
-
-    const status = `Check-in saved: ${selectedQuestion}`;
-    const nextAction = recommendedNextAction(selectedQuestion, state.profile.caregiverName);
-    const next = appendActivityEvent(
-      { ...state, checkInStatus: `${status} Recommended next action: ${nextAction}` },
-      createEvent("checkin_submitted", "app", activeScenario.id, { question: selectedQuestion }, state.profile.userId)
-    );
-    persist(next);
-    setSelectedQuestion("");
-  };
-
   const callCaregiver = () => {
-    persist(appendActivityEvent(state, createEvent("caregiver_called", "app", activeScenario.id, undefined, state.profile.userId)));
+    persist(appendActivityEvent(state, createLocationEvent("caregiver_called")));
     setCallingCaregiver(true);
   };
 
   const callEmergency = () => {
-    persist(appendActivityEvent(state, createEvent("emergency_called", "app", activeScenario.id, undefined, state.profile.userId)));
+    persist(appendActivityEvent(state, createLocationEvent("emergency_called")));
     setCallingEmergency(true);
   };
-
-  const fallbackMessage = fallbackCopy(activeScenario.uncertainty);
 
   const eventItems = [...state.activityEvents, ...state.systemEvents].sort(
     (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
   );
+
+  const showUnknownLocationPrompt = resolvedLocation.locationMode === "other";
+  const bringItems = activeScenario.scheduledEvent?.bringItems ?? [];
+  const whatIsHappeningSummary = showUnknownLocationPrompt
+    ? activeScenario.happening
+    : activeScenario.currentActivity
+      ? `${activeScenario.happening} Right now, you are ${activeScenario.currentActivity.toLowerCase()}.`
+      : activeScenario.happening;
+  const nextStepSummary = showUnknownLocationPrompt
+    ? activeScenario.nextStep
+    : activeScenario.scheduledEvent
+      ? `${activeScenario.nextStep} ${activeScenario.scheduledEvent.timeLabel}.`
+      : activeScenario.nextStep;
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-3xl px-4 py-8">
@@ -399,28 +423,63 @@ export default function TodayWindowPage() {
           <p className="text-lg text-brand-muted">{timeGreeting(state.profile.preferredName)}</p>
         </header>
 
-        {/* Passive today card */}
-        <section className="rounded-3xl border border-brand-border bg-brand-surface p-5 shadow-sm space-y-2">
+        <section className="rounded-3xl border border-brand-border bg-brand-surface p-5 shadow-sm space-y-3">
           <div className="flex items-center gap-2">
             <MemoryIcon name="clock" className="h-6 w-6 text-brand-primary" />
-            <h2 className="text-lg font-semibold text-brand-text">{new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}</h2>
+            <h2 className="text-lg font-semibold text-brand-text">
+              {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
+            </h2>
           </div>
-          <p className="text-sm text-brand-muted"><span className="font-medium text-brand-text">Where:</span> {contextPacket.location}</p>
-          {activeScenario.locationMode === "trusted" && activeTrustedLocation?.address ? (
+          <p className="text-sm text-brand-muted">
+            <span className="font-medium text-brand-text">Where:</span> {activeLocationSummary.label}
+          </p>
+          <p className="text-sm text-brand-muted">
+            <span className="font-medium text-brand-text">Location mode:</span> {activeLocationSummary.locationModeLabel}
+          </p>
+          <p className="text-sm text-brand-muted">
+            <span className="font-medium text-brand-text">Source:</span> {activeLocationSummary.sourceLabel}
+          </p>
+          {activeLocationSummary.trustedPlaceAddress ? (
             <p className="text-xs text-brand-muted">
-              Trusted place {activeTrustedLocation.trustedSlot}: {activeTrustedLocation.address}
+              Saved place: {activeLocationSummary.trustedPlaceAddress}
             </p>
           ) : null}
-          {activeScenario.locationMode === "other" ? (
-            <p className="text-xs text-brand-muted">This scenario is currently using Other rather than one of the saved trusted places.</p>
+          {activeLocationSummary.fallbackMessage ? (
+            <p className="rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+              {activeLocationSummary.fallbackMessage}
+            </p>
           ) : null}
-          <p className="text-sm text-brand-muted"><span className="font-medium text-brand-text">Next:</span> {contextPacket.next_event}</p>
+          <p className="text-sm text-brand-muted">
+            <span className="font-medium text-brand-text">Next:</span> {contextPacket.next_event}
+          </p>
+          {bringItems.length > 0 ? (
+            <p className="text-xs text-brand-muted">
+              Bring: {bringItems.join(", ")}
+            </p>
+          ) : null}
+        </section>
+
+        <section className="rounded-3xl border border-brand-border bg-brand-surface p-5 shadow-sm space-y-3">
+          <h2 className="text-lg font-semibold text-brand-text">Grounding context</h2>
+          <div className="rounded-2xl border border-brand-border bg-brand-bg px-4 py-3">
+            <p className="text-sm font-medium text-brand-text">Where am I?</p>
+            <p className="mt-1 text-sm text-brand-muted">
+              {showUnknownLocationPrompt ? "I do not recognize this as one of your saved trusted places." : activeScenario.where}
+            </p>
+          </div>
+          <div className="rounded-2xl border border-brand-border bg-brand-bg px-4 py-3">
+            <p className="text-sm font-medium text-brand-text">What is happening?</p>
+            <p className="mt-1 text-sm text-brand-muted">{whatIsHappeningSummary}</p>
+          </div>
+          <div className="rounded-2xl border border-brand-border bg-brand-bg px-4 py-3">
+            <p className="text-sm font-medium text-brand-text">What should I do next?</p>
+            <p className="mt-1 text-sm text-brand-muted">{nextStepSummary}</p>
+          </div>
         </section>
 
         <section className="space-y-3">
           <div className="grid grid-cols-1 gap-4 md:gap-0 md:grid-cols-2 md:divide-x md:divide-brand-border">
             <div className="space-y-3">
-              {/* Check-in trigger button */}
               <button
                 type="button"
                 onClick={handleOpenCheckIn}
@@ -433,12 +492,10 @@ export default function TodayWindowPage() {
                 {checkInDoneThisSession ? "Do another check-in" : "Do a quick check-in"}
               </button>
 
-              {/* Loading text */}
               {checkInOpen && checkInQuestionsLoading ? (
-                <p className="text-xs text-brand-muted">Preparing your check-in…</p>
+                <p className="text-xs text-brand-muted">Preparing your check-in...</p>
               ) : null}
 
-              {/* Questions — slide down with max-height transition */}
               <div
                 className={`overflow-hidden transition-all duration-300 ease-in-out ${
                   checkInOpen && !checkInQuestionsLoading && aiCheckInQuestions.length > 0
@@ -447,14 +504,15 @@ export default function TodayWindowPage() {
                 }`}
               >
                 <div className="space-y-2 pt-1">
-                  {aiCheckInQuestions.map((q, i) => {
-                    const isSelected = q === checkInSelectedQuestion;
+                  {aiCheckInQuestions.map((question, index) => {
+                    const isSelected = question === checkInSelectedQuestion;
                     const isDeselected = checkInSelectedQuestion !== "" && !isSelected;
+
                     return (
                       <button
-                        key={i}
+                        key={index}
                         type="button"
-                        onClick={() => handleCheckInTap(q)}
+                        onClick={() => handleCheckInTap(question)}
                         className={`w-full cursor-pointer rounded-xl border p-4 text-left text-sm font-medium transition-colors duration-100 focus:outline-none focus:ring-2 focus:ring-lime-400 ${
                           isSelected
                             ? "border-lime-500 bg-lime-100 text-brand-text"
@@ -463,7 +521,7 @@ export default function TodayWindowPage() {
                               : "border-brand-border bg-white text-brand-text hover:bg-lime-50"
                         }`}
                       >
-                        {q}
+                        {question}
                       </button>
                     );
                   })}
@@ -475,7 +533,6 @@ export default function TodayWindowPage() {
                 </div>
               </div>
 
-              {/* Saved confirmation — shown when collapsed after a check-in */}
               {checkInDoneThisSession && !checkInOpen ? (
                 <div className="rounded-2xl border border-lime-200 bg-lime-50 px-4 py-3">
                   <p className="text-sm font-medium text-lime-800">Check-in saved.</p>
@@ -510,6 +567,18 @@ export default function TodayWindowPage() {
           </div>
         </section>
 
+        {showUnknownLocationPrompt ? (
+          <section className="rounded-3xl border border-amber-200 bg-amber-50 p-5 shadow-sm space-y-2">
+            <h2 className="text-lg font-semibold text-amber-900">Unrecognized location</h2>
+            <p className="text-sm text-amber-900">
+              I do not recognize this as one of your saved trusted places. Are you somewhere safe?
+            </p>
+            <p className="text-sm text-amber-800">
+              Stay where you are if it feels safe. You can call {state.profile.caregiverName}, show your helper card, or call emergency services if this feels urgent.
+            </p>
+          </section>
+        ) : null}
+
         <section className="space-y-3">
           <div className="space-y-3">
             <button
@@ -527,7 +596,7 @@ export default function TodayWindowPage() {
             <button
               type="button"
               onClick={() => {
-                persist(appendActivityEvent(state, createEvent("helper_card_shown", "app", activeScenario.id, undefined, state.profile.userId)));
+                persist(appendActivityEvent(state, createLocationEvent("helper_card_shown")));
                 setHelperOpen(true);
               }}
               className="flex min-h-14 w-full items-center gap-3 rounded-2xl bg-brand-primary px-4 py-4 text-base font-semibold text-white focus:outline-none focus:ring-2 focus:ring-brand-compass"
@@ -548,10 +617,17 @@ export default function TodayWindowPage() {
 
         <section className="space-y-3">
           <div className="rounded-2xl border border-brand-border bg-brand-surface px-4 py-3">
-            <p className="text-sm font-medium text-brand-text">Location mode</p>
-            <p className="mt-1 text-sm text-brand-muted">
-              {locationSummary.label}
-            </p>
+            <p className="text-sm font-medium text-brand-text">Current demo context</p>
+            <p className="mt-1 text-sm text-brand-muted">{activeScenario.label}</p>
+            <p className="mt-1 text-sm text-brand-muted">{activeLocationSummary.detail}</p>
+            <div className="mt-3">
+              <Link
+                href="/debug"
+                className="text-sm text-brand-muted underline underline-offset-2"
+              >
+                Open debug screen
+              </Link>
+            </div>
           </div>
           <h2 className="text-lg font-semibold text-brand-text">Recent demo events</h2>
           <EventLogList items={eventItems} defaultCollapsed />
@@ -562,7 +638,6 @@ export default function TodayWindowPage() {
         Prototype note: data is stored in this browser session for demo purposes.
       </p>
 
-      {/* Emergency side tab */}
       {emergencyExpanded ? (
         <div
           className="fixed inset-0 z-30"
@@ -571,16 +646,14 @@ export default function TodayWindowPage() {
         />
       ) : null}
       <div className="fixed bottom-8 left-0 z-40 flex h-20 items-stretch overflow-hidden rounded-r-2xl shadow-lg">
-        {/* Dark red tab — always visible, toggles expanded */}
         <button
           type="button"
           aria-label={emergencyExpanded ? "Collapse emergency" : "Emergency"}
-          onClick={() => setEmergencyExpanded((v) => !v)}
+          onClick={() => setEmergencyExpanded((value) => !value)}
           className="flex w-12 shrink-0 items-center justify-center bg-red-900 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-red-400"
         >
           <MemoryIcon name="shield" className="h-5 w-5 text-white" />
         </button>
-        {/* Bright red slide-out — triggers emergency call */}
         <button
           type="button"
           tabIndex={emergencyExpanded ? 0 : -1}
@@ -595,9 +668,14 @@ export default function TodayWindowPage() {
         </button>
       </div>
 
-      <HelperModal open={helperOpen} onClose={() => setHelperOpen(false)} profile={state.profile} onCallCaregiver={callCaregiver} onCallEmergency={callEmergency} />
+      <HelperModal
+        open={helperOpen}
+        onClose={() => setHelperOpen(false)}
+        profile={state.profile}
+        onCallCaregiver={callCaregiver}
+        onCallEmergency={callEmergency}
+      />
 
-      {/* Question selection modal */}
       {helpMeNowOpen && !streamPanelOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="w-full max-w-sm rounded-3xl border border-brand-border bg-brand-surface p-6 shadow-xl space-y-4">
@@ -626,16 +704,15 @@ export default function TodayWindowPage() {
         </div>
       ) : null}
 
-      {/* Check-in response panel */}
       {checkInResponseOpen ? (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4">
           <div className="w-full max-w-lg rounded-t-3xl border border-brand-border bg-brand-surface p-6 shadow-xl sm:rounded-3xl">
-            <p className="text-xs font-semibold uppercase tracking-wide text-brand-muted mb-3">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-brand-muted">
               {checkInActiveQuestion}
             </p>
             <div className="min-h-24 text-base leading-relaxed text-brand-text">
               {checkInResponseLoading && !checkInResponseText ? (
-                <span className="text-brand-muted">One moment…</span>
+                <span className="text-brand-muted">One moment...</span>
               ) : (
                 checkInResponseText
               )}
@@ -646,7 +723,12 @@ export default function TodayWindowPage() {
             {!checkInResponseLoading ? (
               <button
                 type="button"
-                onClick={() => { setCheckInResponseOpen(false); setCheckInResponseText(""); setCheckInOpen(false); setCheckInSelectedQuestion(""); }}
+                onClick={() => {
+                  setCheckInResponseOpen(false);
+                  setCheckInResponseText("");
+                  setCheckInOpen(false);
+                  setCheckInSelectedQuestion("");
+                }}
                 className="mt-5 min-h-12 w-full rounded-2xl bg-brand-primary px-4 py-3 text-base font-semibold text-white focus:outline-none focus:ring-2 focus:ring-brand-compass"
               >
                 Got it
@@ -656,16 +738,15 @@ export default function TodayWindowPage() {
         </div>
       ) : null}
 
-      {/* Streaming response panel */}
       {streamPanelOpen ? (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4">
           <div className="w-full max-w-lg rounded-t-3xl border border-brand-border bg-brand-surface p-6 shadow-xl sm:rounded-3xl">
-            <p className="text-xs font-semibold uppercase tracking-wide text-brand-muted mb-3">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-brand-muted">
               {streamingQuestion ? questionLabels[streamingQuestion] : ""}
             </p>
             <div className="min-h-24 text-base leading-relaxed text-brand-text">
               {streamingLoading && !streamedText ? (
-                <span className="text-brand-muted">One moment…</span>
+                <span className="text-brand-muted">One moment...</span>
               ) : (
                 streamedText
               )}
@@ -684,19 +765,20 @@ export default function TodayWindowPage() {
         </div>
       ) : null}
 
-      {/* Recent guidance panel */}
       {recentGuidanceOpen ? (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4">
-          <div className="w-full max-w-lg rounded-t-3xl border border-brand-border bg-brand-surface p-6 shadow-xl sm:rounded-3xl max-h-[80vh] overflow-y-auto">
-            <h2 className="text-lg font-semibold text-brand-text mb-4">Recent guidance</h2>
+          <div className="max-h-[80vh] w-full max-w-lg overflow-y-auto rounded-t-3xl border border-brand-border bg-brand-surface p-6 shadow-xl sm:rounded-3xl">
+            <h2 className="mb-4 text-lg font-semibold text-brand-text">Recent guidance</h2>
             {recentGuidance.length === 0 ? (
               <p className="text-sm text-brand-muted">No guidance yet. Tap Help Me Now to get started.</p>
             ) : (
               <ul className="space-y-4">
-                {recentGuidance.slice(0, 5).map((entry, i) => (
-                  <li key={i} className="rounded-2xl border border-brand-border bg-brand-bg p-4 space-y-1">
-                    <p className="text-xs font-semibold text-brand-muted">{entry.question} · {new Date(entry.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</p>
-                    <p className="text-sm text-brand-text leading-relaxed">{entry.response}</p>
+                {recentGuidance.slice(0, 5).map((entry, index) => (
+                  <li key={index} className="rounded-2xl border border-brand-border bg-brand-bg p-4 space-y-1">
+                    <p className="text-xs font-semibold text-brand-muted">
+                      {entry.question} · {new Date(entry.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                    </p>
+                    <p className="text-sm leading-relaxed text-brand-text">{entry.response}</p>
                   </li>
                 ))}
               </ul>
@@ -715,7 +797,7 @@ export default function TodayWindowPage() {
       {callingEmergency ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="w-full max-w-sm rounded-3xl border border-brand-border bg-brand-surface p-6 shadow-lg">
-            <p className="text-xl font-semibold text-brand-text">Calling 911…</p>
+            <p className="text-xl font-semibold text-brand-text">Calling 911...</p>
             <p className="mt-2 text-sm text-brand-muted">This is a demo. No real call is placed.</p>
             <button
               type="button"
@@ -731,7 +813,7 @@ export default function TodayWindowPage() {
       {callingCaregiver ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="w-full max-w-sm rounded-3xl border border-brand-border bg-brand-surface p-6 shadow-lg">
-            <p className="text-xl font-semibold text-brand-text">Calling {state.profile.caregiverName}…</p>
+            <p className="text-xl font-semibold text-brand-text">Calling {state.profile.caregiverName}...</p>
             <p className="mt-2 text-sm text-brand-muted">This is a demo. No real call is placed.</p>
             <button
               type="button"
