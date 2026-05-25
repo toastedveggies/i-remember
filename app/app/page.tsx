@@ -404,16 +404,6 @@ export default function TodayWindowPage() {
 
   const showUnknownLocationPrompt = resolvedLocation.locationMode === "other";
   const bringItems = activeScenario.scheduledEvent?.bringItems ?? [];
-  const whatIsHappeningSummary = showUnknownLocationPrompt
-    ? activeScenario.happening
-    : activeScenario.currentActivity
-      ? `${activeScenario.happening} Right now, you are ${activeScenario.currentActivity.toLowerCase()}.`
-      : activeScenario.happening;
-  const nextStepSummary = showUnknownLocationPrompt
-    ? activeScenario.nextStep
-    : activeScenario.scheduledEvent
-      ? `${activeScenario.nextStep} ${activeScenario.scheduledEvent.timeLabel}.`
-      : activeScenario.nextStep;
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-3xl px-4 py-8">
@@ -433,12 +423,6 @@ export default function TodayWindowPage() {
           <p className="text-sm text-brand-muted">
             <span className="font-medium text-brand-text">Where:</span> {activeLocationSummary.label}
           </p>
-          <p className="text-sm text-brand-muted">
-            <span className="font-medium text-brand-text">Location mode:</span> {activeLocationSummary.locationModeLabel}
-          </p>
-          <p className="text-sm text-brand-muted">
-            <span className="font-medium text-brand-text">Source:</span> {activeLocationSummary.sourceLabel}
-          </p>
           {activeLocationSummary.trustedPlaceAddress ? (
             <p className="text-xs text-brand-muted">
               Saved place: {activeLocationSummary.trustedPlaceAddress}
@@ -457,24 +441,6 @@ export default function TodayWindowPage() {
               Bring: {bringItems.join(", ")}
             </p>
           ) : null}
-        </section>
-
-        <section className="rounded-3xl border border-brand-border bg-brand-surface p-5 shadow-sm space-y-3">
-          <h2 className="text-lg font-semibold text-brand-text">Grounding context</h2>
-          <div className="rounded-2xl border border-brand-border bg-brand-bg px-4 py-3">
-            <p className="text-sm font-medium text-brand-text">Where am I?</p>
-            <p className="mt-1 text-sm text-brand-muted">
-              {showUnknownLocationPrompt ? "I do not recognize this as one of your saved trusted places." : activeScenario.where}
-            </p>
-          </div>
-          <div className="rounded-2xl border border-brand-border bg-brand-bg px-4 py-3">
-            <p className="text-sm font-medium text-brand-text">What is happening?</p>
-            <p className="mt-1 text-sm text-brand-muted">{whatIsHappeningSummary}</p>
-          </div>
-          <div className="rounded-2xl border border-brand-border bg-brand-bg px-4 py-3">
-            <p className="text-sm font-medium text-brand-text">What should I do next?</p>
-            <p className="mt-1 text-sm text-brand-muted">{nextStepSummary}</p>
-          </div>
         </section>
 
         <section className="space-y-3">
@@ -619,15 +585,6 @@ export default function TodayWindowPage() {
           <div className="rounded-2xl border border-brand-border bg-brand-surface px-4 py-3">
             <p className="text-sm font-medium text-brand-text">Current demo context</p>
             <p className="mt-1 text-sm text-brand-muted">{activeScenario.label}</p>
-            <p className="mt-1 text-sm text-brand-muted">{activeLocationSummary.detail}</p>
-            <div className="mt-3">
-              <Link
-                href="/debug"
-                className="text-sm text-brand-muted underline underline-offset-2"
-              >
-                Open debug screen
-              </Link>
-            </div>
           </div>
           <h2 className="text-lg font-semibold text-brand-text">Recent demo events</h2>
           <EventLogList items={eventItems} defaultCollapsed />

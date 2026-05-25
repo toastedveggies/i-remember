@@ -291,4 +291,4 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
 
 ## Last Updated
 
-2026-05-23 (UTC-7) — Trusted-location app/caregiver wiring complete: `/app`, `/demo`, and `/caregiver` now surface trusted-place vs Other context consistently
+2026-05-25 (UTC-7) — UI cleanup in `app/app/page.tsx`: removed "Grounding context" section (static where/what/next cards), removed "Location mode" and "Source" lines from Today card, removed `activeLocationSummary.detail` paragraph and "Open debug screen" link from demo context box, removed unused `whatIsHappeningSummary` and `nextStepSummary` variables. `npx tsc --noEmit` and `npm run lint` pass clean.
