@@ -403,7 +403,6 @@ export default function TodayWindowPage() {
   );
 
   const showUnknownLocationPrompt = resolvedLocation.locationMode === "other";
-  const bringItems = activeScenario.scheduledEvent?.bringItems ?? [];
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-3xl px-4 py-8">
@@ -436,11 +435,6 @@ export default function TodayWindowPage() {
           <p className="text-sm text-brand-muted">
             <span className="font-medium text-brand-text">Next:</span> {contextPacket.next_event}
           </p>
-          {bringItems.length > 0 ? (
-            <p className="text-xs text-brand-muted">
-              Bring: {bringItems.join(", ")}
-            </p>
-          ) : null}
         </section>
 
         <section className="space-y-3">
