@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { NextRequest } from "next/server";
+import { CLAUDE_MODEL } from "@/lib/aiConfig";
 
 const FALLBACK = "I am here with you. Please take a breath. If you need help, contact your caregiver.";
 
@@ -58,7 +59,7 @@ Respond directly to ${name} now.`;
       async start(controller) {
         try {
           const anthropicStream = await client.messages.stream({
-            model: "claude-3-5-haiku-latest",
+            model: CLAUDE_MODEL,
             max_tokens: 300,
             system: SYSTEM_PROMPT,
             messages: [{ role: "user", content: userPrompt }],

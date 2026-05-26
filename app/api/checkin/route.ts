@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { NextRequest } from "next/server";
+import { CLAUDE_MODEL } from "@/lib/aiConfig";
 
 const FALLBACK_QUESTIONS = [
   "How are you feeling right now?",
@@ -34,7 +35,7 @@ export async function POST(req: NextRequest) {
       const userPrompt = `Generate 3 check-in questions for ${name} based on this context:\n${contextBlock}`;
       try {
         const message = await client.messages.create({
-          model: "claude-3-5-haiku-latest",
+          model: CLAUDE_MODEL,
           max_tokens: 200,
           system: QUESTIONS_SYSTEM,
           messages: [{ role: "user", content: userPrompt }],
@@ -59,7 +60,7 @@ export async function POST(req: NextRequest) {
       async start(controller) {
         try {
           const anthropicStream = await client.messages.stream({
-            model: "claude-3-5-haiku-latest",
+            model: CLAUDE_MODEL,
             max_tokens: 200,
             system: RESPONSE_SYSTEM,
             messages: [{ role: "user", content: userPrompt }],

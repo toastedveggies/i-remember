@@ -297,4 +297,4 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
 
 ## Last Updated
 
-2026-05-25 (UTC-7) — Stream panel cleanup: "I'm okay" and "Call caregiver" buttons now also close the question-selection modal (setHelpMeNowOpen(false)) on click, matching the existing behaviour of "Show this screen". tsc and lint pass clean.
+2026-05-25 (UTC-7) — Extracted model name into lib/aiConfig.ts (CLAUDE_MODEL = "claude-haiku-4-5-20251001"); both API routes now import and use CLAUDE_MODEL. tsc and lint pass clean.
