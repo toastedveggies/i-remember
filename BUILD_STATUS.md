@@ -297,4 +297,4 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
 
 ## Last Updated
 
-2026-05-25 (UTC-7) — Phase 7 task 2 complete: HelperModal now receives activeLocationSummary and contextPacket as props; hardcoded location and time strings replaced with dynamic values from scenario context. tsc and lint pass clean.
+2026-05-25 (UTC-7) — HelperModal tightened: reduced padding on header, content, tiles, and caregiver block; heading scaled down to text-xl; tile spacing reduced; third info tile (calendar/contact prompt) removed; caregiver block now shows a dynamic description line before the Call button. tsc and lint pass clean.

@@ -726,7 +726,7 @@ export default function TodayWindowPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => { setHelperOpen(true); dismissStreamPanel(); }}
+                  onClick={() => { setHelperOpen(true); setHelpMeNowOpen(false); dismissStreamPanel(); }}
                   className="min-h-12 w-full rounded-2xl border border-brand-border bg-brand-bg px-4 py-3 text-base font-semibold text-brand-text focus:outline-none focus:ring-2 focus:ring-brand-compass/40"
                 >
                   Show this screen
