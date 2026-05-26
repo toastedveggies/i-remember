@@ -297,4 +297,4 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
 
 ## Last Updated
 
-2026-05-25 (UTC-7) — trustedPlaceAddress added to reorientation_started, reorientation_card_viewed, and checkin_submitted event metadata; EventLogList now renders "Location: [place] — [address]" from metadata and drops the raw placeId from the source line. tsc and lint pass clean.
+2026-05-25 (UTC-7) — HelperModal vertical compression for iPhone SE: heading text-xl→text-lg, intro mt-2/text-base→mt-1/text-sm, tile spacing space-y-2→space-y-1.5, tile padding p-3→p-2, caregiver block mt-5→mt-3 and p-3→p-2. No content removed. tsc and lint pass clean.
