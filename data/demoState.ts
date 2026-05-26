@@ -241,7 +241,8 @@ const activityEventTypes = new Set([
   "fallback_shown",
   "helper_card_shown",
   "caregiver_called",
-  "emergency_called"
+  "emergency_called",
+  "okay_confirmed"
 ]);
 
 function normalizeTrustedLocation(location: TrustedLocation): TrustedLocation {

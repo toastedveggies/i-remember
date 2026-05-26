@@ -623,6 +623,8 @@ export default function TodayWindowPage() {
         open={helperOpen}
         onClose={() => setHelperOpen(false)}
         profile={state.profile}
+        activeLocationSummary={activeLocationSummary}
+        contextPacket={contextPacket}
         onCallCaregiver={callCaregiver}
         onCallEmergency={callEmergency}
       />
@@ -704,13 +706,32 @@ export default function TodayWindowPage() {
               {streamingLoading ? <span className="ml-1 inline-block h-3 w-0.5 animate-pulse bg-brand-primary" /> : null}
             </div>
             {!streamingLoading ? (
-              <button
-                type="button"
-                onClick={dismissStreamPanel}
-                className="mt-5 min-h-12 w-full rounded-2xl bg-brand-primary px-4 py-3 text-base font-semibold text-white focus:outline-none focus:ring-2 focus:ring-brand-compass"
-              >
-                Got it
-              </button>
+              <div className="mt-5 space-y-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    persist(appendActivityEvent(state, createLocationEvent("okay_confirmed", { question: streamingQuestion })));
+                    dismissStreamPanel();
+                  }}
+                  className="min-h-12 w-full rounded-2xl bg-green-700 px-4 py-3 text-base font-semibold text-white focus:outline-none focus:ring-2 focus:ring-green-400"
+                >
+                  I&apos;m okay
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { callCaregiver(); dismissStreamPanel(); }}
+                  className="min-h-12 w-full rounded-2xl bg-brand-primary px-4 py-3 text-base font-semibold text-white focus:outline-none focus:ring-2 focus:ring-brand-compass"
+                >
+                  {`Call ${state.profile.caregiverName}`}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setHelperOpen(true); dismissStreamPanel(); }}
+                  className="min-h-12 w-full rounded-2xl border border-brand-border bg-brand-bg px-4 py-3 text-base font-semibold text-brand-text focus:outline-none focus:ring-2 focus:ring-brand-compass/40"
+                >
+                  Show this screen
+                </button>
+              </div>
             ) : null}
           </div>
         </div>

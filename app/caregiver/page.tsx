@@ -130,6 +130,7 @@ export default function CaregiverPage() {
 
   const missedCalls = state.activityEvents.filter((event) => event.eventType === "caregiver_called").length;
   const emergencyCalls = state.activityEvents.filter((event) => event.eventType === "emergency_called").length;
+  const okayConfirmations = state.activityEvents.filter((event) => event.eventType === "okay_confirmed").length;
   const hasDistressEvent = state.activityEvents.some((event) => event.eventType === "reorientation_started");
 
   const activityPanelItems = [
@@ -293,6 +294,10 @@ export default function CaregiverPage() {
             <div className="rounded-2xl border border-brand-border bg-brand-surface p-4 text-center">
               <p className="text-3xl font-bold text-brand-text">{state.activityEvents.length}</p>
               <p className="mt-1 text-xs text-brand-muted">Events today</p>
+            </div>
+            <div className="rounded-2xl border border-brand-border bg-brand-surface p-4 text-center">
+              <p className="text-3xl font-bold text-brand-text">{okayConfirmations}</p>
+              <p className="mt-1 text-xs text-brand-muted">Felt okay</p>
             </div>
           </div>
 

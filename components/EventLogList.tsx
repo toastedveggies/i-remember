@@ -65,8 +65,9 @@ export default function EventLogList({
                   const isHelperCard = !plain && item.eventType === "helper_card_shown";
                   const isCall = !plain && item.eventType === "caregiver_called";
                   const isEmergency = !plain && item.eventType === "emergency_called";
-                  const cardBg = isEmergency ? "bg-red-600" : isHelperCard ? "bg-yellow-50" : isCall ? "bg-blue-50" : "bg-brand-bg";
-                  const borderClass = isDistress ? "border-l-4 border-brand-border border-l-brand-compass" : "border-brand-border";
+                  const isOkay = !plain && item.eventType === "okay_confirmed";
+                  const cardBg = isEmergency ? "bg-red-600" : isHelperCard ? "bg-yellow-50" : isCall ? "bg-blue-50" : isOkay ? "bg-green-50" : "bg-brand-bg";
+                  const borderClass = isDistress ? "border-l-4 border-brand-border border-l-brand-compass" : isOkay ? "border-green-200" : "border-brand-border";
                   const labelClass = isEmergency
                     ? "font-bold text-yellow-300"
                     : isDistress
@@ -75,8 +76,10 @@ export default function EventLogList({
                         ? "font-semibold text-amber-700"
                         : isCall
                           ? "font-semibold text-blue-700"
-                          : "text-brand-text";
-                  const label = isEmergency ? "Called Emergency Services" : eventLabel(item.eventType);
+                          : isOkay
+                            ? "font-semibold text-green-700"
+                            : "text-brand-text";
+                  const label = isEmergency ? "Called Emergency Services" : isOkay ? "Confirmed okay" : eventLabel(item.eventType);
                   return (
                     <li
                       key={item.id}

@@ -4,16 +4,19 @@ import { useEffect } from "react";
 import BrandLogo from "@/components/BrandLogo";
 import MemoryIcon from "@/components/MemoryIcon";
 import { pronounWords, type DemoProfile } from "@/data/demoState";
+import type { ActiveLocationSummary, ContextPacket } from "@/data/demoData";
 
 type HelperModalProps = {
   open: boolean;
   onClose: () => void;
   profile: DemoProfile;
+  activeLocationSummary: ActiveLocationSummary;
+  contextPacket: ContextPacket;
   onCallCaregiver?: () => void;
   onCallEmergency?: () => void;
 };
 
-export default function HelperModal({ open, onClose, profile, onCallCaregiver, onCallEmergency }: HelperModalProps) {
+export default function HelperModal({ open, onClose, profile, activeLocationSummary, contextPacket, onCallCaregiver, onCallEmergency }: HelperModalProps) {
   const words = pronounWords(profile.pronouns, profile.customPronouns);
 
   useEffect(() => {
@@ -66,7 +69,11 @@ export default function HelperModal({ open, onClose, profile, onCallCaregiver, o
                 </div>
                 <div>
                   <div className="text-base font-semibold text-brand-text">Tell {words.object} where {words.subject} is</div>
-                  <div className="mt-1 text-base text-brand-muted">You are at home, and you are safe right now.</div>
+                  <div className="mt-1 text-base text-brand-muted">
+                    {activeLocationSummary.placeId
+                      ? `You are at ${activeLocationSummary.label}, and you are safe right now.`
+                      : activeLocationSummary.detail}
+                  </div>
                 </div>
               </div>
 
@@ -76,7 +83,7 @@ export default function HelperModal({ open, onClose, profile, onCallCaregiver, o
                 </div>
                 <div>
                   <div className="text-base font-semibold text-brand-text">Tell {words.object} what time/day it is</div>
-                  <div className="mt-1 text-base text-brand-muted">Today is Tuesday. It is evening.</div>
+                  <div className="mt-1 text-base text-brand-muted">Today is {contextPacket.time_of_day}.</div>
                 </div>
               </div>
 

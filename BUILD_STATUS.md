@@ -2,9 +2,9 @@
 
 ## Current Phase
 
-**Phase 6 - AI Integration (complete)**
+**Phase 7 - Location Additions and Demo Gap Closure (active)**
 
-**Current iteration - Trusted location handling (in progress)**
+Phase 6 - AI Integration: complete as of 2026-05-19 (UTC-7)
 
 Phase 5 - Multiple Caregiver Support: complete as of 2026-05-18 (UTC-7)
 Phase 4 - Supabase Backend Integration: complete as of 2026-05-18 (UTC-7)
@@ -134,6 +134,12 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
 
 ## Active / Next Task
 
+- Phase 7 - Location Additions and Demo Gap Closure (active as of 2026-05-25, UTC-7):
+  - [x] Add "I'm okay", "Call [caregiver]", and "Show this screen" buttons to the streaming response panel in app/app/page.tsx. Log okay_confirmed event. Surface confirmed-okay status on caregiver dashboard.
+  - [x] Fix HelperModal hardcoded location and time strings. Pass activeLocationSummary and contextPacket into HelperModal as props and use them for the location and time lines.
+  - [ ] Add who_is_expected from contextPacket to the Today card in app/app/page.tsx
+  - [ ] Store AI response text in reorientation_card_viewed event metadata and display it in the caregiver activity panel
+
 - Trusted location handling (in progress as of 2026-05-23, UTC-7):
   - [x] Supabase schema updated to support trusted locations and `profiles.active_caregiver_id`
   - [x] `.env.local` updated with Supabase URL, Supabase anon key, and `ANTHROPIC_API_KEY`
@@ -146,8 +152,8 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
   - [x] `/app` now uses trusted-place-aware scenario context for passive grounding, Help Me Now packets, and unknown-location fallback copy
   - [x] Caregiver and demo summaries now surface trusted-place context, scenario mapping, and unrecognized-location support cues
   - [ ] Start writing `place_id` into activity events when a scenario maps to a trusted place
-  - [ ] Switch Anthropic model calls from Claude Sonnet to Claude Haiku
-  - [ ] Verify end-to-end runtime after dependency/env refresh
+  - [x] Switch Anthropic model calls from Claude Sonnet to Claude Haiku
+  - [x] Verify end-to-end runtime after dependency/env refresh
 - Phase 6 - AI Integration (complete as of 2026-05-19, UTC-7):
   - [x] Installed `@anthropic-ai/sdk`
   - [x] `data/demoData.ts` — `ContextPacket` model and server prompt context generation for scenario-based guidance
@@ -291,4 +297,4 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
 
 ## Last Updated
 
-2026-05-25 (UTC-7) — Removed duplicate "Bring:" line and `bringItems` variable from `app/app/page.tsx`; bring items are already included in `contextPacket.next_event`. `npx tsc --noEmit` and `npm run lint` pass clean.
+2026-05-25 (UTC-7) — Phase 7 task 2 complete: HelperModal now receives activeLocationSummary and contextPacket as props; hardcoded location and time strings replaced with dynamic values from scenario context. tsc and lint pass clean.
