@@ -349,7 +349,7 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
 
 ## Last Updated
 
-2026-05-25 (UTC-7) — trustedPlaceAddress added to reorientation_started, reorientation_card_viewed, and checkin_submitted event metadata; EventLogList now renders "Location: [place] — [address]" from metadata and drops the raw placeId from the source line. tsc and lint pass clean.
+2026-05-25 (UTC-7) — timeGreeting now accepts scenarioHour and uses it instead of the real device hour when set, so the greeting matches the active scenario's time context. tsc and lint pass clean.
 
 
 // ---
@@ -625,6 +625,7 @@ export type DemoScenario = {
   expectedLocationMode: LocationMode;
   scenarioPlaceId?: string | null;
   currentActivity?: string;
+  scenarioHour?: number | null;
   scheduledEvent?: ScheduledEventSummary;
 };
 
@@ -729,7 +730,8 @@ export const demoScenarios: DemoScenario[] = [
       longitude: -118.2943
     },
     expectedLocationMode: "trusted_place",
-    scenarioPlaceId: "place_home"
+    scenarioPlaceId: "place_home",
+    scenarioHour: 9
   },
   {
     id: "pharmacy_confusion",
@@ -746,7 +748,8 @@ export const demoScenarios: DemoScenario[] = [
     },
     expectedLocationMode: "trusted_place",
     scenarioPlaceId: "place_pharmacy",
-    currentActivity: "Picking up a prescription"
+    currentActivity: "Picking up a prescription",
+    scenarioHour: 14
   },
   {
     id: "doctor_appointment_prep",
@@ -763,6 +766,7 @@ export const demoScenarios: DemoScenario[] = [
     },
     expectedLocationMode: "trusted_place",
     scenarioPlaceId: "place_home",
+    scenarioHour: 12,
     scheduledEvent: {
       id: "event_doctor_appointment",
       title: "Doctor appointment",
@@ -785,7 +789,26 @@ export const demoScenarios: DemoScenario[] = [
       longitude: -118.31215
     },
     expectedLocationMode: "other",
-    scenarioPlaceId: null
+    scenarioPlaceId: null,
+    scenarioHour: null
+  },
+  {
+    id: "evening_routine",
+    label: "Evening routine",
+    guidance: "Alex is at Home in the evening and needs calm grounding to settle into his night routine.",
+    where: "You are at Home.",
+    happening: "It is evening at home. This is a calm and familiar time for your usual evening routine.",
+    nextStep: "Take a slow breath, have dinner or a snack if you are hungry, and settle into your evening routine. Call Maria if you need support.",
+    uncertainty: "low",
+    responsePosture: "calm_grounding",
+    seededCoordinates: {
+      latitude: 34.13672,
+      longitude: -118.29434
+    },
+    expectedLocationMode: "trusted_place",
+    scenarioPlaceId: "place_home",
+    currentActivity: "Evening home routine",
+    scenarioHour: 19
   }
 ];
 
@@ -1079,19 +1102,16 @@ function buildBringItemsText(items?: string[]): string {
 }
 
 function scenarioTimeOfDay(scenario: DemoScenario): string {
-  if (scenario.id === "home_reorientation") {
-    return "Tuesday morning";
-  }
-
-  if (scenario.id === "pharmacy_confusion") {
-    return "Tuesday afternoon";
-  }
-
-  if (scenario.id === "doctor_appointment_prep") {
-    return "Tuesday early afternoon";
-  }
-
-  return "Tuesday evening";
+  const now = new Date();
+  const hour = scenario.scenarioHour != null ? scenario.scenarioHour : now.getHours();
+  const minutes = now.getMinutes();
+  const period = hour >= 12 ? "PM" : "AM";
+  const displayHour = hour % 12 === 0 ? 12 : hour % 12;
+  const displayMinutes = minutes.toString().padStart(2, "0");
+  const dayName = now.toLocaleDateString("en-US", { weekday: "long" });
+  const monthName = now.toLocaleDateString("en-US", { month: "long" });
+  const date = now.getDate();
+  return `${dayName}, ${monthName} ${date} at ${displayHour}:${displayMinutes} ${period}`;
 }
 
 function scenarioNextEvent(scenario: DemoScenario, trustedLocations: TrustedLocation[]): string {
@@ -1557,6 +1577,460 @@ export const CLAUDE_MODEL = "claude-haiku-4-5-20251001";
 
 // ---
 
+// FILE: lib/seedData.ts
+
+import { defaultTrustedLocations, demoScenarios } from "@/data/demoState";
+import { supabase } from "./supabaseClient";
+
+const DEMO_USER_ID = "00000000-0000-0000-0000-000000000001";
+
+// ── Types ────────────────────────────────────────────────────────────────────
+
+type ActivityRow = {
+  id: string;
+  user_id: string;
+  event_type: string;
+  source: string;
+  confidence_level?: string | null;
+  scenario_id?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  place_id?: string | null;
+  metadata?: Record<string, unknown> | null;
+  created_at: string;
+};
+
+type BiometricRow = {
+  id: string;
+  user_id: string;
+  event_type: string;
+  value: number;
+  unit: string;
+  threshold_exceeded: boolean;
+  source: string;
+  recorded_at: string;
+  created_at: string;
+};
+
+type Phase = 1 | 2 | 3 | 4;
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+function generateId(): string {
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    return (c === "x" ? r : (r & 0x3) | 0x8).toString(16);
+  });
+}
+
+function randInt(min: number, max: number): number {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function pick<T>(arr: T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+function isoTs(year: number, month: number, day: number, hour: number, minute: number): string {
+  const d = new Date();
+  d.setUTCFullYear(year, month - 1, day);
+  d.setUTCHours(hour, minute, 0, 0);
+  return d.toISOString();
+}
+
+// ── Static config ─────────────────────────────────────────────────────────────
+
+function daysInMonth(year: number, month: number): number {
+  // month is 1-indexed; day 0 of the next UTC month = last day of this month
+  return new Date(Date.UTC(year, month, 0)).getUTCDate();
+}
+
+// Emergency event days keyed by rolling window index (0=oldest month, 11=current month)
+// Indices 6-11 correspond to phases 3 and 4 per the narrative
+const EMERGENCY_DAYS_BY_INDEX: Record<number, number[]> = {
+  6:  [8, 22],
+  7:  [5, 14, 25],
+  8:  [10, 21],
+  9:  [3, 15, 27],
+  10: [7, 12, 19, 28],
+  11: [4, 16, 23],
+};
+
+const CHECK_IN_QUESTIONS = [
+  "Would you like to sit down and take a slow breath?",
+  "Do you want a quick reminder of your plan for tonight?",
+  "Would calling your caregiver help right now?",
+];
+
+function getPhaseByIndex(idx: number): Phase {
+  if (idx <= 2) return 1;
+  if (idx <= 5) return 2;
+  if (idx <= 8) return 3;
+  return 4;
+}
+
+// Time-of-day weights per phase
+function randomHour(phase: Phase): number {
+  const r = Math.random();
+  if (phase === 1) {
+    return r < 0.82 ? randInt(6, 11) : randInt(12, 17);
+  }
+  if (phase === 2) {
+    if (r < 0.50) return randInt(6, 11);
+    if (r < 0.88) return randInt(12, 17);
+    return randInt(18, 21);
+  }
+  if (phase === 3) {
+    if (r < 0.38) return randInt(6, 11);
+    if (r < 0.72) return randInt(12, 17);
+    return randInt(18, 21);
+  }
+  // Phase 4: spread across all hours
+  if (r < 0.28) return randInt(6, 11);
+  if (r < 0.52) return randInt(12, 17);
+  if (r < 0.78) return randInt(18, 21);
+  return r < 0.90 ? randInt(22, 23) : randInt(0, 5);
+}
+
+function randomConfidence(phase: Phase): string {
+  const r = Math.random();
+  if (phase === 1) return r < 0.72 ? "high" : r < 0.95 ? "medium" : "low";
+  if (phase === 2) return r < 0.35 ? "high" : r < 0.85 ? "medium" : "low";
+  if (phase === 3) return r < 0.15 ? "high" : r < 0.58 ? "medium" : "low";
+  return r < 0.08 ? "high" : r < 0.38 ? "medium" : "low";
+}
+
+function scenarioForHour(hour: number): string {
+  if (hour >= 6 && hour < 11) return "home_reorientation";
+  if (hour >= 11 && hour < 14) return "doctor_appointment_prep";
+  if (hour >= 14 && hour < 18) return "pharmacy_confusion";
+  return "lost_unknown_location";
+}
+
+function scenarioDetails(scenarioId: string): { placeId: string | null; latitude: number | null; longitude: number | null } {
+  const scenario = demoScenarios.find((entry) => entry.id === scenarioId);
+  return {
+    placeId: scenario?.scenarioPlaceId ?? null,
+    latitude: scenario?.seededCoordinates.latitude ?? null,
+    longitude: scenario?.seededCoordinates.longitude ?? null,
+  };
+}
+
+// ── Per-day event generation ─────────────────────────────────────────────────
+
+function generateDay(
+  year: number,
+  month: number,
+  day: number,
+  phase: Phase,
+  isEmergencyDay: boolean
+): { activity: ActivityRow[]; biometric: BiometricRow[] } {
+  const activity: ActivityRow[] = [];
+  const biometric: BiometricRow[] = [];
+
+  // Reorientation event count
+  let reorientCount: number;
+  switch (phase) {
+    case 1:  reorientCount = randInt(1, 2); break;
+    case 2:  reorientCount = randInt(2, 3); break;
+    case 3:  reorientCount = randInt(3, 5); break;
+    default: reorientCount = randInt(4, 6); break;
+  }
+  // Emergency days always qualify as hard days
+  if (isEmergencyDay && reorientCount < 4) reorientCount = 4;
+  const isHardDay = reorientCount >= 4;
+
+  // 1. Reorientation events
+  for (let i = 0; i < reorientCount; i++) {
+    const h = randomHour(phase);
+    const confidence = randomConfidence(phase);
+    const scenarioId = scenarioForHour(h);
+    const location = scenarioDetails(scenarioId);
+    activity.push({
+      id: generateId(),
+      user_id: DEMO_USER_ID,
+      event_type: "reorientation_started",
+      source: "app",
+      confidence_level: confidence,
+      scenario_id: scenarioId,
+      latitude: location.latitude,
+      longitude: location.longitude,
+      place_id: location.placeId,
+      metadata: { uncertainty: confidence },
+      created_at: isoTs(year, month, day, h, randInt(0, 59)),
+    });
+  }
+
+  // 2. Check-in (~60% of days)
+  if (Math.random() < 0.60) {
+    const hour = randomHour(phase);
+    const scenarioId = scenarioForHour(hour);
+    const location = scenarioDetails(scenarioId);
+    activity.push({
+      id: generateId(),
+      user_id: DEMO_USER_ID,
+      event_type: "checkin_submitted",
+      source: "app",
+      scenario_id: scenarioId,
+      latitude: location.latitude,
+      longitude: location.longitude,
+      place_id: location.placeId,
+      metadata: { question: pick(CHECK_IN_QUESTIONS) },
+      created_at: isoTs(year, month, day, hour, randInt(0, 59)),
+    });
+  }
+
+  // 3. Helper card events
+  let helperCount: number;
+  const hr = Math.random();
+  switch (phase) {
+    case 1:  helperCount = hr < 0.20 ? 1 : 0; break;
+    case 2:  helperCount = hr < 0.50 ? 1 : 0; break;
+    case 3:  helperCount = isHardDay ? randInt(1, 2) : (hr < 0.80 ? 1 : 0); break;
+    default: helperCount = isHardDay ? randInt(2, 4) : randInt(1, 2); break;
+  }
+  for (let i = 0; i < helperCount; i++) {
+    const hour = randomHour(phase);
+    const scenarioId = scenarioForHour(hour);
+    const location = scenarioDetails(scenarioId);
+    activity.push({
+      id: generateId(),
+      user_id: DEMO_USER_ID,
+      event_type: "helper_card_shown",
+      source: "app",
+      scenario_id: scenarioId,
+      latitude: location.latitude,
+      longitude: location.longitude,
+      place_id: location.placeId,
+      created_at: isoTs(year, month, day, hour, randInt(0, 59)),
+    });
+  }
+
+  // 4. Caregiver calls (clustered on hard/emergency days)
+  let caregiverCount: number;
+  if (isEmergencyDay) {
+    caregiverCount = phase <= 3 ? randInt(3, 4) : randInt(4, 5);
+  } else {
+    const cr = Math.random();
+    switch (phase) {
+      case 1:  caregiverCount = cr < 0.15 ? 1 : 0; break;
+      case 2:  caregiverCount = cr < 0.60 ? 0 : cr < 0.90 ? 1 : 2; break;
+      case 3:  caregiverCount = isHardDay ? randInt(2, 3) : (cr < 0.40 ? 1 : 0); break;
+      default: caregiverCount = isHardDay ? randInt(4, 5) : randInt(1, 2); break;
+    }
+  }
+
+  if (caregiverCount > 0) {
+    const shouldCluster = (phase >= 3 && isHardDay) || isEmergencyDay;
+    if (shouldCluster) {
+      // All calls within a 90-minute panic window
+      const panicHour = randomHour(phase);
+      for (let i = 0; i < caregiverCount; i++) {
+        const offsetMin = randInt(0, 89);
+        const totalMin = panicHour * 60 + offsetMin;
+        const scenarioId = scenarioForHour(panicHour);
+        const location = scenarioDetails(scenarioId);
+        activity.push({
+          id: generateId(),
+          user_id: DEMO_USER_ID,
+          event_type: "caregiver_called",
+          source: "app",
+          scenario_id: scenarioId,
+          latitude: location.latitude,
+          longitude: location.longitude,
+          place_id: location.placeId,
+          created_at: isoTs(year, month, day, Math.min(Math.floor(totalMin / 60), 23), totalMin % 60),
+        });
+      }
+    } else {
+      for (let i = 0; i < caregiverCount; i++) {
+        const hour = randomHour(phase);
+        const scenarioId = scenarioForHour(hour);
+        const location = scenarioDetails(scenarioId);
+        activity.push({
+          id: generateId(),
+          user_id: DEMO_USER_ID,
+          event_type: "caregiver_called",
+          source: "app",
+          scenario_id: scenarioId,
+          latitude: location.latitude,
+          longitude: location.longitude,
+          place_id: location.placeId,
+          created_at: isoTs(year, month, day, hour, randInt(0, 59)),
+        });
+      }
+    }
+  }
+
+  // 5. Emergency event
+  if (isEmergencyDay) {
+    const hour = randInt(18, 21);
+    const scenarioId = scenarioForHour(hour);
+    const location = scenarioDetails(scenarioId);
+    activity.push({
+      id: generateId(),
+      user_id: DEMO_USER_ID,
+      event_type: "emergency_called",
+      source: "app",
+      scenario_id: scenarioId,
+      latitude: location.latitude,
+      longitude: location.longitude,
+      place_id: location.placeId,
+      created_at: isoTs(year, month, day, hour, randInt(0, 59)),
+    });
+  }
+
+  // 6. Biometric events — elevated heart rate on hard days (4+ reorientation events)
+  if (isHardDay) {
+    const sampleCount = randInt(2, 3);
+    const baseHour = randomHour(phase);
+    for (let i = 0; i < sampleCount; i++) {
+      const h = Math.min(baseHour + i, 23);
+      const bpm = isEmergencyDay ? randInt(128, 152) : randInt(103, 128);
+      const ts = isoTs(year, month, day, h, randInt(0, 59));
+      biometric.push({
+        id: generateId(),
+        user_id: DEMO_USER_ID,
+        event_type: "heart_rate",
+        value: bpm,
+        unit: "bpm",
+        threshold_exceeded: true,
+        source: "synthetic",
+        recorded_at: ts,
+        created_at: ts,
+      });
+    }
+  }
+
+  return { activity, biometric };
+}
+
+// ── Batch insert ──────────────────────────────────────────────────────────────
+
+async function insertActivityBatch(rows: ActivityRow[]): Promise<void> {
+  for (let i = 0; i < rows.length; i += 50) {
+
+    const { error } = await (supabase.from("activity_events") as any).insert(rows.slice(i, i + 50));
+    if (error) throw new Error(`activity_events: ${(error as { message: string }).message}`);
+  }
+}
+
+async function seedCoreDemoRows(): Promise<void> {
+  await (supabase.from("profiles") as any).upsert({
+    id: DEMO_USER_ID,
+    preferred_name: "Alex",
+    pronouns: "he/him",
+    active_caregiver_id: "00000000-0000-0000-0000-000000000002",
+  });
+
+  await (supabase.from("caregivers") as any).upsert({
+    id: "00000000-0000-0000-0000-000000000002",
+    name: "Maria",
+    relationship_label: "daughter",
+  });
+
+  await (supabase.from("caregiver_user_relationships") as any).upsert({
+    user_id: DEMO_USER_ID,
+    caregiver_id: "00000000-0000-0000-0000-000000000002",
+    role: "primary",
+    is_primary_contact: true,
+    permissions: {},
+  });
+
+  for (const location of defaultTrustedLocations) {
+    await (supabase.from("places") as any).upsert({
+      id: location.id,
+      user_id: DEMO_USER_ID,
+      name: location.name,
+      address: location.address ?? null,
+      latitude: location.latitude ?? null,
+      longitude: location.longitude ?? null,
+      place_type: location.placeType ?? "trusted",
+      instructions: location.instructions ?? null,
+      is_home: location.id === "place_home",
+      is_trusted: true,
+      trusted_slot: location.trustedSlot,
+    });
+  }
+
+  await (supabase.from("scheduled_events") as any).upsert({
+    id: "event_doctor_appointment",
+    user_id: DEMO_USER_ID,
+    title: "Doctor appointment",
+    description: "Routine follow-up visit",
+    location: "Doctor's Office",
+    place_id: "place_doctor_office",
+    start_time: new Date().toISOString(),
+    notes: "Bring ID, insurance card, phone, keys, and medication list.",
+  });
+}
+
+async function insertBiometricBatch(rows: BiometricRow[]): Promise<void> {
+  for (let i = 0; i < rows.length; i += 50) {
+
+    const { error } = await (supabase.from("biometric_events") as any).insert(rows.slice(i, i + 50));
+    if (error) throw new Error(`biometric_events: ${(error as { message: string }).message}`);
+  }
+}
+
+// ── Public API ────────────────────────────────────────────────────────────────
+
+export async function seedDemoData(): Promise<{ success: boolean; message: string }> {
+  try {
+    await seedCoreDemoRows();
+
+    const allActivity: ActivityRow[] = [];
+    const allBiometric: BiometricRow[] = [];
+
+    // Build rolling 12-month window ending at start of today
+    const now = new Date();
+    const rollingMonths: Array<{ year: number; month: number }> = [];
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1));
+      rollingMonths.push({ year: d.getUTCFullYear(), month: d.getUTCMonth() + 1 });
+    }
+
+    for (let idx = 0; idx < 12; idx++) {
+      const { year, month } = rollingMonths[idx];
+      const phase = getPhaseByIndex(idx);
+      const emergencyDays = EMERGENCY_DAYS_BY_INDEX[idx] ?? [];
+      const days = daysInMonth(year, month);
+
+      for (let day = 1; day <= days; day++) {
+        const { activity, biometric } = generateDay(year, month, day, phase, emergencyDays.includes(day));
+        allActivity.push(...activity);
+        allBiometric.push(...biometric);
+      }
+    }
+
+    await insertActivityBatch(allActivity);
+    await insertBiometricBatch(allBiometric);
+
+    return {
+      success: true,
+      message: `Seeded ${allActivity.length} activity events and ${allBiometric.length} biometric events.`,
+    };
+  } catch (err) {
+    return { success: false, message: `Seed failed: ${String(err)}` };
+  }
+}
+
+export async function clearSeedData(): Promise<{ success: boolean; message: string }> {
+  try {
+    for (const table of ["activity_events", "system_events", "biometric_events"] as const) {
+  
+      const { error } = await (supabase.from(table) as any).delete().eq("user_id", DEMO_USER_ID);
+      if (error) throw new Error(`${table}: ${(error as { message: string }).message}`);
+    }
+    return { success: true, message: "All seeded data cleared." };
+  } catch (err) {
+    return { success: false, message: `Clear failed: ${String(err)}` };
+  }
+}
+
+
+// ---
+
 // FILE: app/app/page.tsx
 
 "use client";
@@ -1644,8 +2118,8 @@ function recommendedNextAction(question: string, caregiverName: string): string 
   return "Pause, read the next step slowly, and ask for support if you want it.";
 }
 
-function timeGreeting(name: string): string {
-  const hour = new Date().getHours();
+function timeGreeting(name: string, scenarioHour: number | null = null): string {
+  const hour = scenarioHour !== null ? scenarioHour : new Date().getHours();
   const preferredName = name || "Alex";
   if (hour >= 5 && hour < 12) return `Good morning, ${preferredName}.`;
   if (hour >= 12 && hour < 17) return `Good afternoon, ${preferredName}.`;
@@ -1974,7 +2448,7 @@ export default function TodayWindowPage() {
       <div className="space-y-6">
         <header className="space-y-1 text-center">
           <h1 className="text-4xl font-semibold text-brand-text">Today</h1>
-          <p className="text-lg text-brand-muted">{timeGreeting(state.profile.preferredName)}</p>
+          <p className="text-lg text-brand-muted">{timeGreeting(state.profile.preferredName, activeScenario.scenarioHour ?? null)}</p>
         </header>
 
         <section className="rounded-3xl border border-brand-border bg-brand-surface p-5 shadow-sm space-y-3">
@@ -2764,6 +3238,981 @@ export default function CaregiverPage() {
 
 // ---
 
+// FILE: app/demo/page.tsx
+
+﻿"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import ResponseCard from "@/components/ResponseCard";
+import ScenarioSelector from "@/components/ScenarioSelector";
+import { buildActiveLocationSummary, describeScenarioLocation } from "@/data/demoData";
+import {
+  appendSystemEvent,
+  defaultTrustedLocations,
+  createEvent,
+  demoScenarios,
+  findScenario,
+  generateId,
+  initialDemoState,
+  normalizeDemoState,
+  setActiveCaregiverId,
+  setIndependentMode,
+  storageKey,
+  type BrowserLocation,
+  type DemoState,
+  type LocationSource,
+  type PronounSet,
+  type TrustedLocation
+} from "@/data/demoState";
+import { clearTrustedLocation, loadTrustedLocations, MAX_DEMO_BROWSER_ACCURACY_METERS, saveTrustedLocation } from "@/lib/places";
+import { loadProfile, saveCaregiverName, saveProfile } from "@/lib/profile";
+import { clearSeedData, seedDemoData } from "@/lib/seedData";
+import { supabase } from "@/lib/supabaseClient";
+
+const DEMO_USER_ID = "00000000-0000-0000-0000-000000000001";
+
+type RosterEntry = {
+  id: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  relationship_label: string | null;
+  role: "primary" | "family" | "read_only";
+  is_primary_contact: boolean;
+};
+
+type FormValues = {
+  name: string;
+  email: string;
+  phone: string;
+  relationship_label: string;
+  role: "primary" | "family" | "read_only";
+  is_primary_contact: boolean;
+};
+
+function loadState(): DemoState {
+  if (typeof window === "undefined") {
+    return initialDemoState;
+  }
+
+  const raw = window.localStorage.getItem(storageKey);
+  if (!raw) {
+    return initialDemoState;
+  }
+
+  try {
+    return normalizeDemoState(JSON.parse(raw));
+  } catch {
+    return initialDemoState;
+  }
+}
+
+export default function DemoPage() {
+  const [state, setState] = useState<DemoState>(initialDemoState);
+  const [resetMessage, setResetMessage] = useState("");
+  const [activityCount, setActivityCount] = useState<number | null>(null);
+  const [isSeeding, setIsSeeding] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
+  const [seedStatus, setSeedStatus] = useState<{ type: "success" | "error"; message: string } | null>(null);
+
+  const [roster, setRoster] = useState<RosterEntry[]>([]);
+  const [rosterLoading, setRosterLoading] = useState(false);
+  const [showRosterForm, setShowRosterForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [formValues, setFormValues] = useState<FormValues>({
+    name: "", email: "", phone: "", relationship_label: "", role: "family", is_primary_contact: false,
+  });
+  const [isSavingCaregiver, setIsSavingCaregiver] = useState(false);
+  const [rosterMessage, setRosterMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [locationMessage, setLocationMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [browserLocationMessage, setBrowserLocationMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [isCapturingBrowserLocation, setIsCapturingBrowserLocation] = useState(false);
+
+  useEffect(() => {
+    const hasLocalData = window.localStorage.getItem(storageKey) !== null;
+    setState(loadState());
+    if (!hasLocalData) {
+      Promise.all([loadProfile(), loadTrustedLocations()]).then(([supabaseProfile, supabaseLocations]) => {
+        setState((prev) => ({
+          ...prev,
+          profile: supabaseProfile ?? prev.profile,
+          trustedLocations: supabaseLocations.length > 0 ? supabaseLocations : prev.trustedLocations
+        }));
+      });
+    }
+    supabase
+      .from("activity_events")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", "00000000-0000-0000-0000-000000000001")
+      .then(({ count }) => setActivityCount(count ?? 0));
+
+    fetchRoster();
+  }, []);
+
+  const activeScenario = useMemo(() => findScenario(state.activeScenarioId), [state.activeScenarioId]);
+  const scenarioLocationPreview = useMemo(
+    () => describeScenarioLocation(activeScenario, state.trustedLocations),
+    [activeScenario, state.trustedLocations]
+  );
+  const activeLocationSummary = useMemo(
+    () => buildActiveLocationSummary({
+      scenarioId: state.activeScenarioId,
+      profile: state.profile,
+      trustedLocations: state.trustedLocations,
+      activeLocationSource: state.activeLocationSource,
+      browserLocation: state.browserLocation,
+    }),
+    [state.activeLocationSource, state.activeScenarioId, state.browserLocation, state.profile, state.trustedLocations]
+  );
+
+  const persist = (next: DemoState) => {
+    setState(next);
+    window.localStorage.setItem(storageKey, JSON.stringify(next));
+  };
+
+  const setLocationSource = (source: LocationSource) => {
+    persist({ ...state, activeLocationSource: source });
+  };
+
+  const selectScenario = (scenarioId: string) => {
+    const next = appendSystemEvent(
+      { ...state, activeScenarioId: scenarioId },
+      createEvent("demo_scenario_selected", "demo", scenarioId, undefined, state.profile.userId)
+    );
+    persist(next);
+  };
+
+  const updateProfile = (field: "preferredName" | "caregiverName" | "caregiverRelationshipLabel" | "customPronouns", value: string) => {
+    const newProfile = { ...state.profile, [field]: value };
+    persist({ ...state, profile: newProfile });
+    if (field === "caregiverName" || field === "caregiverRelationshipLabel") {
+      saveCaregiverName(newProfile.caregiverName, newProfile.caregiverRelationshipLabel);
+    } else {
+      saveProfile(newProfile);
+    }
+  };
+
+  const updatePronouns = (pronouns: PronounSet) => {
+    const newProfile = { ...state.profile, pronouns };
+    persist({ ...state, profile: newProfile });
+    saveProfile(newProfile);
+  };
+
+  const trustedLocationForSlot = (slot: 1 | 2 | 3): TrustedLocation => {
+    return state.trustedLocations.find((location) => location.trustedSlot === slot) ?? {
+      ...defaultTrustedLocations.find((location) => location.trustedSlot === slot),
+      trustedSlot: slot,
+      name: "",
+      address: "",
+      instructions: ""
+    };
+  };
+
+  const updateTrustedLocationDraft = (
+    slot: 1 | 2 | 3,
+    field: "name" | "address" | "instructions",
+    value: string
+  ) => {
+    const current = trustedLocationForSlot(slot);
+    const updatedLocation: TrustedLocation = { ...current, [field]: value };
+    const nextLocations = [...state.trustedLocations.filter((location) => location.trustedSlot !== slot), updatedLocation]
+      .sort((a, b) => a.trustedSlot - b.trustedSlot);
+    persist({ ...state, trustedLocations: nextLocations });
+    setLocationMessage(null);
+  };
+
+  const handleUseBrowserLocation = async () => {
+    if (typeof window === "undefined" || !("geolocation" in navigator)) {
+      setBrowserLocationMessage({
+        type: "error",
+        text: "This browser could not provide a current location, so the demo is staying on seeded scenario coordinates.",
+      });
+      setLocationSource("scenario_seed");
+      return;
+    }
+
+    setIsCapturingBrowserLocation(true);
+    setBrowserLocationMessage(null);
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const nextBrowserLocation: BrowserLocation = {
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          accuracyMeters: position.coords.accuracy,
+          timestamp: new Date(position.timestamp).toISOString(),
+        };
+
+        if (position.coords.accuracy > MAX_DEMO_BROWSER_ACCURACY_METERS) {
+          persist({
+            ...state,
+            browserLocation: nextBrowserLocation,
+            activeLocationSource: "scenario_seed",
+          });
+          setBrowserLocationMessage({
+            type: "error",
+            text: `Live location accuracy was too broad (${Math.round(position.coords.accuracy)} meters), so the demo is continuing with seeded scenario coordinates.`,
+          });
+          setIsCapturingBrowserLocation(false);
+          return;
+        }
+
+        persist({
+          ...state,
+          browserLocation: nextBrowserLocation,
+          activeLocationSource: "browser_geolocation",
+        });
+        setBrowserLocationMessage({
+          type: "success",
+          text: `Using this device's current location for demo matching (accuracy ${Math.round(position.coords.accuracy)} meters).`,
+        });
+        setIsCapturingBrowserLocation(false);
+      },
+      (error) => {
+        const message = error.code === error.PERMISSION_DENIED
+          ? "Location permission was denied, so the demo is continuing with seeded scenario coordinates."
+          : "Current location was unavailable, so the demo is continuing with seeded scenario coordinates.";
+        setBrowserLocationMessage({ type: "error", text: message });
+        setLocationSource("scenario_seed");
+        setIsCapturingBrowserLocation(false);
+      },
+      { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
+    );
+  };
+
+  const handleSaveTrustedLocation = async (slot: 1 | 2 | 3) => {
+    const location = trustedLocationForSlot(slot);
+    if (!location.name.trim()) {
+      setLocationMessage({ type: "error", text: `Trusted location ${slot} needs a name before it can be saved.` });
+      return;
+    }
+
+    try {
+      const saved = await saveTrustedLocation({
+        ...location,
+        name: location.name.trim(),
+        address: location.address?.trim(),
+        instructions: location.instructions?.trim()
+      }, state.profile.userId);
+
+      const nextLocations = [...state.trustedLocations.filter((entry) => entry.trustedSlot !== slot), saved]
+        .sort((a, b) => a.trustedSlot - b.trustedSlot);
+      persist({ ...state, trustedLocations: nextLocations });
+      setLocationMessage({ type: "success", text: `Trusted location ${slot} saved.` });
+    } catch {
+      setLocationMessage({ type: "error", text: `Trusted location ${slot} could not be saved to Supabase.` });
+    }
+  };
+
+  const handleClearTrustedLocation = async (slot: 1 | 2 | 3) => {
+    try {
+      await clearTrustedLocation(slot, state.profile.userId);
+    } catch {
+      // non-fatal
+    }
+
+    const nextLocations = state.trustedLocations.filter((location) => location.trustedSlot !== slot);
+    persist({ ...state, trustedLocations: nextLocations });
+    setLocationMessage({ type: "success", text: `Trusted location ${slot} cleared.` });
+  };
+
+  const toggleIndependentMode = () => {
+    const updated = setIndependentMode(!state.profile.independentMode);
+    setState(updated);
+  };
+
+  const fetchRoster = async () => {
+    setRosterLoading(true);
+    try {
+      const { data: rels } = await (supabase as any)
+        .from("caregiver_user_relationships")
+        .select("caregiver_id, role, is_primary_contact")
+        .eq("user_id", DEMO_USER_ID);
+
+      if (!rels || rels.length === 0) {
+        setRoster([]);
+        setRosterLoading(false);
+        return;
+      }
+
+      const ids = (rels as Record<string, unknown>[]).map((r) => r.caregiver_id);
+      const { data: caregivers } = await (supabase as any)
+        .from("caregivers")
+        .select("id, name, email, phone, relationship_label")
+        .in("id", ids)
+        .is("deleted_at", null);
+
+      if (!caregivers) {
+        setRoster([]);
+        setRosterLoading(false);
+        return;
+      }
+
+      const merged: RosterEntry[] = (caregivers as Record<string, unknown>[]).map((c) => {
+        const rel = (rels as Record<string, unknown>[]).find((r) => r.caregiver_id === c.id) ?? {};
+        return {
+          id: c.id as string,
+          name: c.name as string,
+          email: (c.email as string | null) ?? null,
+          phone: (c.phone as string | null) ?? null,
+          relationship_label: (c.relationship_label as string | null) ?? null,
+          role: ((rel as Record<string, unknown>).role as "primary" | "family" | "read_only") ?? "family",
+          is_primary_contact: ((rel as Record<string, unknown>).is_primary_contact as boolean) ?? false,
+        };
+      });
+      setRoster(merged);
+    } catch {
+      setRoster([]);
+    }
+    setRosterLoading(false);
+  };
+
+  const openAddForm = () => {
+    setEditingId(null);
+    setFormValues({ name: "", email: "", phone: "", relationship_label: "", role: "family", is_primary_contact: false });
+    setRosterMessage(null);
+    setShowRosterForm(true);
+  };
+
+  const openEditForm = (entry: RosterEntry) => {
+    setEditingId(entry.id);
+    setFormValues({
+      name: entry.name,
+      email: entry.email ?? "",
+      phone: entry.phone ?? "",
+      relationship_label: entry.relationship_label ?? "",
+      role: entry.role,
+      is_primary_contact: entry.is_primary_contact,
+    });
+    setRosterMessage(null);
+    setShowRosterForm(true);
+  };
+
+  const handleSaveCaregiver = async () => {
+    if (!formValues.name.trim()) {
+      setRosterMessage({ type: "error", text: "Name is required." });
+      return;
+    }
+    setIsSavingCaregiver(true);
+    setRosterMessage(null);
+    try {
+      if (editingId) {
+        await (supabase as any).from("caregivers").update({
+          name: formValues.name.trim(),
+          email: formValues.email.trim() || null,
+          phone: formValues.phone.trim() || null,
+          relationship_label: formValues.relationship_label.trim() || null,
+        }).eq("id", editingId);
+        await (supabase as any).from("caregiver_user_relationships").update({
+          role: formValues.role,
+          is_primary_contact: formValues.is_primary_contact,
+        }).eq("caregiver_id", editingId).eq("user_id", DEMO_USER_ID);
+      } else {
+        const newId = generateId();
+        await (supabase as any).from("caregivers").insert({
+          id: newId,
+          name: formValues.name.trim(),
+          email: formValues.email.trim() || null,
+          phone: formValues.phone.trim() || null,
+          relationship_label: formValues.relationship_label.trim() || null,
+        });
+        await (supabase as any).from("caregiver_user_relationships").insert({
+          user_id: DEMO_USER_ID,
+          caregiver_id: newId,
+          role: formValues.role,
+          is_primary_contact: formValues.is_primary_contact,
+          permissions: {},
+        });
+      }
+      await fetchRoster();
+      setShowRosterForm(false);
+      setRosterMessage({ type: "success", text: editingId ? "Caregiver updated." : "Caregiver added." });
+    } catch {
+      setRosterMessage({ type: "error", text: "Save failed. Check Supabase connection." });
+    }
+    setIsSavingCaregiver(false);
+  };
+
+  const handleRemoveCaregiver = async (id: string) => {
+    try {
+      await (supabase as any).from("caregivers").update({ deleted_at: new Date().toISOString() }).eq("id", id);
+    } catch {
+      // fire-and-forget
+    }
+    if (state.profile.activeCaregiverId === id) {
+      const updated = setActiveCaregiverId("00000000-0000-0000-0000-000000000002");
+      setState(updated);
+    }
+    await fetchRoster();
+  };
+
+  const handleViewAs = (id: string) => {
+    const updated = setActiveCaregiverId(id);
+    setState(updated);
+  };
+
+  const fetchActivityCount = () => {
+    supabase
+      .from("activity_events")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", "00000000-0000-0000-0000-000000000001")
+      .then(({ count }) => setActivityCount(count ?? 0));
+  };
+
+  const handleSeed = async () => {
+    setIsSeeding(true);
+    setSeedStatus(null);
+    const result = await seedDemoData();
+    setIsSeeding(false);
+    setSeedStatus({ type: result.success ? "success" : "error", message: result.message });
+    if (result.success) fetchActivityCount();
+  };
+
+  const handleClear = async () => {
+    setIsClearing(true);
+    setSeedStatus(null);
+    const result = await clearSeedData();
+    setIsClearing(false);
+    setSeedStatus({ type: result.success ? "success" : "error", message: result.message });
+    if (result.success) setActivityCount(0);
+  };
+
+  const resetDemoState = () => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    window.localStorage.removeItem(storageKey);
+    window.sessionStorage.removeItem("memory-assistant-demo-unlocked");
+    setResetMessage("Demo state reset. Refresh to return to locked entry screen.");
+    setState(initialDemoState);
+  };
+
+  return (
+    <main className="mx-auto min-h-screen w-full max-w-3xl px-4 py-8">
+      <div className="space-y-6">
+        <header className="space-y-1">
+          <h1 className="text-3xl font-semibold text-brand-text">Scenario Demo Simulator</h1>
+          <p className="text-base text-brand-muted">Practice supportive responses with sample situations.</p>
+        </header>
+
+        <ResponseCard
+          title="Demo intent"
+          message="This simulator shows MVP support behavior only. It does not provide diagnosis or emergency medical instruction."
+        />
+
+        <section className="rounded-3xl border border-brand-border bg-brand-surface p-5 shadow-sm">
+          <h2 className="text-xl font-semibold text-brand-text">Profile personalization (MVP onboarding)</h2>
+          <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+            <label className="space-y-1 text-sm text-brand-muted">
+              <span>Preferred name</span>
+              <input
+                value={state.profile.preferredName}
+                onChange={(e) => updateProfile("preferredName", e.target.value)}
+                className="w-full rounded-xl border border-brand-border bg-brand-bg px-3 py-2 text-base text-brand-text"
+              />
+            </label>
+            <label className="space-y-1 text-sm text-brand-muted">
+              <span>Caregiver name</span>
+              <input
+                value={state.profile.caregiverName}
+                onChange={(e) => updateProfile("caregiverName", e.target.value)}
+                className="w-full rounded-xl border border-brand-border bg-brand-bg px-3 py-2 text-base text-brand-text"
+              />
+            </label>
+            <label className="space-y-1 text-sm text-brand-muted">
+              <span>Caregiver label</span>
+              <input
+                value={state.profile.caregiverRelationshipLabel ?? ""}
+                onChange={(e) => updateProfile("caregiverRelationshipLabel", e.target.value)}
+                className="w-full rounded-xl border border-brand-border bg-brand-bg px-3 py-2 text-base text-brand-text"
+              />
+            </label>
+            <label className="space-y-1 text-sm text-brand-muted">
+              <span>Pronouns</span>
+              <select
+                value={state.profile.pronouns}
+                onChange={(e) => updatePronouns(e.target.value as PronounSet)}
+                className="w-full rounded-xl border border-brand-border bg-brand-bg px-3 py-2 text-base text-brand-text"
+              >
+                <option value="he/him">he/him</option>
+                <option value="she/her">she/her</option>
+                <option value="they/them">they/them</option>
+                <option value="custom">custom</option>
+              </select>
+            </label>
+            {state.profile.pronouns === "custom" ? (
+              <label className="space-y-1 text-sm text-brand-muted md:col-span-2">
+                <span>Custom pronouns</span>
+                <input
+                  value={state.profile.customPronouns ?? ""}
+                  onChange={(e) => updateProfile("customPronouns", e.target.value)}
+                  className="w-full rounded-xl border border-brand-border bg-brand-bg px-3 py-2 text-base text-brand-text"
+                />
+              </label>
+            ) : null}
+            <div className="md:col-span-2 flex items-center justify-between rounded-xl border border-brand-border bg-brand-bg px-3 py-2">
+              <span className="text-sm text-brand-muted">Independent Mode (no caregiver connected)</span>
+              <button
+                type="button"
+                onClick={toggleIndependentMode}
+                className={`rounded-xl px-4 py-1.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-brand-compass/40 ${
+                  state.profile.independentMode
+                    ? "bg-brand-primary text-white"
+                    : "border border-brand-border bg-brand-surface text-brand-text"
+                }`}
+              >
+                {state.profile.independentMode ? "On" : "Off"}
+              </button>
+            </div>
+          </div>
+        </section>
+
+        {/* Caregiver Roster */}
+        <section className="rounded-3xl border border-brand-border bg-brand-surface p-5 shadow-sm space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-xl font-semibold text-brand-text">Caregiver roster</h2>
+            <button
+              type="button"
+              onClick={openAddForm}
+              className="shrink-0 rounded-xl border border-brand-border bg-brand-bg px-3 py-1.5 text-sm font-semibold text-brand-text focus:outline-none focus:ring-2 focus:ring-brand-compass/40"
+            >
+              + Add caregiver
+            </button>
+          </div>
+
+          {rosterLoading ? (
+            <p className="text-sm text-brand-muted">Loading roster…</p>
+          ) : roster.length === 0 ? (
+            <p className="text-sm text-brand-muted">No caregivers found in Supabase for this user.</p>
+          ) : (
+            <ul className="space-y-2">
+              {roster.map((entry) => {
+                const roleLabel = entry.role === "read_only" ? "read only" : entry.role;
+                return (
+                  <li key={entry.id} className="flex flex-col gap-2 rounded-xl border border-brand-border bg-brand-bg px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-brand-text">
+                        {entry.name}
+                        {entry.relationship_label ? (
+                          <span className="ml-1 font-normal text-brand-muted">({entry.relationship_label})</span>
+                        ) : null}
+                      </p>
+                      <p className="text-xs text-brand-muted">
+                        {roleLabel}
+                        {entry.is_primary_contact ? " · primary call contact" : ""}
+                        {entry.id === "00000000-0000-0000-0000-000000000002" ? " · demo default" : ""}
+                      </p>
+                    </div>
+                    <div className="flex gap-2 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => openEditForm(entry)}
+                        className="rounded-lg border border-brand-border bg-brand-surface px-3 py-1 text-xs font-medium text-brand-text focus:outline-none focus:ring-2 focus:ring-brand-compass/40"
+                      >
+                        Edit
+                      </button>
+                      {entry.id !== "00000000-0000-0000-0000-000000000002" ? (
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveCaregiver(entry.id)}
+                          className="rounded-lg border border-red-200 bg-red-50 px-3 py-1 text-xs font-medium text-red-700 focus:outline-none focus:ring-2 focus:ring-red-300"
+                        >
+                          Remove
+                        </button>
+                      ) : null}
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+
+          {rosterMessage ? (
+            <p className={`text-sm ${rosterMessage.type === "success" ? "text-brand-primary" : "text-red-600"}`}>
+              {rosterMessage.text}
+            </p>
+          ) : null}
+
+          {showRosterForm ? (() => {
+            const existingPrimary = roster.find((r) => r.is_primary_contact);
+            const primaryLocked = !!existingPrimary && existingPrimary.id !== editingId;
+            return (
+              <div className="rounded-2xl border border-brand-border bg-brand-bg p-4 space-y-4">
+                <h3 className="text-base font-semibold text-brand-text">
+                  {editingId ? "Edit caregiver" : "Add caregiver"}
+                </h3>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <label className="space-y-1 text-sm text-brand-muted">
+                    <span>Name <span className="text-red-500">*</span></span>
+                    <input
+                      value={formValues.name}
+                      onChange={(e) => setFormValues((f) => ({ ...f, name: e.target.value }))}
+                      className="w-full rounded-xl border border-brand-border bg-brand-surface px-3 py-2 text-base text-brand-text"
+                    />
+                  </label>
+                  <label className="space-y-1 text-sm text-brand-muted">
+                    <span>Relationship label</span>
+                    <input
+                      value={formValues.relationship_label}
+                      onChange={(e) => setFormValues((f) => ({ ...f, relationship_label: e.target.value }))}
+                      placeholder="e.g. daughter, son"
+                      className="w-full rounded-xl border border-brand-border bg-brand-surface px-3 py-2 text-base text-brand-text"
+                    />
+                  </label>
+                  <label className="space-y-1 text-sm text-brand-muted">
+                    <span>Email</span>
+                    <input
+                      type="email"
+                      value={formValues.email}
+                      onChange={(e) => setFormValues((f) => ({ ...f, email: e.target.value }))}
+                      className="w-full rounded-xl border border-brand-border bg-brand-surface px-3 py-2 text-base text-brand-text"
+                    />
+                  </label>
+                  <label className="space-y-1 text-sm text-brand-muted">
+                    <span>Phone</span>
+                    <input
+                      type="tel"
+                      value={formValues.phone}
+                      onChange={(e) => setFormValues((f) => ({ ...f, phone: e.target.value }))}
+                      className="w-full rounded-xl border border-brand-border bg-brand-surface px-3 py-2 text-base text-brand-text"
+                    />
+                  </label>
+                  <label className="space-y-1 text-sm text-brand-muted">
+                    <span>Role</span>
+                    <select
+                      value={formValues.role}
+                      onChange={(e) => setFormValues((f) => ({ ...f, role: e.target.value as FormValues["role"] }))}
+                      className="w-full rounded-xl border border-brand-border bg-brand-surface px-3 py-2 text-base text-brand-text"
+                    >
+                      <option value="primary">Primary — full dashboard</option>
+                      <option value="family">Family — summary only</option>
+                      <option value="read_only">Read only — summary only</option>
+                    </select>
+                  </label>
+                  <div className="space-y-1">
+                    <p className="text-sm text-brand-muted">Primary call contact</p>
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        disabled={primaryLocked}
+                        onClick={() => !primaryLocked && setFormValues((f) => ({ ...f, is_primary_contact: !f.is_primary_contact }))}
+                        className={`rounded-xl px-4 py-1.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-brand-compass/40 ${
+                          formValues.is_primary_contact
+                            ? "bg-brand-primary text-white"
+                            : "border border-brand-border bg-brand-surface text-brand-text"
+                        } ${primaryLocked ? "opacity-50 cursor-not-allowed" : ""}`}
+                      >
+                        {formValues.is_primary_contact ? "Yes" : "No"}
+                      </button>
+                    </div>
+                    {primaryLocked ? (
+                      <p className="text-xs text-brand-muted">
+                        Only one caregiver can be the call contact.{" "}
+                        {existingPrimary?.name} is currently set.
+                      </p>
+                    ) : null}
+                  </div>
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    disabled={isSavingCaregiver}
+                    onClick={handleSaveCaregiver}
+                    className="min-h-10 rounded-2xl bg-brand-primary px-5 py-2 text-sm font-semibold text-white focus:outline-none focus:ring-2 focus:ring-brand-compass/40 disabled:opacity-50"
+                  >
+                    {isSavingCaregiver ? "Saving…" : "Save"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setShowRosterForm(false); setRosterMessage(null); }}
+                    className="min-h-10 rounded-2xl border border-brand-border bg-brand-bg px-5 py-2 text-sm font-semibold text-brand-text focus:outline-none focus:ring-2 focus:ring-brand-compass/40"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            );
+          })() : null}
+        </section>
+
+        {/* View as Caregiver — demo control only */}
+        {roster.length > 0 ? (
+          <section className="rounded-3xl border border-brand-border bg-brand-surface p-5 shadow-sm space-y-3">
+            <div className="space-y-0.5">
+              <h2 className="text-xl font-semibold text-brand-text">View as caregiver</h2>
+              <p className="text-xs text-brand-muted">Demo control — not a real login. Selects whose perspective /caregiver simulates.</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {roster.map((entry) => (
+                <button
+                  key={entry.id}
+                  type="button"
+                  onClick={() => handleViewAs(entry.id)}
+                  className={`rounded-xl px-4 py-2 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-brand-compass/40 ${
+                    state.profile.activeCaregiverId === entry.id
+                      ? "bg-brand-primary text-white"
+                      : "border border-brand-border bg-brand-bg text-brand-text"
+                  }`}
+                >
+                  {entry.name}
+                  <span className="ml-1.5 text-xs font-normal opacity-75">
+                    ({entry.role === "read_only" ? "read only" : entry.role})
+                  </span>
+                </button>
+              ))}
+            </div>
+          </section>
+        ) : null}
+
+        <ResponseCard
+          title="Active scenario"
+          message={`${activeScenario.label}: ${activeScenario.guidance} Scenario mapping: ${scenarioLocationPreview.label}. Active location mode: ${activeLocationSummary.locationModeLabel}.`}
+        />
+
+        <div className="flex justify-end">
+          <Link
+            href="/debug"
+            className="rounded-xl border border-brand-border bg-brand-bg px-3 py-2 text-sm font-medium text-brand-text focus:outline-none focus:ring-2 focus:ring-brand-compass/40"
+          >
+            Open debug screen
+          </Link>
+        </div>
+
+        <section className="rounded-3xl border border-brand-border bg-brand-surface p-5 shadow-sm space-y-3">
+          <h2 className="text-xl font-semibold text-brand-text">Scenario breakdown</h2>
+          <div className="rounded-2xl border border-brand-border bg-brand-bg px-4 py-3">
+            <p className="text-sm font-medium text-brand-text">Maps to</p>
+            <p className="mt-1 text-sm text-brand-muted">{scenarioLocationPreview.label}</p>
+            <p className="mt-1 text-xs text-brand-muted">{scenarioLocationPreview.notes}</p>
+          </div>
+          <div className="rounded-2xl border border-brand-border bg-brand-bg px-4 py-3">
+            <p className="text-sm font-medium text-brand-text">Where am I?</p>
+            <p className="mt-1 text-sm text-brand-muted">{activeScenario.where}</p>
+          </div>
+          <div className="rounded-2xl border border-brand-border bg-brand-bg px-4 py-3">
+            <p className="text-sm font-medium text-brand-text">What is happening?</p>
+            <p className="mt-1 text-sm text-brand-muted">{activeScenario.happening}</p>
+          </div>
+          <div className="rounded-2xl border border-brand-border bg-brand-bg px-4 py-3">
+            <p className="text-sm font-medium text-brand-text">What should I do next?</p>
+            <p className="mt-1 text-sm text-brand-muted">{activeScenario.nextStep}</p>
+          </div>
+          <p className="text-xs text-brand-muted">
+            Caregiver-facing takeaway: {activeLocationSummary.placeId ? `this scenario should read as a trusted-place support moment at ${activeLocationSummary.label}.` : "this scenario should clearly show that the app did not recognize the location and that the user may need direct support."}
+          </p>
+        </section>
+
+        <section className="rounded-3xl border border-brand-border bg-brand-surface p-5 shadow-sm space-y-4">
+          <div className="space-y-1">
+            <h2 className="text-xl font-semibold text-brand-text">Demo location source</h2>
+            <p className="text-sm text-brand-muted">
+              Seeded scenario coordinates are the default. You can optionally use this device&apos;s live browser coordinates as a presentation-room demo override.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <button
+              type="button"
+              onClick={() => setLocationSource("scenario_seed")}
+              className={`rounded-2xl border px-4 py-3 text-left text-sm focus:outline-none focus:ring-2 focus:ring-brand-compass/40 ${
+                state.activeLocationSource === "scenario_seed"
+                  ? "border-brand-primary bg-brand-bg text-brand-text"
+                  : "border-brand-border bg-brand-surface text-brand-muted"
+              }`}
+            >
+              <span className="block font-semibold text-brand-text">Use seeded scenario location</span>
+              <span className="mt-1 block">Reliable default for class demo playback.</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => void handleUseBrowserLocation()}
+              disabled={isCapturingBrowserLocation}
+              className={`rounded-2xl border px-4 py-3 text-left text-sm focus:outline-none focus:ring-2 focus:ring-brand-compass/40 ${
+                state.activeLocationSource === "browser_geolocation"
+                  ? "border-brand-primary bg-brand-bg text-brand-text"
+                  : "border-brand-border bg-brand-surface text-brand-muted"
+              } disabled:opacity-60`}
+            >
+              <span className="block font-semibold text-brand-text">
+                {isCapturingBrowserLocation ? "Checking current location..." : "Use this device's current location for demo"}
+              </span>
+              <span className="mt-1 block">Scenario story stays selected, but trusted-place matching uses live browser coordinates when accuracy is good enough.</span>
+            </button>
+          </div>
+
+          <div className="rounded-2xl border border-brand-border bg-brand-bg px-4 py-3 text-sm text-brand-muted">
+            <p><span className="font-medium text-brand-text">Current source:</span> {activeLocationSummary.sourceLabel}</p>
+            <p className="mt-1"><span className="font-medium text-brand-text">Current match:</span> {activeLocationSummary.label}</p>
+            <p className="mt-1"><span className="font-medium text-brand-text">Scenario mapping:</span> {scenarioLocationPreview.label}</p>
+            {state.browserLocation ? (
+              <p className="mt-1">
+                <span className="font-medium text-brand-text">Last browser sample:</span> {state.browserLocation.latitude.toFixed(5)}, {state.browserLocation.longitude.toFixed(5)} · accuracy {Math.round(state.browserLocation.accuracyMeters)} meters
+              </p>
+            ) : null}
+          </div>
+
+          {browserLocationMessage ? (
+            <p className={`text-sm ${browserLocationMessage.type === "success" ? "text-brand-primary" : "text-amber-800"}`}>
+              {browserLocationMessage.text}
+            </p>
+          ) : null}
+          {activeLocationSummary.fallbackMessage ? (
+            <p className="text-sm text-amber-800">{activeLocationSummary.fallbackMessage}</p>
+          ) : null}
+        </section>
+
+        <section className="rounded-3xl border border-brand-border bg-brand-surface p-5 shadow-sm space-y-4">
+          <div className="space-y-1">
+            <h2 className="text-xl font-semibold text-brand-text">Trusted locations</h2>
+            <p className="text-sm text-brand-muted">
+              Save up to 3 trusted places. Scenarios can then use one of these saved locations or use Other.
+            </p>
+          </div>
+
+          {[1, 2, 3].map((slotValue) => {
+            const slot = slotValue as 1 | 2 | 3;
+            const location = trustedLocationForSlot(slot);
+            return (
+              <div key={slot} className="rounded-2xl border border-brand-border bg-brand-bg p-4 space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <h3 className="text-base font-semibold text-brand-text">Trusted location {slot}</h3>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleSaveTrustedLocation(slot)}
+                      className="rounded-xl bg-brand-primary px-3 py-1.5 text-sm font-semibold text-white focus:outline-none focus:ring-2 focus:ring-brand-compass/40"
+                    >
+                      Save
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleClearTrustedLocation(slot)}
+                      className="rounded-xl border border-brand-border bg-brand-surface px-3 py-1.5 text-sm font-semibold text-brand-text focus:outline-none focus:ring-2 focus:ring-brand-compass/40"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                  <label className="space-y-1 text-sm text-brand-muted">
+                    <span>Name</span>
+                    <input
+                      value={location.name}
+                      onChange={(e) => updateTrustedLocationDraft(slot, "name", e.target.value)}
+                      placeholder={slot === 1 ? "Home" : `Trusted place ${slot}`}
+                      className="w-full rounded-xl border border-brand-border bg-brand-surface px-3 py-2 text-base text-brand-text"
+                    />
+                  </label>
+                  <label className="space-y-1 text-sm text-brand-muted">
+                    <span>Address</span>
+                    <input
+                      value={location.address ?? ""}
+                      onChange={(e) => updateTrustedLocationDraft(slot, "address", e.target.value)}
+                      placeholder="Street address or landmark"
+                      className="w-full rounded-xl border border-brand-border bg-brand-surface px-3 py-2 text-base text-brand-text"
+                    />
+                  </label>
+                  <label className="space-y-1 text-sm text-brand-muted md:col-span-2">
+                    <span>Instructions</span>
+                    <input
+                      value={location.instructions ?? ""}
+                      onChange={(e) => updateTrustedLocationDraft(slot, "instructions", e.target.value)}
+                      placeholder="Helpful note for grounding or finding support here"
+                      className="w-full rounded-xl border border-brand-border bg-brand-surface px-3 py-2 text-base text-brand-text"
+                    />
+                  </label>
+                  <div className="rounded-xl border border-brand-border bg-brand-surface px-3 py-2 text-sm text-brand-muted md:col-span-2">
+                    <p><span className="font-medium text-brand-text">Seeded coordinates:</span> {typeof location.latitude === "number" && typeof location.longitude === "number" ? `${location.latitude.toFixed(5)}, ${location.longitude.toFixed(5)}` : "Not set"}</p>
+                    <p className="mt-1"><span className="font-medium text-brand-text">Match radius:</span> {location.radiusMeters ?? 75} meters</p>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+
+          <div className="rounded-2xl border border-dashed border-brand-border bg-brand-surface px-4 py-3">
+            <p className="text-sm font-medium text-brand-text">Other</p>
+            <p className="mt-1 text-sm text-brand-muted">
+              Other is not saved as a fourth trusted location. It represents the person being somewhere outside the 1 to 3 saved trusted places.
+            </p>
+          </div>
+
+          {locationMessage ? (
+            <p className={`text-sm ${locationMessage.type === "success" ? "text-brand-primary" : "text-red-600"}`}>
+              {locationMessage.text}
+            </p>
+          ) : null}
+        </section>
+
+        <section className="rounded-3xl border border-brand-border bg-brand-surface p-5 shadow-sm">
+          <h2 className="text-xl font-semibold text-brand-text">Reset demo</h2>
+          <p className="mt-2 text-sm text-brand-muted">
+            Clears local demo data and re-enables password gate on refresh.
+          </p>
+          <button
+            type="button"
+            onClick={resetDemoState}
+            className="mt-3 min-h-12 rounded-2xl border border-brand-border bg-brand-bg px-4 py-3 text-sm font-semibold text-brand-text focus:outline-none focus:ring-2 focus:ring-brand-compass/40"
+          >
+            Reset demo state
+          </button>
+          {resetMessage ? <p className="mt-2 text-sm text-brand-muted">{resetMessage}</p> : null}
+        </section>
+
+        <ScenarioSelector
+          scenarios={demoScenarios.map((scenario) => ({
+            ...scenario,
+            locationLine: `${describeScenarioLocation(scenario, state.trustedLocations).label} · ${describeScenarioLocation(scenario, state.trustedLocations).notes}`
+          }))}
+          activeScenarioId={state.activeScenarioId}
+          onPreview={selectScenario}
+        />
+
+        <section className="rounded-3xl border border-brand-border bg-brand-surface p-5 shadow-sm space-y-4">
+          <h2 className="text-xl font-semibold text-brand-text">Supabase Demo Data</h2>
+          <p className="text-sm text-brand-muted">
+            Activity events in Supabase:{" "}
+            <span className="font-semibold text-brand-text">
+              {activityCount === null ? "loading…" : activityCount}
+            </span>
+          </p>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <button
+              type="button"
+              disabled={isSeeding || isClearing}
+              onClick={handleSeed}
+              className="min-h-12 rounded-2xl border border-brand-border bg-brand-bg px-4 py-3 text-sm font-semibold text-brand-text focus:outline-none focus:ring-2 focus:ring-brand-compass/40 disabled:opacity-50"
+            >
+              {isSeeding ? "Seeding… (30–60 seconds)" : "Seed Year of Data"}
+            </button>
+            <button
+              type="button"
+              disabled={isSeeding || isClearing}
+              onClick={handleClear}
+              className="min-h-12 rounded-2xl border border-brand-border bg-brand-bg px-4 py-3 text-sm font-semibold text-brand-text focus:outline-none focus:ring-2 focus:ring-brand-compass/40 disabled:opacity-50"
+            >
+              {isClearing ? "Clearing…" : "Clear Seeded Data"}
+            </button>
+          </div>
+          {isSeeding && (
+            <p className="text-xs text-brand-muted">This may take 30–60 seconds. Please wait.</p>
+          )}
+          {seedStatus && (
+            <p className={`text-sm ${seedStatus.type === "success" ? "text-brand-primary" : "text-red-600"}`}>
+              {seedStatus.message}
+            </p>
+          )}
+        </section>
+      </div>
+    </main>
+  );
+}
+
+
+// ---
+
 // FILE: app/api/reorient/route.ts
 
 import Anthropic from "@anthropic-ai/sdk";
@@ -3026,13 +4475,13 @@ export default function HelperModal({ open, onClose, profile, activeLocationSumm
           </div>
 
           <div className="p-4">
-            <h2 className="text-xl font-semibold text-brand-text">{profile.preferredName} may need a little help right now.</h2>
-            <p className="mt-2 text-base leading-7 text-brand-muted">
+            <h2 className="text-lg font-semibold text-brand-text">{profile.preferredName} may need a little help right now.</h2>
+            <p className="mt-1 text-sm leading-7 text-brand-muted">
               This is a support tool for moments of confusion. If this is an emergency, call emergency services.
             </p>
 
-            <div className="mt-4 space-y-2">
-              <div className="flex items-start gap-3 rounded-2xl border border-brand-border bg-brand-bg p-3">
+            <div className="mt-4 space-y-1.5">
+              <div className="flex items-start gap-3 rounded-2xl border border-brand-border bg-brand-bg p-2">
                 <div className="mt-0.5 text-brand-compass" aria-hidden="true">
                   <MemoryIcon name="mapPin" className="h-6 w-6" />
                 </div>
@@ -3046,7 +4495,7 @@ export default function HelperModal({ open, onClose, profile, activeLocationSumm
                 </div>
               </div>
 
-              <div className="flex items-start gap-3 rounded-2xl border border-brand-border bg-brand-bg p-3">
+              <div className="flex items-start gap-3 rounded-2xl border border-brand-border bg-brand-bg p-2">
                 <div className="mt-0.5 text-brand-compass" aria-hidden="true">
                   <MemoryIcon name="clock" className="h-6 w-6" />
                 </div>
@@ -3055,9 +4504,23 @@ export default function HelperModal({ open, onClose, profile, activeLocationSumm
                   <div className="mt-1 text-base text-brand-muted">Today is {contextPacket.time_of_day}.</div>
                 </div>
               </div>
+
+              <div className="flex items-start gap-3 rounded-2xl border border-brand-border bg-brand-bg p-2">
+                <div className="mt-0.5 text-brand-compass" aria-hidden="true">
+                  <MemoryIcon name="checkCircle" className="h-6 w-6" />
+                </div>
+                <div>
+                  <div className="text-base font-semibold text-brand-text">Tell {words.object} what to do next</div>
+                  <div className="mt-1 text-base text-brand-muted">
+                    {activeLocationSummary.placeId
+                      ? contextPacket.next_event
+                      : `Please stay with ${profile.preferredName} and help ${words.object} contact ${words.possessive} caregiver, ${profile.caregiverName}.`}
+                  </div>
+                </div>
+              </div>
             </div>
 
-            <div className="mt-5 rounded-3xl border border-brand-border bg-brand-support p-3">
+            <div className="mt-3 rounded-3xl border border-brand-border bg-brand-support p-2">
               <div className="flex items-center gap-2">
                 <div className="text-brand-compass" aria-hidden="true">
                   <MemoryIcon name="phone" className="h-6 w-6" />

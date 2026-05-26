@@ -103,9 +103,13 @@ export const defaultDemoProfile: DemoProfile = {
   activeCaregiverId: "00000000-0000-0000-0000-000000000002"
 };
 
+export const PLACE_HOME_ID = "00000000-0000-4000-8000-000000000001";
+export const PLACE_PHARMACY_ID = "00000000-0000-4000-8000-000000000002";
+export const PLACE_DOCTOR_ID = "00000000-0000-4000-8000-000000000003";
+
 export const defaultTrustedLocations: TrustedLocation[] = [
   {
-    id: "place_home",
+    id: PLACE_HOME_ID,
     trustedSlot: 1,
     name: "Home",
     address: "215 Cedar Street",
@@ -117,7 +121,7 @@ export const defaultTrustedLocations: TrustedLocation[] = [
     placeType: "home"
   },
   {
-    id: "place_pharmacy",
+    id: PLACE_PHARMACY_ID,
     trustedSlot: 2,
     name: "Pharmacy",
     address: "98 Maple Avenue",
@@ -129,7 +133,7 @@ export const defaultTrustedLocations: TrustedLocation[] = [
     placeType: "pharmacy"
   },
   {
-    id: "place_doctor_office",
+    id: PLACE_DOCTOR_ID,
     trustedSlot: 3,
     name: "Doctor's Office",
     address: "410 Wellness Plaza",
@@ -157,7 +161,7 @@ export const demoScenarios: DemoScenario[] = [
       longitude: -118.2943
     },
     expectedLocationMode: "trusted_place",
-    scenarioPlaceId: "place_home",
+    scenarioPlaceId: PLACE_HOME_ID,
     scenarioHour: 9
   },
   {
@@ -174,7 +178,7 @@ export const demoScenarios: DemoScenario[] = [
       longitude: -118.30088
     },
     expectedLocationMode: "trusted_place",
-    scenarioPlaceId: "place_pharmacy",
+    scenarioPlaceId: PLACE_PHARMACY_ID,
     currentActivity: "Picking up a prescription",
     scenarioHour: 14
   },
@@ -192,13 +196,13 @@ export const demoScenarios: DemoScenario[] = [
       longitude: -118.29438
     },
     expectedLocationMode: "trusted_place",
-    scenarioPlaceId: "place_home",
+    scenarioPlaceId: PLACE_HOME_ID,
     scenarioHour: 12,
     scheduledEvent: {
       id: "event_doctor_appointment",
       title: "Doctor appointment",
       timeLabel: "Leave at 1:40 PM for a 2:00 PM appointment",
-      placeId: "place_doctor_office",
+      placeId: PLACE_DOCTOR_ID,
       bringItems: ["ID", "Insurance card", "Phone", "Keys", "Medication list"]
     }
   },
@@ -233,7 +237,7 @@ export const demoScenarios: DemoScenario[] = [
       longitude: -118.29434
     },
     expectedLocationMode: "trusted_place",
-    scenarioPlaceId: "place_home",
+    scenarioPlaceId: PLACE_HOME_ID,
     currentActivity: "Evening home routine",
     scenarioHour: 19
   }

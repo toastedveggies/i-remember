@@ -1,4 +1,4 @@
-import { defaultTrustedLocations, demoScenarios } from "@/data/demoState";
+import { defaultTrustedLocations, demoScenarios, PLACE_HOME_ID, PLACE_DOCTOR_ID } from "@/data/demoState";
 import { supabase } from "./supabaseClient";
 
 const DEMO_USER_ID = "00000000-0000-0000-0000-000000000001";
@@ -366,7 +366,7 @@ async function seedCoreDemoRows(): Promise<void> {
       longitude: location.longitude ?? null,
       place_type: location.placeType ?? "trusted",
       instructions: location.instructions ?? null,
-      is_home: location.id === "place_home",
+      is_home: location.id === PLACE_HOME_ID,
       is_trusted: true,
       trusted_slot: location.trustedSlot,
     });
@@ -378,7 +378,7 @@ async function seedCoreDemoRows(): Promise<void> {
     title: "Doctor appointment",
     description: "Routine follow-up visit",
     location: "Doctor's Office",
-    place_id: "place_doctor_office",
+    place_id: PLACE_DOCTOR_ID,
     start_time: new Date().toISOString(),
     notes: "Bring ID, insurance card, phone, keys, and medication list.",
   });
