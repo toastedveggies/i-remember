@@ -349,7 +349,7 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
 
 ## Last Updated
 
-2026-05-25 (UTC-7) — timeGreeting now accepts scenarioHour and uses it instead of the real device hour when set, so the greeting matches the active scenario's time context. tsc and lint pass clean.
+2026-05-25 (UTC-7) — Replaced non-UUID place ID strings with PLACE_HOME_ID, PLACE_PHARMACY_ID, PLACE_DOCTOR_ID constants exported from demoState.ts; all scenarioPlaceId, scheduledEvent.placeId, defaultTrustedLocations.id, and seedData.ts references updated. isValidUuid in logEvent.ts will now pass for all place IDs. tsc and lint pass clean.
 
 
 // ---
@@ -531,6 +531,7 @@ Parking lot for ideas that are intentionally out of current MVP scope.
 - Dynamic question options based on active scenario - for example, "Who am I talking to?" at a clinic visit vs. "What is my morning routine?" at home; questions would be pulled from the scenario context packet rather than hardcoded
 - Location-aware passive today card - pulls real GPS coordinates once location integration is added, replacing the current scenario-based location placeholder
 - Privacy-sensitive location history + learned-place suggestions - a future version could keep a limited location history and periodically suggest possible recurring places for caregiver review, such as "You have been here several times. Should this be reviewed as a possible trusted location?" Any suggested place must require caregiver or trusted-supporter verification before becoming trusted, and the design must account for privacy, consent, retention, false positives, safety risk, and avoiding confusion during distress.
+- Habitual area detection and out-of-range alerts - a future version would build a picture of where Alex normally travels based on persistent location history stored in Supabase, not just explicitly added trusted places. The system would cluster location history into a habitual zone (for example, the neighborhood between home, the pharmacy, and the park Alex passes daily) using a lightweight algorithm or an AI analysis call. If Alex is within that habitual zone the app treats the location as low-concern even if it is not a named trusted place and does not surface an alert. If Alex appears well outside the habitual zone the app proactively prompts him to check in rather than waiting for him to tap Help Me Now. This requires a persistent location history pipeline in Supabase with UUID-referenced place rows, a clustering or convex-hull approach to define the habitual area boundary, a caregiver review step before the habitual zone is activated, and careful consent and privacy design as described in the writeup. The Supabase schema already has the place_id foreign key structure needed to support this. Implementation should happen on a separate branch to avoid destabilizing the demo build.
 - Narrative presets for seed data - allow facilitators to select from pre-defined story arcs (for example, "stable phase", "gradual progression", "crisis week") when seeding Supabase demo data, rather than always generating the same one-year pattern
 - Caregiver invite flow - allow Alex to invite a caregiver by email from within the app, creating a `caregiver_user_relationships` row with a role assignment
 - Role-based caregiver dashboard visibility - primary caregivers see full metrics; family/secondary caregivers see summary only (missed calls, emergency events, stability score)
@@ -676,9 +677,13 @@ export const defaultDemoProfile: DemoProfile = {
   activeCaregiverId: "00000000-0000-0000-0000-000000000002"
 };
 
+export const PLACE_HOME_ID = "00000000-0000-4000-8000-000000000001";
+export const PLACE_PHARMACY_ID = "00000000-0000-4000-8000-000000000002";
+export const PLACE_DOCTOR_ID = "00000000-0000-4000-8000-000000000003";
+
 export const defaultTrustedLocations: TrustedLocation[] = [
   {
-    id: "place_home",
+    id: PLACE_HOME_ID,
     trustedSlot: 1,
     name: "Home",
     address: "215 Cedar Street",
@@ -690,7 +695,7 @@ export const defaultTrustedLocations: TrustedLocation[] = [
     placeType: "home"
   },
   {
-    id: "place_pharmacy",
+    id: PLACE_PHARMACY_ID,
     trustedSlot: 2,
     name: "Pharmacy",
     address: "98 Maple Avenue",
@@ -702,7 +707,7 @@ export const defaultTrustedLocations: TrustedLocation[] = [
     placeType: "pharmacy"
   },
   {
-    id: "place_doctor_office",
+    id: PLACE_DOCTOR_ID,
     trustedSlot: 3,
     name: "Doctor's Office",
     address: "410 Wellness Plaza",
@@ -730,7 +735,7 @@ export const demoScenarios: DemoScenario[] = [
       longitude: -118.2943
     },
     expectedLocationMode: "trusted_place",
-    scenarioPlaceId: "place_home",
+    scenarioPlaceId: PLACE_HOME_ID,
     scenarioHour: 9
   },
   {
@@ -747,7 +752,7 @@ export const demoScenarios: DemoScenario[] = [
       longitude: -118.30088
     },
     expectedLocationMode: "trusted_place",
-    scenarioPlaceId: "place_pharmacy",
+    scenarioPlaceId: PLACE_PHARMACY_ID,
     currentActivity: "Picking up a prescription",
     scenarioHour: 14
   },
@@ -765,13 +770,13 @@ export const demoScenarios: DemoScenario[] = [
       longitude: -118.29438
     },
     expectedLocationMode: "trusted_place",
-    scenarioPlaceId: "place_home",
+    scenarioPlaceId: PLACE_HOME_ID,
     scenarioHour: 12,
     scheduledEvent: {
       id: "event_doctor_appointment",
       title: "Doctor appointment",
       timeLabel: "Leave at 1:40 PM for a 2:00 PM appointment",
-      placeId: "place_doctor_office",
+      placeId: PLACE_DOCTOR_ID,
       bringItems: ["ID", "Insurance card", "Phone", "Keys", "Medication list"]
     }
   },
@@ -806,7 +811,7 @@ export const demoScenarios: DemoScenario[] = [
       longitude: -118.29434
     },
     expectedLocationMode: "trusted_place",
-    scenarioPlaceId: "place_home",
+    scenarioPlaceId: PLACE_HOME_ID,
     currentActivity: "Evening home routine",
     scenarioHour: 19
   }
@@ -1579,7 +1584,7 @@ export const CLAUDE_MODEL = "claude-haiku-4-5-20251001";
 
 // FILE: lib/seedData.ts
 
-import { defaultTrustedLocations, demoScenarios } from "@/data/demoState";
+import { defaultTrustedLocations, demoScenarios, PLACE_HOME_ID, PLACE_DOCTOR_ID } from "@/data/demoState";
 import { supabase } from "./supabaseClient";
 
 const DEMO_USER_ID = "00000000-0000-0000-0000-000000000001";
@@ -1947,7 +1952,7 @@ async function seedCoreDemoRows(): Promise<void> {
       longitude: location.longitude ?? null,
       place_type: location.placeType ?? "trusted",
       instructions: location.instructions ?? null,
-      is_home: location.id === "place_home",
+      is_home: location.id === PLACE_HOME_ID,
       is_trusted: true,
       trusted_slot: location.trustedSlot,
     });
@@ -1959,7 +1964,7 @@ async function seedCoreDemoRows(): Promise<void> {
     title: "Doctor appointment",
     description: "Routine follow-up visit",
     location: "Doctor's Office",
-    place_id: "place_doctor_office",
+    place_id: PLACE_DOCTOR_ID,
     start_time: new Date().toISOString(),
     notes: "Bring ID, insurance card, phone, keys, and medication list.",
   });
@@ -4411,6 +4416,12 @@ export async function POST(req: NextRequest) {
   }
 }
 
+
+// ---
+
+// FILE: supabasemigrations60518_initial_schema.sql
+
+[NOT FOUND]
 
 // ---
 

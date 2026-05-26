@@ -7,7 +7,7 @@ function isValidUuid(value: string): boolean {
 
 export async function logActivityEvent(event: DemoEvent): Promise<void> {
   try {
-    await supabase.from("activity_events").insert({
+    await supabase.from("activity_events").upsert({
       id: event.id,
       user_id: event.userId,
       event_type: event.eventType,
@@ -26,7 +26,7 @@ export async function logActivityEvent(event: DemoEvent): Promise<void> {
 
 export async function logSystemEvent(event: DemoEvent): Promise<void> {
   try {
-    await supabase.from("system_events").insert({
+    await supabase.from("system_events").upsert({
       id: event.id,
       user_id: event.userId,
       event_type: event.eventType,

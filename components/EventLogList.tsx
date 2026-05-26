@@ -20,6 +20,19 @@ function eventLabel(eventType: string): string {
     .join(" ");
 }
 
+function sourceLabel(source: string): string {
+  if (source === "app") return "Alex's app";
+  if (source === "caregiver") return "Caregiver view";
+  if (source === "demo") return "Demo simulator";
+  return source.charAt(0).toUpperCase() + source.slice(1);
+}
+
+function locationModeLabel(mode: string): string {
+  if (mode === "trusted_place") return "Trusted place";
+  if (mode === "other") return "Other";
+  return mode;
+}
+
 export default function EventLogList({
   items,
   defaultCollapsed = false,
@@ -113,7 +126,7 @@ export default function EventLogList({
                       ) : null}
                       {typeof item.metadata?.locationMode === "string" ? (
                         <p className="mt-1 text-sm text-brand-muted">
-                          Location mode: {item.metadata.locationMode as string}
+                          Location mode: {locationModeLabel(item.metadata.locationMode as string)}
                         </p>
                       ) : null}
                       {item.placeId === null && item.metadata?.reason === "unrecognized_location" ? (
@@ -122,8 +135,8 @@ export default function EventLogList({
                         </p>
                       ) : null}
                       <p className="text-sm text-brand-muted">
-                        Source: {item.source}
-                        {item.scenarioId ? ` | Scenario: ${item.scenarioId}` : ""}
+                        Source: {sourceLabel(item.source)}
+                        {item.scenarioId ? ` | Scenario: ${eventLabel(item.scenarioId)}` : ""}
                       </p>
                     </li>
                   );

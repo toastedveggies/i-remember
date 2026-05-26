@@ -297,4 +297,4 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
 
 ## Last Updated
 
-2026-05-25 (UTC-7) — Replaced non-UUID place ID strings with PLACE_HOME_ID, PLACE_PHARMACY_ID, PLACE_DOCTOR_ID constants exported from demoState.ts; all scenarioPlaceId, scheduledEvent.placeId, defaultTrustedLocations.id, and seedData.ts references updated. isValidUuid in logEvent.ts will now pass for all place IDs. tsc and lint pass clean.
+2026-05-25 (UTC-7) — EventLogList: added sourceLabel and locationModeLabel helpers; source and scenario ID now render as human-readable labels; location mode renders "Trusted place" / "Other" instead of raw strings. tsc and lint pass clean.

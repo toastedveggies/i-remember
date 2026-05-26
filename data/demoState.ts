@@ -106,6 +106,7 @@ export const defaultDemoProfile: DemoProfile = {
 export const PLACE_HOME_ID = "00000000-0000-4000-8000-000000000001";
 export const PLACE_PHARMACY_ID = "00000000-0000-4000-8000-000000000002";
 export const PLACE_DOCTOR_ID = "00000000-0000-4000-8000-000000000003";
+export const SCHEDULED_EVENT_DOCTOR_ID = "00000000-0000-4000-8000-000000000010";
 
 export const defaultTrustedLocations: TrustedLocation[] = [
   {
@@ -199,7 +200,7 @@ export const demoScenarios: DemoScenario[] = [
     scenarioPlaceId: PLACE_HOME_ID,
     scenarioHour: 12,
     scheduledEvent: {
-      id: "event_doctor_appointment",
+      id: SCHEDULED_EVENT_DOCTOR_ID,
       title: "Doctor appointment",
       timeLabel: "Leave at 1:40 PM for a 2:00 PM appointment",
       placeId: PLACE_DOCTOR_ID,

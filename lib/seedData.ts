@@ -1,4 +1,4 @@
-import { defaultTrustedLocations, demoScenarios, PLACE_HOME_ID, PLACE_DOCTOR_ID } from "@/data/demoState";
+import { defaultTrustedLocations, demoScenarios, PLACE_HOME_ID, PLACE_DOCTOR_ID, SCHEDULED_EVENT_DOCTOR_ID } from "@/data/demoState";
 import { supabase } from "./supabaseClient";
 
 const DEMO_USER_ID = "00000000-0000-0000-0000-000000000001";
@@ -373,7 +373,7 @@ async function seedCoreDemoRows(): Promise<void> {
   }
 
   await (supabase.from("scheduled_events") as any).upsert({
-    id: "event_doctor_appointment",
+    id: SCHEDULED_EVENT_DOCTOR_ID,
     user_id: DEMO_USER_ID,
     title: "Doctor appointment",
     description: "Routine follow-up visit",
