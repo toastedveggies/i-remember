@@ -297,4 +297,4 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
 
 ## Last Updated
 
-2026-05-25 (UTC-7) — Added scenarioHour field to DemoScenario type; each scenario now has a scenarioHour (home 9, pharmacy 14, doctor prep 12, unknown null, evening 19); added evening_routine scenario; scenarioTimeOfDay now uses real device clock shifted to scenarioHour. tsc and lint pass clean.
+2026-05-25 (UTC-7) — timeGreeting now accepts scenarioHour and uses it instead of the real device hour when set, so the greeting matches the active scenario's time context. tsc and lint pass clean.

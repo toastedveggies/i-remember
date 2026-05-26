@@ -83,8 +83,8 @@ function recommendedNextAction(question: string, caregiverName: string): string 
   return "Pause, read the next step slowly, and ask for support if you want it.";
 }
 
-function timeGreeting(name: string): string {
-  const hour = new Date().getHours();
+function timeGreeting(name: string, scenarioHour: number | null = null): string {
+  const hour = scenarioHour !== null ? scenarioHour : new Date().getHours();
   const preferredName = name || "Alex";
   if (hour >= 5 && hour < 12) return `Good morning, ${preferredName}.`;
   if (hour >= 12 && hour < 17) return `Good afternoon, ${preferredName}.`;
@@ -413,7 +413,7 @@ export default function TodayWindowPage() {
       <div className="space-y-6">
         <header className="space-y-1 text-center">
           <h1 className="text-4xl font-semibold text-brand-text">Today</h1>
-          <p className="text-lg text-brand-muted">{timeGreeting(state.profile.preferredName)}</p>
+          <p className="text-lg text-brand-muted">{timeGreeting(state.profile.preferredName, activeScenario.scenarioHour ?? null)}</p>
         </header>
 
         <section className="rounded-3xl border border-brand-border bg-brand-surface p-5 shadow-sm space-y-3">
