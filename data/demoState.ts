@@ -52,6 +52,7 @@ export type DemoScenario = {
   expectedLocationMode: LocationMode;
   scenarioPlaceId?: string | null;
   currentActivity?: string;
+  scenarioHour?: number | null;
   scheduledEvent?: ScheduledEventSummary;
 };
 
@@ -156,7 +157,8 @@ export const demoScenarios: DemoScenario[] = [
       longitude: -118.2943
     },
     expectedLocationMode: "trusted_place",
-    scenarioPlaceId: "place_home"
+    scenarioPlaceId: "place_home",
+    scenarioHour: 9
   },
   {
     id: "pharmacy_confusion",
@@ -173,7 +175,8 @@ export const demoScenarios: DemoScenario[] = [
     },
     expectedLocationMode: "trusted_place",
     scenarioPlaceId: "place_pharmacy",
-    currentActivity: "Picking up a prescription"
+    currentActivity: "Picking up a prescription",
+    scenarioHour: 14
   },
   {
     id: "doctor_appointment_prep",
@@ -190,6 +193,7 @@ export const demoScenarios: DemoScenario[] = [
     },
     expectedLocationMode: "trusted_place",
     scenarioPlaceId: "place_home",
+    scenarioHour: 12,
     scheduledEvent: {
       id: "event_doctor_appointment",
       title: "Doctor appointment",
@@ -212,7 +216,26 @@ export const demoScenarios: DemoScenario[] = [
       longitude: -118.31215
     },
     expectedLocationMode: "other",
-    scenarioPlaceId: null
+    scenarioPlaceId: null,
+    scenarioHour: null
+  },
+  {
+    id: "evening_routine",
+    label: "Evening routine",
+    guidance: "Alex is at Home in the evening and needs calm grounding to settle into his night routine.",
+    where: "You are at Home.",
+    happening: "It is evening at home. This is a calm and familiar time for your usual evening routine.",
+    nextStep: "Take a slow breath, have dinner or a snack if you are hungry, and settle into your evening routine. Call Maria if you need support.",
+    uncertainty: "low",
+    responsePosture: "calm_grounding",
+    seededCoordinates: {
+      latitude: 34.13672,
+      longitude: -118.29434
+    },
+    expectedLocationMode: "trusted_place",
+    scenarioPlaceId: "place_home",
+    currentActivity: "Evening home routine",
+    scenarioHour: 19
   }
 ];
 

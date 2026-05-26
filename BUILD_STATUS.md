@@ -297,4 +297,4 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
 
 ## Last Updated
 
-2026-05-25 (UTC-7) — HelperModal vertical compression for iPhone SE: heading text-xl→text-lg, intro mt-2/text-base→mt-1/text-sm, tile spacing space-y-2→space-y-1.5, tile padding p-3→p-2, caregiver block mt-5→mt-3 and p-3→p-2. No content removed. tsc and lint pass clean.
+2026-05-25 (UTC-7) — Added scenarioHour field to DemoScenario type; each scenario now has a scenarioHour (home 9, pharmacy 14, doctor prep 12, unknown null, evening 19); added evening_routine scenario; scenarioTimeOfDay now uses real device clock shifted to scenarioHour. tsc and lint pass clean.

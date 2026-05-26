@@ -67,19 +67,16 @@ function buildBringItemsText(items?: string[]): string {
 }
 
 function scenarioTimeOfDay(scenario: DemoScenario): string {
-  if (scenario.id === "home_reorientation") {
-    return "Tuesday morning";
-  }
-
-  if (scenario.id === "pharmacy_confusion") {
-    return "Tuesday afternoon";
-  }
-
-  if (scenario.id === "doctor_appointment_prep") {
-    return "Tuesday early afternoon";
-  }
-
-  return "Tuesday evening";
+  const now = new Date();
+  const hour = scenario.scenarioHour != null ? scenario.scenarioHour : now.getHours();
+  const minutes = now.getMinutes();
+  const period = hour >= 12 ? "PM" : "AM";
+  const displayHour = hour % 12 === 0 ? 12 : hour % 12;
+  const displayMinutes = minutes.toString().padStart(2, "0");
+  const dayName = now.toLocaleDateString("en-US", { weekday: "long" });
+  const monthName = now.toLocaleDateString("en-US", { month: "long" });
+  const date = now.getDate();
+  return `${dayName}, ${monthName} ${date} at ${displayHour}:${displayMinutes} ${period}`;
 }
 
 function scenarioNextEvent(scenario: DemoScenario, trustedLocations: TrustedLocation[]): string {
