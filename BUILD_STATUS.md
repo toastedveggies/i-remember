@@ -137,7 +137,7 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
 - Phase 7 - Location Additions and Demo Gap Closure (active as of 2026-05-25, UTC-7):
   - [x] Add "I'm okay", "Call [caregiver]", and "Show this screen" buttons to the streaming response panel in app/app/page.tsx. Log okay_confirmed event. Surface confirmed-okay status on caregiver dashboard.
   - [x] Fix HelperModal hardcoded location and time strings. Pass activeLocationSummary and contextPacket into HelperModal as props and use them for the location and time lines.
-  - [ ] Add who_is_expected from contextPacket to the Today card in app/app/page.tsx
+  - [x] Add who_is_expected from contextPacket to the Today card in app/app/page.tsx
   - [ ] Store AI response text in reorientation_card_viewed event metadata and display it in the caregiver activity panel
 
 - Trusted location handling (in progress as of 2026-05-23, UTC-7):
@@ -297,4 +297,4 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
 
 ## Last Updated
 
-2026-05-25 (UTC-7) — HelperModal tightened: reduced padding on header, content, tiles, and caregiver block; heading scaled down to text-xl; tile spacing reduced; third info tile (calendar/contact prompt) removed; caregiver block now shows a dynamic description line before the Call button. tsc and lint pass clean.
+2026-05-25 (UTC-7) — Stream panel cleanup: "I'm okay" and "Call caregiver" buttons now also close the question-selection modal (setHelpMeNowOpen(false)) on click, matching the existing behaviour of "Show this screen". tsc and lint pass clean.

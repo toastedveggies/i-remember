@@ -435,6 +435,11 @@ export default function TodayWindowPage() {
           <p className="text-sm text-brand-muted">
             <span className="font-medium text-brand-text">Next:</span> {contextPacket.next_event}
           </p>
+          {contextPacket.who_is_expected !== "No other people are required right now." ? (
+            <p className="text-sm text-brand-muted">
+              <span className="font-medium text-brand-text">Who:</span> {contextPacket.who_is_expected}
+            </p>
+          ) : null}
         </section>
 
         <section className="space-y-3">
@@ -711,6 +716,7 @@ export default function TodayWindowPage() {
                   type="button"
                   onClick={() => {
                     persist(appendActivityEvent(state, createLocationEvent("okay_confirmed", { question: streamingQuestion })));
+                    setHelpMeNowOpen(false);
                     dismissStreamPanel();
                   }}
                   className="min-h-12 w-full rounded-2xl bg-green-700 px-4 py-3 text-base font-semibold text-white focus:outline-none focus:ring-2 focus:ring-green-400"
@@ -719,7 +725,7 @@ export default function TodayWindowPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => { callCaregiver(); dismissStreamPanel(); }}
+                  onClick={() => { callCaregiver(); setHelpMeNowOpen(false); dismissStreamPanel(); }}
                   className="min-h-12 w-full rounded-2xl bg-brand-primary px-4 py-3 text-base font-semibold text-white focus:outline-none focus:ring-2 focus:ring-brand-compass"
                 >
                   {`Call ${state.profile.caregiverName}`}
