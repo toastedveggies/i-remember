@@ -349,7 +349,7 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
 
 ## Last Updated
 
-2026-05-25 (UTC-7) — Replaced non-UUID place ID strings with PLACE_HOME_ID, PLACE_PHARMACY_ID, PLACE_DOCTOR_ID constants exported from demoState.ts; all scenarioPlaceId, scheduledEvent.placeId, defaultTrustedLocations.id, and seedData.ts references updated. isValidUuid in logEvent.ts will now pass for all place IDs. tsc and lint pass clean.
+2026-05-25 (UTC-7) — EventLogList: added sourceLabel and locationModeLabel helpers; source and scenario ID now render as human-readable labels; location mode renders "Trusted place" / "Other" instead of raw strings. tsc and lint pass clean.
 
 
 // ---
@@ -680,6 +680,7 @@ export const defaultDemoProfile: DemoProfile = {
 export const PLACE_HOME_ID = "00000000-0000-4000-8000-000000000001";
 export const PLACE_PHARMACY_ID = "00000000-0000-4000-8000-000000000002";
 export const PLACE_DOCTOR_ID = "00000000-0000-4000-8000-000000000003";
+export const SCHEDULED_EVENT_DOCTOR_ID = "00000000-0000-4000-8000-000000000010";
 
 export const defaultTrustedLocations: TrustedLocation[] = [
   {
@@ -773,7 +774,7 @@ export const demoScenarios: DemoScenario[] = [
     scenarioPlaceId: PLACE_HOME_ID,
     scenarioHour: 12,
     scheduledEvent: {
-      id: "event_doctor_appointment",
+      id: SCHEDULED_EVENT_DOCTOR_ID,
       title: "Doctor appointment",
       timeLabel: "Leave at 1:40 PM for a 2:00 PM appointment",
       placeId: PLACE_DOCTOR_ID,
@@ -1539,7 +1540,7 @@ function isValidUuid(value: string): boolean {
 
 export async function logActivityEvent(event: DemoEvent): Promise<void> {
   try {
-    await supabase.from("activity_events").insert({
+    await supabase.from("activity_events").upsert({
       id: event.id,
       user_id: event.userId,
       event_type: event.eventType,
@@ -1558,7 +1559,7 @@ export async function logActivityEvent(event: DemoEvent): Promise<void> {
 
 export async function logSystemEvent(event: DemoEvent): Promise<void> {
   try {
-    await supabase.from("system_events").insert({
+    await supabase.from("system_events").upsert({
       id: event.id,
       user_id: event.userId,
       event_type: event.eventType,
@@ -1584,7 +1585,7 @@ export const CLAUDE_MODEL = "claude-haiku-4-5-20251001";
 
 // FILE: lib/seedData.ts
 
-import { defaultTrustedLocations, demoScenarios, PLACE_HOME_ID, PLACE_DOCTOR_ID } from "@/data/demoState";
+import { defaultTrustedLocations, demoScenarios, PLACE_HOME_ID, PLACE_DOCTOR_ID, SCHEDULED_EVENT_DOCTOR_ID } from "@/data/demoState";
 import { supabase } from "./supabaseClient";
 
 const DEMO_USER_ID = "00000000-0000-0000-0000-000000000001";
@@ -1959,7 +1960,7 @@ async function seedCoreDemoRows(): Promise<void> {
   }
 
   await (supabase.from("scheduled_events") as any).upsert({
-    id: "event_doctor_appointment",
+    id: SCHEDULED_EVENT_DOCTOR_ID,
     user_id: DEMO_USER_ID,
     title: "Doctor appointment",
     description: "Routine follow-up visit",
@@ -4601,6 +4602,19 @@ function eventLabel(eventType: string): string {
     .join(" ");
 }
 
+function sourceLabel(source: string): string {
+  if (source === "app") return "Alex's app";
+  if (source === "caregiver") return "Caregiver view";
+  if (source === "demo") return "Demo simulator";
+  return source.charAt(0).toUpperCase() + source.slice(1);
+}
+
+function locationModeLabel(mode: string): string {
+  if (mode === "trusted_place") return "Trusted place";
+  if (mode === "other") return "Other";
+  return mode;
+}
+
 export default function EventLogList({
   items,
   defaultCollapsed = false,
@@ -4694,7 +4708,7 @@ export default function EventLogList({
                       ) : null}
                       {typeof item.metadata?.locationMode === "string" ? (
                         <p className="mt-1 text-sm text-brand-muted">
-                          Location mode: {item.metadata.locationMode as string}
+                          Location mode: {locationModeLabel(item.metadata.locationMode as string)}
                         </p>
                       ) : null}
                       {item.placeId === null && item.metadata?.reason === "unrecognized_location" ? (
@@ -4703,8 +4717,8 @@ export default function EventLogList({
                         </p>
                       ) : null}
                       <p className="text-sm text-brand-muted">
-                        Source: {item.source}
-                        {item.scenarioId ? ` | Scenario: ${item.scenarioId}` : ""}
+                        Source: {sourceLabel(item.source)}
+                        {item.scenarioId ? ` | Scenario: ${eventLabel(item.scenarioId)}` : ""}
                       </p>
                     </li>
                   );
