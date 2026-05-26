@@ -197,6 +197,7 @@ export default function TodayWindowPage() {
         uncertainty: activeScenario.uncertainty,
         locationMode: resolvedLocation.locationMode,
         trustedPlace: activeLocationSummary.trustedPlaceName,
+        trustedPlaceAddress: activeLocationSummary.trustedPlaceAddress,
       })
     );
 
@@ -268,6 +269,8 @@ export default function TodayWindowPage() {
             question: key,
             locationMode: resolvedLocation.locationMode,
             trustedPlace: activeLocationSummary.trustedPlaceName,
+            trustedPlaceAddress: activeLocationSummary.trustedPlaceAddress,
+            ai_response: fullText,
           })
         )
       );
@@ -342,6 +345,7 @@ export default function TodayWindowPage() {
         question,
         locationMode: resolvedLocation.locationMode,
         trustedPlace: activeLocationSummary.trustedPlaceName,
+        trustedPlaceAddress: activeLocationSummary.trustedPlaceAddress,
       })
     );
     persist(nextState);

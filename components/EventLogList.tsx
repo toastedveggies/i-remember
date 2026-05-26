@@ -97,9 +97,18 @@ export default function EventLogList({
                           &ldquo;{(item.metadata.question as string).split("_").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")}&rdquo;
                         </p>
                       ) : null}
+                      {item.eventType === "reorientation_card_viewed" && typeof item.metadata?.ai_response === "string" ? (
+                        <>
+                          <p className="mt-2 text-xs text-brand-muted">AI response:</p>
+                          <p className="mt-1 text-sm leading-relaxed text-brand-text">{item.metadata.ai_response as string}</p>
+                        </>
+                      ) : null}
                       {typeof item.metadata?.trustedPlace === "string" && item.metadata.trustedPlace ? (
                         <p className="mt-1 text-sm text-brand-muted">
-                          Trusted place: {item.metadata.trustedPlace as string}
+                          Location: {item.metadata.trustedPlace as string}
+                          {typeof item.metadata.trustedPlaceAddress === "string" && item.metadata.trustedPlaceAddress
+                            ? ` — ${item.metadata.trustedPlaceAddress as string}`
+                            : ""}
                         </p>
                       ) : null}
                       {typeof item.metadata?.locationMode === "string" ? (
@@ -115,7 +124,6 @@ export default function EventLogList({
                       <p className="text-sm text-brand-muted">
                         Source: {item.source}
                         {item.scenarioId ? ` | Scenario: ${item.scenarioId}` : ""}
-                        {item.placeId ? ` | Place: ${item.placeId}` : ""}
                       </p>
                     </li>
                   );

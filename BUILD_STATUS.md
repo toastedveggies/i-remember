@@ -138,7 +138,7 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
   - [x] Add "I'm okay", "Call [caregiver]", and "Show this screen" buttons to the streaming response panel in app/app/page.tsx. Log okay_confirmed event. Surface confirmed-okay status on caregiver dashboard.
   - [x] Fix HelperModal hardcoded location and time strings. Pass activeLocationSummary and contextPacket into HelperModal as props and use them for the location and time lines.
   - [x] Add who_is_expected from contextPacket to the Today card in app/app/page.tsx
-  - [ ] Store AI response text in reorientation_card_viewed event metadata and display it in the caregiver activity panel
+  - [x] Store AI response text in reorientation_card_viewed event metadata and display it in the caregiver activity panel
 
 - Trusted location handling (in progress as of 2026-05-23, UTC-7):
   - [x] Supabase schema updated to support trusted locations and `profiles.active_caregiver_id`
@@ -297,4 +297,4 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
 
 ## Last Updated
 
-2026-05-25 (UTC-7) — Extracted model name into lib/aiConfig.ts (CLAUDE_MODEL = "claude-haiku-4-5-20251001"); both API routes now import and use CLAUDE_MODEL. tsc and lint pass clean.
+2026-05-25 (UTC-7) — trustedPlaceAddress added to reorientation_started, reorientation_card_viewed, and checkin_submitted event metadata; EventLogList now renders "Location: [place] — [address]" from metadata and drops the raw placeId from the source line. tsc and lint pass clean.
