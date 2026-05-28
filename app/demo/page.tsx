@@ -821,6 +821,41 @@ export default function DemoPage() {
           ) : null}
         </section>
 
+        {state.activeScenarioId === "lost_unknown_location" ? (
+          <section className="rounded-3xl border border-brand-border bg-brand-surface p-5 shadow-sm space-y-4">
+            <div className="space-y-1">
+              <h2 className="text-xl font-semibold text-brand-text">Classroom demo mode</h2>
+              <p className="text-sm text-brand-muted">
+                When on, AI responses use the UCLA Anderson classroom context instead of the default unrecognized-location guidance.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              <button
+                type="button"
+                onClick={() => persist({ ...state, demoClassroomMode: false })}
+                className={`rounded-2xl border px-4 py-3 text-left text-sm focus:outline-none focus:ring-2 focus:ring-brand-compass/40 ${
+                  !state.demoClassroomMode
+                    ? "border-brand-primary bg-brand-bg text-brand-text"
+                    : "border-brand-border bg-brand-surface text-brand-muted"
+                }`}
+              >
+                <span className="block font-semibold text-brand-text">Off</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => persist({ ...state, demoClassroomMode: true })}
+                className={`rounded-2xl border px-4 py-3 text-left text-sm focus:outline-none focus:ring-2 focus:ring-brand-compass/40 ${
+                  state.demoClassroomMode
+                    ? "border-brand-primary bg-brand-bg text-brand-text"
+                    : "border-brand-border bg-brand-surface text-brand-muted"
+                }`}
+              >
+                <span className="block font-semibold text-brand-text">On — UCLA Anderson context</span>
+              </button>
+            </div>
+          </section>
+        ) : null}
+
         <section className="rounded-3xl border border-brand-border bg-brand-surface p-5 shadow-sm space-y-4">
           <div className="space-y-1">
             <h2 className="text-xl font-semibold text-brand-text">Trusted locations</h2>

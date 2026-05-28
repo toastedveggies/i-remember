@@ -297,4 +297,4 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
 
 ## Last Updated
 
-2026-05-25 (UTC-7) — EventLogList: added sourceLabel and locationModeLabel helpers; source and scenario ID now render as human-readable labels; location mode renders "Trusted place" / "Other" instead of raw strings. tsc and lint pass clean.
+2026-05-28 (UTC-7) — Classroom demo mode toggle: added demoClassroomMode boolean to DemoState type, initialDemoState (false), and normalizeDemoState; replaced lost_unknown_location demoNote with DEMO OVERRIDE classroom string; SYSTEM_PROMPT in reorient/route.ts gains DEMO OVERRIDE exception rule; askQuestion POST body gates demoNote on state.demoClassroomMode and injects current_address into context when demoClassroomMode is on; demo page shows classroom mode toggle section (Off / On — UCLA Anderson context) when lost_unknown_location is the active scenario. tsc and lint pass clean.

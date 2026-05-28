@@ -349,7 +349,7 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
 
 ## Last Updated
 
-2026-05-25 (UTC-7) — EventLogList: added sourceLabel and locationModeLabel helpers; source and scenario ID now render as human-readable labels; location mode renders "Trusted place" / "Other" instead of raw strings. tsc and lint pass clean.
+2026-05-28 (UTC-7) — Classroom demo mode toggle: added demoClassroomMode boolean to DemoState type, initialDemoState (false), and normalizeDemoState; replaced lost_unknown_location demoNote with DEMO OVERRIDE classroom string; SYSTEM_PROMPT in reorient/route.ts gains DEMO OVERRIDE exception rule; askQuestion POST body gates demoNote on state.demoClassroomMode and injects current_address into context when demoClassroomMode is on; demo page shows classroom mode toggle section (Off / On — UCLA Anderson context) when lost_unknown_location is the active scenario. tsc and lint pass clean.
 
 
 // ---
@@ -627,6 +627,7 @@ export type DemoScenario = {
   scenarioPlaceId?: string | null;
   currentActivity?: string;
   scenarioHour?: number | null;
+  demoNote?: string;
   scheduledEvent?: ScheduledEventSummary;
 };
 
@@ -639,6 +640,8 @@ export type DemoState = {
   trustedLocations: TrustedLocation[];
   activeLocationSource: LocationSource;
   browserLocation: BrowserLocation | null;
+  resolvedAddress: string | null;
+  demoClassroomMode: boolean;
 };
 
 export type PronounSet = "he/him" | "she/her" | "they/them" | "custom";
@@ -652,6 +655,7 @@ export type DemoProfile = {
   caregiverRelationshipLabel?: string;
   independentMode?: boolean;
   activeCaregiverId?: string | null;
+  userPhone?: string;
 };
 
 export type TrustedLocation = {
@@ -674,7 +678,8 @@ export const defaultDemoProfile: DemoProfile = {
   caregiverName: "Maria",
   caregiverRelationshipLabel: "daughter",
   independentMode: false,
-  activeCaregiverId: "00000000-0000-0000-0000-000000000002"
+  activeCaregiverId: "00000000-0000-0000-0000-000000000002",
+  userPhone: "2345678901"
 };
 
 export const PLACE_HOME_ID = "00000000-0000-4000-8000-000000000001";
@@ -796,7 +801,8 @@ export const demoScenarios: DemoScenario[] = [
     },
     expectedLocationMode: "other",
     scenarioPlaceId: null,
-    scenarioHour: null
+    scenarioHour: null,
+    demoNote: "DEMO OVERRIDE: Ignore the default unrecognized-location rules for this response. This demonstration is taking place at UCLA Anderson School of Management in Professor Terry Kramer's Tech and Society class during a final team project presentation. For where_am_i: tell Alex he is at UCLA Anderson School of Management in Professor Kramer's Tech and Society classroom, reference the current_address field in the context if present, and reassure him he is safe. For what_is_happening: tell Alex he is in the middle of a final project team presentation with his teammates and everything is going well. For what_should_i_do_next: tell Alex to take a breath, stay calm, keep going with the presentation, and maybe show his helper card to his teammates or the professor as a fun demo moment."
   },
   {
     id: "evening_routine",
@@ -834,7 +840,9 @@ export const initialDemoState: DemoState = {
   profile: defaultDemoProfile,
   trustedLocations: defaultTrustedLocations,
   activeLocationSource: "scenario_seed",
-  browserLocation: null
+  browserLocation: null,
+  resolvedAddress: null,
+  demoClassroomMode: false
 };
 
 const activityEventTypes = new Set([
@@ -920,7 +928,8 @@ export function normalizeDemoState(raw: unknown): DemoState {
       independentMode: value.profile?.independentMode ?? false,
       activeCaregiverId: value.profile?.activeCaregiverId !== undefined
         ? value.profile.activeCaregiverId
-        : defaultDemoProfile.activeCaregiverId
+        : defaultDemoProfile.activeCaregiverId,
+      userPhone: value.profile?.userPhone ?? defaultDemoProfile.userPhone
     },
     trustedLocations: Array.isArray(value.trustedLocations) && value.trustedLocations.length > 0
       ? value.trustedLocations
@@ -934,7 +943,9 @@ export function normalizeDemoState(raw: unknown): DemoState {
     activeLocationSource: value.activeLocationSource === "browser_geolocation"
       ? "browser_geolocation"
       : "scenario_seed",
-    browserLocation
+    browserLocation,
+    resolvedAddress: typeof value.resolvedAddress === "string" ? value.resolvedAddress : null,
+    demoClassroomMode: typeof value.demoClassroomMode === "boolean" ? value.demoClassroomMode : false
   };
 }
 
@@ -2041,7 +2052,7 @@ export async function clearSeedData(): Promise<{ success: boolean; message: stri
 
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import EventLogList from "@/components/EventLogList";
 import HelperModal from "@/components/HelperModal";
@@ -2137,6 +2148,7 @@ export default function TodayWindowPage() {
   const [helperOpen, setHelperOpen] = useState(false);
   const [callingCaregiver, setCallingCaregiver] = useState(false);
   const [callingEmergency, setCallingEmergency] = useState(false);
+  const [lostAlertDismissed, setLostAlertDismissed] = useState(false);
   const [lastGuidanceUpdate, setLastGuidanceUpdate] = useState<string | null>(null);
   const [state, setState] = useState<DemoState>(initialDemoState);
 
@@ -2153,6 +2165,7 @@ export default function TodayWindowPage() {
   const [streamedText, setStreamedText] = useState("");
   const [streamingLoading, setStreamingLoading] = useState(false);
   const [streamPanelOpen, setStreamPanelOpen] = useState(false);
+  const [askedQuestions, setAskedQuestions] = useState<QuestionKey[]>([]);
   const [recentGuidanceOpen, setRecentGuidanceOpen] = useState(false);
   const [recentGuidance, setRecentGuidance] = useState<GuidanceEntry[]>([]);
 
@@ -2210,6 +2223,42 @@ export default function TodayWindowPage() {
     saveState(nextState);
   };
 
+  const stateRef = useRef(state);
+  useEffect(() => { stateRef.current = state; }, [state]);
+
+  useEffect(() => {
+    if (resolvedLocation.source !== "browser_geolocation") {
+      setState((prev) => ({ ...prev, resolvedAddress: null }));
+      return;
+    }
+
+    const { latitude, longitude } = resolvedLocation.coordinates;
+    let cancelled = false;
+
+    fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`,
+      { headers: { "User-Agent": "memory-assistant-prototype/1.0" } }
+    )
+      .then((r) => r.json() as Promise<{ display_name?: string; address?: { road?: string; city?: string } }>)
+      .then((data) => {
+        if (cancelled) return;
+        const road = data.address?.road;
+        const city = data.address?.city;
+        const addr = road && city ? `${road}, ${city}` : (data.display_name ?? "").slice(0, 60);
+        persist({ ...stateRef.current, resolvedAddress: addr });
+      })
+      .catch(() => {
+        if (!cancelled) persist({ ...stateRef.current, resolvedAddress: null });
+      });
+
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resolvedLocation.source, resolvedLocation.coordinates.latitude, resolvedLocation.coordinates.longitude]);
+
+  useEffect(() => {
+    // renders the lost alert when the condition is met; no async work needed
+  }, [activeScenario.id, resolvedLocation.source, lostAlertDismissed]);
+
   const eventLocationDetails = useMemo(
     () => ({
       placeId: resolvedLocation.matchedPlaceId,
@@ -2255,11 +2304,13 @@ export default function TodayWindowPage() {
 
     persist(nextState);
     setHelpMeNowOpen(true);
+    setAskedQuestions([]);
     setLastGuidanceUpdate(new Date().toLocaleTimeString());
   };
 
   const askQuestion = async (key: QuestionKey) => {
     setStreamingQuestion(key);
+    setAskedQuestions((prev) => [...prev, key]);
     setStreamedText("");
     setStreamingLoading(true);
     setStreamPanelOpen(true);
@@ -2270,8 +2321,12 @@ export default function TodayWindowPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           question: key,
-          context: contextPacket,
+          context: {
+            ...contextPacket,
+            ...(state.resolvedAddress !== null && state.demoClassroomMode ? { current_address: state.resolvedAddress } : {}),
+          },
           userName: state.profile.preferredName,
+          ...(state.demoClassroomMode && activeScenario.demoNote ? { demoNote: activeScenario.demoNote } : {}),
         }),
       });
 
@@ -2448,6 +2503,10 @@ export default function TodayWindowPage() {
   );
 
   const showUnknownLocationPrompt = resolvedLocation.locationMode === "other";
+  const showLostAlert =
+    activeScenario.id === "lost_unknown_location" &&
+    resolvedLocation.source === "browser_geolocation" &&
+    !lostAlertDismissed;
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-3xl px-4 py-8">
@@ -2465,7 +2524,10 @@ export default function TodayWindowPage() {
             </h2>
           </div>
           <p className="text-sm text-brand-muted">
-            <span className="font-medium text-brand-text">Where:</span> {activeLocationSummary.label}
+            <span className="font-medium text-brand-text">Where:</span>{" "}
+            {activeScenario.id === "lost_unknown_location" && state.resolvedAddress !== null
+              ? state.resolvedAddress
+              : activeLocationSummary.label}
           </p>
           {activeLocationSummary.trustedPlaceAddress ? (
             <p className="text-xs text-brand-muted">
@@ -2677,6 +2739,7 @@ export default function TodayWindowPage() {
         contextPacket={contextPacket}
         onCallCaregiver={callCaregiver}
         onCallEmergency={callEmergency}
+        resolvedAddress={state.resolvedAddress}
       />
 
       {helpMeNowOpen && !streamPanelOpen ? (
@@ -2782,6 +2845,27 @@ export default function TodayWindowPage() {
                 >
                   Show this screen
                 </button>
+                {(() => {
+                  const remainingQuestions = (["where_am_i", "what_is_happening", "what_should_i_do_next"] as QuestionKey[]).filter(
+                    (key) => !askedQuestions.includes(key)
+                  );
+                  if (remainingQuestions.length === 0) return null;
+                  return (
+                    <>
+                      <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-brand-muted">Ask another question</p>
+                      {remainingQuestions.map((key) => (
+                        <button
+                          key={key}
+                          type="button"
+                          onClick={() => askQuestion(key)}
+                          className="min-h-12 w-full rounded-2xl border border-brand-border bg-brand-bg px-4 py-3 text-left text-base font-medium text-brand-text hover:bg-brand-surface focus:outline-none focus:ring-2 focus:ring-brand-compass/40 disabled:opacity-50"
+                        >
+                          {questionLabels[key]}
+                        </button>
+                      ))}
+                    </>
+                  );
+                })()}
               </div>
             ) : null}
           </div>
@@ -2829,6 +2913,31 @@ export default function TodayWindowPage() {
             >
               Cancel
             </button>
+          </div>
+        </div>
+      ) : null}
+
+      {showLostAlert ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-sm rounded-3xl border border-brand-border bg-brand-surface p-6 shadow-lg space-y-4">
+            <h2 className="text-xl font-semibold text-brand-text">You are in an unfamiliar location</h2>
+            <p className="text-sm text-brand-muted">This does not look like one of your saved places. Would you like some help?</p>
+            <div className="space-y-3">
+              <button
+                type="button"
+                onClick={() => { setLostAlertDismissed(true); handleHelpMeNow(); }}
+                className="min-h-12 w-full rounded-2xl bg-brand-compass px-4 py-3 text-base font-semibold text-white focus:outline-none focus:ring-2 focus:ring-brand-compass/60"
+              >
+                Help me
+              </button>
+              <button
+                type="button"
+                onClick={() => setLostAlertDismissed(true)}
+                className="min-h-12 w-full rounded-2xl border border-brand-border bg-brand-bg px-4 py-3 text-base font-semibold text-brand-text focus:outline-none focus:ring-2 focus:ring-brand-compass/40"
+              >
+                I&apos;m OK
+              </button>
+            </div>
           </div>
         </div>
       ) : null}
@@ -2895,6 +3004,8 @@ export default function CaregiverPage() {
   const [stabilityScore, setStabilityScore] = useState<number | null>(null);
   const [activeIsPrimaryContact, setActiveIsPrimaryContact] = useState<boolean>(true);
   const [primaryContactName, setPrimaryContactName] = useState<string | null>(null);
+  const [lostAlertDismissed, setLostAlertDismissed] = useState(false);
+  const [callingUser, setCallingUser] = useState(false);
 
   useEffect(() => {
     const loaded = loadState();
@@ -3016,6 +3127,12 @@ export default function CaregiverPage() {
   const caregiverSituationText = activeLocationSummary.placeId
     ? `${activeScenario.happening} Next support should stay grounded in ${activeLocationSummary.label}.`
     : "The app did not recognize this location, so the safest caregiver response is calm clarification and direct support.";
+
+  const showLostAlert =
+    state.activeScenarioId === "lost_unknown_location" &&
+    state.browserLocation !== null &&
+    state.activeLocationSource === "browser_geolocation" &&
+    !lostAlertDismissed;
 
   if (state.profile.independentMode) {
     return (
@@ -3204,6 +3321,34 @@ export default function CaregiverPage() {
             )}
           </section>
 
+          {showLostAlert ? (
+            <section className="rounded-2xl border border-amber-300 bg-amber-50 px-4 py-4 space-y-3">
+              <p className="text-sm font-bold text-amber-900">Alert: Alex is outside his usual area</p>
+              <p className="text-sm text-amber-900">
+                {state.resolvedAddress ?? "Location unknown"}
+              </p>
+              <p className="text-sm text-amber-800">
+                Alex has been detected at an unrecognized location outside his saved trusted places.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setCallingUser(true)}
+                  className="min-h-10 rounded-2xl bg-brand-primary px-4 py-2 text-sm font-semibold text-white focus:outline-none focus:ring-2 focus:ring-brand-compass"
+                >
+                  Call Alex
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLostAlertDismissed(true)}
+                  className="min-h-10 rounded-2xl border border-amber-300 bg-amber-100 px-4 py-2 text-sm font-semibold text-amber-900 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                >
+                  Dismiss
+                </button>
+              </div>
+            </section>
+          ) : null}
+
           <Link
             href="/caregiver/insights"
             className="inline-flex items-center rounded-2xl border border-brand-border bg-brand-bg px-4 py-2 text-sm font-semibold text-brand-text hover:bg-brand-surface focus:outline-none focus:ring-2 focus:ring-brand-compass/40"
@@ -3237,6 +3382,22 @@ export default function CaregiverPage() {
           <EventLogList items={state.systemEvents} defaultCollapsed title="Event Log" plain emptyText="No system events yet." />
         </section>
       </div>
+
+      {callingUser ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-sm rounded-3xl border border-brand-border bg-brand-surface p-6 shadow-lg">
+            <p className="text-xl font-semibold text-brand-text">Calling Alex...</p>
+            <p className="mt-2 text-sm text-brand-muted">This is a demo. No real call is placed.</p>
+            <button
+              type="button"
+              onClick={() => setCallingUser(false)}
+              className="mt-4 min-h-12 w-full rounded-2xl border border-brand-border bg-brand-bg px-4 py-3 text-base font-semibold text-brand-text focus:outline-none focus:ring-2 focus:ring-brand-compass/40"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }
@@ -4069,6 +4230,41 @@ export default function DemoPage() {
           ) : null}
         </section>
 
+        {state.activeScenarioId === "lost_unknown_location" ? (
+          <section className="rounded-3xl border border-brand-border bg-brand-surface p-5 shadow-sm space-y-4">
+            <div className="space-y-1">
+              <h2 className="text-xl font-semibold text-brand-text">Classroom demo mode</h2>
+              <p className="text-sm text-brand-muted">
+                When on, AI responses use the UCLA Anderson classroom context instead of the default unrecognized-location guidance.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              <button
+                type="button"
+                onClick={() => persist({ ...state, demoClassroomMode: false })}
+                className={`rounded-2xl border px-4 py-3 text-left text-sm focus:outline-none focus:ring-2 focus:ring-brand-compass/40 ${
+                  !state.demoClassroomMode
+                    ? "border-brand-primary bg-brand-bg text-brand-text"
+                    : "border-brand-border bg-brand-surface text-brand-muted"
+                }`}
+              >
+                <span className="block font-semibold text-brand-text">Off</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => persist({ ...state, demoClassroomMode: true })}
+                className={`rounded-2xl border px-4 py-3 text-left text-sm focus:outline-none focus:ring-2 focus:ring-brand-compass/40 ${
+                  state.demoClassroomMode
+                    ? "border-brand-primary bg-brand-bg text-brand-text"
+                    : "border-brand-border bg-brand-surface text-brand-muted"
+                }`}
+              >
+                <span className="block font-semibold text-brand-text">On — UCLA Anderson context</span>
+              </button>
+            </div>
+          </section>
+        ) : null}
+
         <section className="rounded-3xl border border-brand-border bg-brand-surface p-5 shadow-sm space-y-4">
           <div className="space-y-1">
             <h2 className="text-xl font-semibold text-brand-text">Trusted locations</h2>
@@ -4239,6 +4435,7 @@ Rules:
 - If location_mode is "other" or the context says the place is unrecognized, do not guess the location, address, activity, appointment, or reason for being there.
 - If context is incomplete, say only what is known and suggest a calm next step.
 - End with one grounding, reassuring sentence.
+- Exception: if the user prompt contains a line starting with DEMO OVERRIDE, follow those instructions exactly and ignore all location and context rules above.
 
 Question rules:
 - "Where am I?" focuses only on location. If the location is unrecognized, say that clearly.
@@ -4253,8 +4450,8 @@ const questionPrompts: Record<string, string> = {
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json() as { question?: string; context?: Record<string, string>; userName?: string };
-    const { question, context, userName } = body;
+    const body = await req.json() as { question?: string; context?: Record<string, string>; userName?: string; demoNote?: string };
+    const { question, context, userName, demoNote } = body;
 
     const questionKey = question ?? "where_am_i";
     const questionPrompt = questionPrompts[questionKey] ?? questionPrompts.where_am_i;
@@ -4273,7 +4470,7 @@ The person's name is ${name}.
 Current context:
 ${contextBlock}
 
-Respond directly to ${name} now.`;
+Respond directly to ${name} now.${demoNote ? `\n\nAdditional context for this response: ${demoNote}` : ""}`;
 
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
     const encoder = new TextEncoder();
@@ -4420,12 +4617,6 @@ export async function POST(req: NextRequest) {
 
 // ---
 
-// FILE: supabasemigrations60518_initial_schema.sql
-
-[NOT FOUND]
-
-// ---
-
 // FILE: components/HelperModal.tsx
 
 "use client";
@@ -4444,9 +4635,10 @@ type HelperModalProps = {
   contextPacket: ContextPacket;
   onCallCaregiver?: () => void;
   onCallEmergency?: () => void;
+  resolvedAddress?: string | null;
 };
 
-export default function HelperModal({ open, onClose, profile, activeLocationSummary, contextPacket, onCallCaregiver, onCallEmergency }: HelperModalProps) {
+export default function HelperModal({ open, onClose, profile, activeLocationSummary, contextPacket, onCallCaregiver, onCallEmergency, resolvedAddress }: HelperModalProps) {
   const words = pronounWords(profile.pronouns, profile.customPronouns);
 
   useEffect(() => {
@@ -4502,7 +4694,9 @@ export default function HelperModal({ open, onClose, profile, activeLocationSumm
                   <div className="mt-1 text-base text-brand-muted">
                     {activeLocationSummary.placeId
                       ? `You are at ${activeLocationSummary.label}, and you are safe right now.`
-                      : activeLocationSummary.detail}
+                      : resolvedAddress != null
+                        ? resolvedAddress
+                        : activeLocationSummary.detail}
                   </div>
                 </div>
               </div>

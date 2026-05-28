@@ -14,9 +14,10 @@ type HelperModalProps = {
   contextPacket: ContextPacket;
   onCallCaregiver?: () => void;
   onCallEmergency?: () => void;
+  resolvedAddress?: string | null;
 };
 
-export default function HelperModal({ open, onClose, profile, activeLocationSummary, contextPacket, onCallCaregiver, onCallEmergency }: HelperModalProps) {
+export default function HelperModal({ open, onClose, profile, activeLocationSummary, contextPacket, onCallCaregiver, onCallEmergency, resolvedAddress }: HelperModalProps) {
   const words = pronounWords(profile.pronouns, profile.customPronouns);
 
   useEffect(() => {
@@ -72,7 +73,9 @@ export default function HelperModal({ open, onClose, profile, activeLocationSumm
                   <div className="mt-1 text-base text-brand-muted">
                     {activeLocationSummary.placeId
                       ? `You are at ${activeLocationSummary.label}, and you are safe right now.`
-                      : activeLocationSummary.detail}
+                      : resolvedAddress != null
+                        ? resolvedAddress
+                        : activeLocationSummary.detail}
                   </div>
                 </div>
               </div>

@@ -53,6 +53,7 @@ export type DemoScenario = {
   scenarioPlaceId?: string | null;
   currentActivity?: string;
   scenarioHour?: number | null;
+  demoNote?: string;
   scheduledEvent?: ScheduledEventSummary;
 };
 
@@ -65,6 +66,8 @@ export type DemoState = {
   trustedLocations: TrustedLocation[];
   activeLocationSource: LocationSource;
   browserLocation: BrowserLocation | null;
+  resolvedAddress: string | null;
+  demoClassroomMode: boolean;
 };
 
 export type PronounSet = "he/him" | "she/her" | "they/them" | "custom";
@@ -78,6 +81,7 @@ export type DemoProfile = {
   caregiverRelationshipLabel?: string;
   independentMode?: boolean;
   activeCaregiverId?: string | null;
+  userPhone?: string;
 };
 
 export type TrustedLocation = {
@@ -100,7 +104,8 @@ export const defaultDemoProfile: DemoProfile = {
   caregiverName: "Maria",
   caregiverRelationshipLabel: "daughter",
   independentMode: false,
-  activeCaregiverId: "00000000-0000-0000-0000-000000000002"
+  activeCaregiverId: "00000000-0000-0000-0000-000000000002",
+  userPhone: "2345678901"
 };
 
 export const PLACE_HOME_ID = "00000000-0000-4000-8000-000000000001";
@@ -222,7 +227,8 @@ export const demoScenarios: DemoScenario[] = [
     },
     expectedLocationMode: "other",
     scenarioPlaceId: null,
-    scenarioHour: null
+    scenarioHour: null,
+    demoNote: "DEMO OVERRIDE: Ignore the default unrecognized-location rules for this response. This demonstration is taking place at UCLA Anderson School of Management in Professor Terry Kramer's Tech and Society class during a final team project presentation. For where_am_i: tell Alex he is at UCLA Anderson School of Management in Professor Kramer's Tech and Society classroom, reference the current_address field in the context if present, and reassure him he is safe. For what_is_happening: tell Alex he is in the middle of a final project team presentation with his teammates and everything is going well. For what_should_i_do_next: tell Alex to take a breath, stay calm, keep going with the presentation, and maybe show his helper card to his teammates or the professor as a fun demo moment."
   },
   {
     id: "evening_routine",
@@ -260,7 +266,9 @@ export const initialDemoState: DemoState = {
   profile: defaultDemoProfile,
   trustedLocations: defaultTrustedLocations,
   activeLocationSource: "scenario_seed",
-  browserLocation: null
+  browserLocation: null,
+  resolvedAddress: null,
+  demoClassroomMode: false
 };
 
 const activityEventTypes = new Set([
@@ -346,7 +354,8 @@ export function normalizeDemoState(raw: unknown): DemoState {
       independentMode: value.profile?.independentMode ?? false,
       activeCaregiverId: value.profile?.activeCaregiverId !== undefined
         ? value.profile.activeCaregiverId
-        : defaultDemoProfile.activeCaregiverId
+        : defaultDemoProfile.activeCaregiverId,
+      userPhone: value.profile?.userPhone ?? defaultDemoProfile.userPhone
     },
     trustedLocations: Array.isArray(value.trustedLocations) && value.trustedLocations.length > 0
       ? value.trustedLocations
@@ -360,7 +369,9 @@ export function normalizeDemoState(raw: unknown): DemoState {
     activeLocationSource: value.activeLocationSource === "browser_geolocation"
       ? "browser_geolocation"
       : "scenario_seed",
-    browserLocation
+    browserLocation,
+    resolvedAddress: typeof value.resolvedAddress === "string" ? value.resolvedAddress : null,
+    demoClassroomMode: typeof value.demoClassroomMode === "boolean" ? value.demoClassroomMode : false
   };
 }
 

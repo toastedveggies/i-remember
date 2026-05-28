@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import EventLogList from "@/components/EventLogList";
 import HelperModal from "@/components/HelperModal";
@@ -96,6 +96,7 @@ export default function TodayWindowPage() {
   const [helperOpen, setHelperOpen] = useState(false);
   const [callingCaregiver, setCallingCaregiver] = useState(false);
   const [callingEmergency, setCallingEmergency] = useState(false);
+  const [lostAlertDismissed, setLostAlertDismissed] = useState(false);
   const [lastGuidanceUpdate, setLastGuidanceUpdate] = useState<string | null>(null);
   const [state, setState] = useState<DemoState>(initialDemoState);
 
@@ -112,6 +113,7 @@ export default function TodayWindowPage() {
   const [streamedText, setStreamedText] = useState("");
   const [streamingLoading, setStreamingLoading] = useState(false);
   const [streamPanelOpen, setStreamPanelOpen] = useState(false);
+  const [askedQuestions, setAskedQuestions] = useState<QuestionKey[]>([]);
   const [recentGuidanceOpen, setRecentGuidanceOpen] = useState(false);
   const [recentGuidance, setRecentGuidance] = useState<GuidanceEntry[]>([]);
 
@@ -169,6 +171,42 @@ export default function TodayWindowPage() {
     saveState(nextState);
   };
 
+  const stateRef = useRef(state);
+  useEffect(() => { stateRef.current = state; }, [state]);
+
+  useEffect(() => {
+    if (resolvedLocation.source !== "browser_geolocation") {
+      setState((prev) => ({ ...prev, resolvedAddress: null }));
+      return;
+    }
+
+    const { latitude, longitude } = resolvedLocation.coordinates;
+    let cancelled = false;
+
+    fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`,
+      { headers: { "User-Agent": "memory-assistant-prototype/1.0" } }
+    )
+      .then((r) => r.json() as Promise<{ display_name?: string; address?: { road?: string; city?: string } }>)
+      .then((data) => {
+        if (cancelled) return;
+        const road = data.address?.road;
+        const city = data.address?.city;
+        const addr = road && city ? `${road}, ${city}` : (data.display_name ?? "").slice(0, 60);
+        persist({ ...stateRef.current, resolvedAddress: addr });
+      })
+      .catch(() => {
+        if (!cancelled) persist({ ...stateRef.current, resolvedAddress: null });
+      });
+
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resolvedLocation.source, resolvedLocation.coordinates.latitude, resolvedLocation.coordinates.longitude]);
+
+  useEffect(() => {
+    // renders the lost alert when the condition is met; no async work needed
+  }, [activeScenario.id, resolvedLocation.source, lostAlertDismissed]);
+
   const eventLocationDetails = useMemo(
     () => ({
       placeId: resolvedLocation.matchedPlaceId,
@@ -214,11 +252,13 @@ export default function TodayWindowPage() {
 
     persist(nextState);
     setHelpMeNowOpen(true);
+    setAskedQuestions([]);
     setLastGuidanceUpdate(new Date().toLocaleTimeString());
   };
 
   const askQuestion = async (key: QuestionKey) => {
     setStreamingQuestion(key);
+    setAskedQuestions((prev) => [...prev, key]);
     setStreamedText("");
     setStreamingLoading(true);
     setStreamPanelOpen(true);
@@ -229,8 +269,12 @@ export default function TodayWindowPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           question: key,
-          context: contextPacket,
+          context: {
+            ...contextPacket,
+            ...(state.resolvedAddress !== null && state.demoClassroomMode ? { current_address: state.resolvedAddress } : {}),
+          },
           userName: state.profile.preferredName,
+          ...(state.demoClassroomMode && activeScenario.demoNote ? { demoNote: activeScenario.demoNote } : {}),
         }),
       });
 
@@ -407,6 +451,10 @@ export default function TodayWindowPage() {
   );
 
   const showUnknownLocationPrompt = resolvedLocation.locationMode === "other";
+  const showLostAlert =
+    activeScenario.id === "lost_unknown_location" &&
+    resolvedLocation.source === "browser_geolocation" &&
+    !lostAlertDismissed;
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-3xl px-4 py-8">
@@ -424,7 +472,10 @@ export default function TodayWindowPage() {
             </h2>
           </div>
           <p className="text-sm text-brand-muted">
-            <span className="font-medium text-brand-text">Where:</span> {activeLocationSummary.label}
+            <span className="font-medium text-brand-text">Where:</span>{" "}
+            {activeScenario.id === "lost_unknown_location" && state.resolvedAddress !== null
+              ? state.resolvedAddress
+              : activeLocationSummary.label}
           </p>
           {activeLocationSummary.trustedPlaceAddress ? (
             <p className="text-xs text-brand-muted">
@@ -636,6 +687,7 @@ export default function TodayWindowPage() {
         contextPacket={contextPacket}
         onCallCaregiver={callCaregiver}
         onCallEmergency={callEmergency}
+        resolvedAddress={state.resolvedAddress}
       />
 
       {helpMeNowOpen && !streamPanelOpen ? (
@@ -741,6 +793,27 @@ export default function TodayWindowPage() {
                 >
                   Show this screen
                 </button>
+                {(() => {
+                  const remainingQuestions = (["where_am_i", "what_is_happening", "what_should_i_do_next"] as QuestionKey[]).filter(
+                    (key) => !askedQuestions.includes(key)
+                  );
+                  if (remainingQuestions.length === 0) return null;
+                  return (
+                    <>
+                      <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-brand-muted">Ask another question</p>
+                      {remainingQuestions.map((key) => (
+                        <button
+                          key={key}
+                          type="button"
+                          onClick={() => askQuestion(key)}
+                          className="min-h-12 w-full rounded-2xl border border-brand-border bg-brand-bg px-4 py-3 text-left text-base font-medium text-brand-text hover:bg-brand-surface focus:outline-none focus:ring-2 focus:ring-brand-compass/40 disabled:opacity-50"
+                        >
+                          {questionLabels[key]}
+                        </button>
+                      ))}
+                    </>
+                  );
+                })()}
               </div>
             ) : null}
           </div>
@@ -788,6 +861,31 @@ export default function TodayWindowPage() {
             >
               Cancel
             </button>
+          </div>
+        </div>
+      ) : null}
+
+      {showLostAlert ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-sm rounded-3xl border border-brand-border bg-brand-surface p-6 shadow-lg space-y-4">
+            <h2 className="text-xl font-semibold text-brand-text">You are in an unfamiliar location</h2>
+            <p className="text-sm text-brand-muted">This does not look like one of your saved places. Would you like some help?</p>
+            <div className="space-y-3">
+              <button
+                type="button"
+                onClick={() => { setLostAlertDismissed(true); handleHelpMeNow(); }}
+                className="min-h-12 w-full rounded-2xl bg-brand-compass px-4 py-3 text-base font-semibold text-white focus:outline-none focus:ring-2 focus:ring-brand-compass/60"
+              >
+                Help me
+              </button>
+              <button
+                type="button"
+                onClick={() => setLostAlertDismissed(true)}
+                className="min-h-12 w-full rounded-2xl border border-brand-border bg-brand-bg px-4 py-3 text-base font-semibold text-brand-text focus:outline-none focus:ring-2 focus:ring-brand-compass/40"
+              >
+                I&apos;m OK
+              </button>
+            </div>
           </div>
         </div>
       ) : null}

@@ -36,6 +36,8 @@ export default function CaregiverPage() {
   const [stabilityScore, setStabilityScore] = useState<number | null>(null);
   const [activeIsPrimaryContact, setActiveIsPrimaryContact] = useState<boolean>(true);
   const [primaryContactName, setPrimaryContactName] = useState<string | null>(null);
+  const [lostAlertDismissed, setLostAlertDismissed] = useState(false);
+  const [callingUser, setCallingUser] = useState(false);
 
   useEffect(() => {
     const loaded = loadState();
@@ -157,6 +159,12 @@ export default function CaregiverPage() {
   const caregiverSituationText = activeLocationSummary.placeId
     ? `${activeScenario.happening} Next support should stay grounded in ${activeLocationSummary.label}.`
     : "The app did not recognize this location, so the safest caregiver response is calm clarification and direct support.";
+
+  const showLostAlert =
+    state.activeScenarioId === "lost_unknown_location" &&
+    state.browserLocation !== null &&
+    state.activeLocationSource === "browser_geolocation" &&
+    !lostAlertDismissed;
 
   if (state.profile.independentMode) {
     return (
@@ -345,6 +353,34 @@ export default function CaregiverPage() {
             )}
           </section>
 
+          {showLostAlert ? (
+            <section className="rounded-2xl border border-amber-300 bg-amber-50 px-4 py-4 space-y-3">
+              <p className="text-sm font-bold text-amber-900">Alert: Alex is outside his usual area</p>
+              <p className="text-sm text-amber-900">
+                {state.resolvedAddress ?? "Location unknown"}
+              </p>
+              <p className="text-sm text-amber-800">
+                Alex has been detected at an unrecognized location outside his saved trusted places.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setCallingUser(true)}
+                  className="min-h-10 rounded-2xl bg-brand-primary px-4 py-2 text-sm font-semibold text-white focus:outline-none focus:ring-2 focus:ring-brand-compass"
+                >
+                  Call Alex
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLostAlertDismissed(true)}
+                  className="min-h-10 rounded-2xl border border-amber-300 bg-amber-100 px-4 py-2 text-sm font-semibold text-amber-900 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                >
+                  Dismiss
+                </button>
+              </div>
+            </section>
+          ) : null}
+
           <Link
             href="/caregiver/insights"
             className="inline-flex items-center rounded-2xl border border-brand-border bg-brand-bg px-4 py-2 text-sm font-semibold text-brand-text hover:bg-brand-surface focus:outline-none focus:ring-2 focus:ring-brand-compass/40"
@@ -378,6 +414,22 @@ export default function CaregiverPage() {
           <EventLogList items={state.systemEvents} defaultCollapsed title="Event Log" plain emptyText="No system events yet." />
         </section>
       </div>
+
+      {callingUser ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-sm rounded-3xl border border-brand-border bg-brand-surface p-6 shadow-lg">
+            <p className="text-xl font-semibold text-brand-text">Calling Alex...</p>
+            <p className="mt-2 text-sm text-brand-muted">This is a demo. No real call is placed.</p>
+            <button
+              type="button"
+              onClick={() => setCallingUser(false)}
+              className="mt-4 min-h-12 w-full rounded-2xl border border-brand-border bg-brand-bg px-4 py-3 text-base font-semibold text-brand-text focus:outline-none focus:ring-2 focus:ring-brand-compass/40"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }
