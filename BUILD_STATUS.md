@@ -143,6 +143,8 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
   - [x] Greeting area: Call caregiver and Show Helper Card moved to icon buttons (teal phone + idCard) in greeting row. Support rows, AI note card, and standalone Call for Help button removed. Recent guidance link moved into Get Help modal. Check-In updated to #6B9467, Get Help to #8B7B5A. Added idCard icon to MemoryIcon.tsx.
   - [x] New color palette + Lora/Nunito fonts: tailwind.config.ts updated (brand.bg/text/muted/border, added sage/sageDark/warm/warmDark, fontFamily); layout.tsx font preconnect links; globals.css font-family and background; /app page greeting serif/muted, orientation card sage/warm row styling, Check-In and Get Help buttons restyled with icon containers.
   - [x] Orientation card header flush to top edge (border-b, no rounded-xl/mb-3); date row py-3 no pt-4; check-in question selection and saved box updated to sage palette.
+  - [x] Caregiver dashboard Phase 9 rewrite: new care color tokens (careGreen/careRust/careTeal/etc.) added to tailwind.config.ts; full primary return rewritten with sticky header (BrandLogo, active badge), status grid, stats row, inline activity feed with dot indicators, Today's Snapshot, Event Log, Insights link; helper functions added; "Memory Assistant" → "Claira" and "Simulation route only" removed from all branches.
+  - [x] Activity feed: added formatQuestionKey() helper to display question keys as readable text instead of raw underscore_separated strings.
   - [ ] Review and tighten spacing and typography consistency across all screens
   - [ ] Ensure all scenarios look correct on iPhone SE screen size
   - [ ] Review caregiver dashboard layout on mobile

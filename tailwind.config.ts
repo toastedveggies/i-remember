@@ -22,7 +22,15 @@ const config: Config = {
           sage: "#C8E2C4",
           sageDark: "#7C9B78",
           warm: "#EBE3D5",
-          warmDark: "#8B7355"
+          warmDark: "#8B7355",
+          careGreen: "#4B8B62",
+          careGreenLight: "#E8F5E9",
+          careRust: "#D96E4C",
+          careTeal: "#3B899C",
+          careText: "#111827",
+          careMuted: "#6B7280",
+          careBorder: "#F3F0E9",
+          careBg: "#FDFBF7"
         },
         // Back-compat tokens (existing class names used during earlier prototype passes).
         calm: {
