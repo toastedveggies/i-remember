@@ -3,9 +3,9 @@
 @tailwind utilities;
 
 body {
-  background: #F8F4EE;
+  background: #F6F3EE;
   color: #1F2529;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: 'Nunito', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-size: 18px; /* Larger base text for impaired vision */
   line-height: 1.6;
 }

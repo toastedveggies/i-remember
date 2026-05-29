@@ -188,6 +188,13 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
 ## Active / Next Task
 
 - Phase 9 - UI and Flow Polish (active as of 2026-05-28, UTC-7):
+  - [x] Rename to Claira: SiteHeader wordmark updated, subtitle removed; BrandLogo MA→C and aria-label updated; layout.tsx metadata title and description updated
+  - [x] Rewrite app/app/page.tsx return block to Phase 9 mockup: sticky CLAIRA header, greeting section, 4-row orientation card, 2-button grid (Check-In/Get Help), check-in expansion, recent guidance link, support rows (Call caregiver/Helper Card), AI note card; all modals preserved unchanged. Added utensils/bell/chevronRight/sun icon cases to MemoryIcon.tsx.
+  - [x] Remove duplicate sticky header from /app page; fix AI note card to show activeScenario.guidance; move Call for Help button outside the note card as full-width standalone button.
+  - [x] Color and card styling pass on /app page: Check-In button #5E7A5C, Get Help button #7A6545, caregiver row teal-700, orientation card border removed + shadow-sm, row icon slots bg-brand-surface/green-50/amber-50, all card rows py-3.
+  - [x] Greeting area: Call caregiver and Show Helper Card moved to icon buttons (teal phone + idCard) in greeting row. Support rows, AI note card, and standalone Call for Help button removed. Recent guidance link moved into Get Help modal. Check-In updated to #6B9467, Get Help to #8B7B5A. Added idCard icon to MemoryIcon.tsx.
+  - [x] New color palette + Lora/Nunito fonts: tailwind.config.ts updated (brand.bg/text/muted/border, added sage/sageDark/warm/warmDark, fontFamily); layout.tsx font preconnect links; globals.css font-family and background; /app page greeting serif/muted, orientation card sage/warm row styling, Check-In and Get Help buttons restyled with icon containers.
+  - [x] Orientation card header flush to top edge (border-b, no rounded-xl/mb-3); date row py-3 no pt-4; check-in question selection and saved box updated to sage palette.
   - [ ] Review and tighten spacing and typography consistency across all screens
   - [ ] Ensure all scenarios look correct on iPhone SE screen size
   - [ ] Review caregiver dashboard layout on mobile
@@ -366,7 +373,7 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
 
 ## Last Updated
 
-2026-05-28 (UTC-7) — Phase 8 marked complete (real-time location, reverse geocoding, proactive lost alert, classroom demo mode toggle, follow-up question buttons, caregiver lost alert, Call Alex button). Phase 9 UI and Flow Polish opened as active phase. tsc and lint pass clean.
+2026-05-28 (UTC-7) — app/app/page.tsx return block rewritten to Phase 9 mockup. MemoryIcon.tsx gains utensils, bell, chevronRight, sun. tsc and lint pass clean.
 
 
 // ---
@@ -595,17 +602,25 @@ const config: Config = {
   content: ["./app/**/*.{js,ts,jsx,tsx,mdx}", "./components/**/*.{js,ts,jsx,tsx,mdx}"],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ["Nunito", "system-ui", "-apple-system", "sans-serif"],
+        serif: ["Lora", "Georgia", "serif"],
+      },
       colors: {
         brand: {
-          bg: "#F8F4EE",
+          bg: "#F6F3EE",
           surface: "#FFFDF9",
-          text: "#1F2529",
-          muted: "#4B5560",
+          text: "#5A4A3A",
+          muted: "#8B7D6B",
           primary: "#355B5A",
           compass: "#A44A3F",
           highlight: "#D8A35D",
           support: "#E8EFE8",
-          border: "#D9D6D0"
+          border: "#E3DAC9",
+          sage: "#C8E2C4",
+          sageDark: "#7C9B78",
+          warm: "#EBE3D5",
+          warmDark: "#8B7355"
         },
         // Back-compat tokens (existing class names used during earlier prototype passes).
         calm: {
@@ -636,9 +651,9 @@ export default config;
 @tailwind utilities;
 
 body {
-  background: #F8F4EE;
+  background: #F6F3EE;
   color: #1F2529;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: 'Nunito', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-size: 18px; /* Larger base text for impaired vision */
   line-height: 1.6;
 }
@@ -658,13 +673,19 @@ import SiteHeader from "@/components/SiteHeader";
 import DemoAccessGate from "@/components/DemoAccessGate";
 
 export const metadata: Metadata = {
-  title: "Memory Assistant",
-  description: "Mobile-first prototype for present-moment reorientation support."
+  title: "Claira",
+  description: "Present-moment support for people with memory impairment."
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        {/* eslint-disable-next-line @next/next/no-page-custom-font */}
+        <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+      </head>
       <body>
         <DemoAccessGate>
           <SiteHeader />
@@ -743,8 +764,6 @@ export default function LandingPage() {
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
-import EventLogList from "@/components/EventLogList";
 import HelperModal from "@/components/HelperModal";
 import MemoryIcon from "@/components/MemoryIcon";
 import {
@@ -825,13 +844,12 @@ function recommendedNextAction(question: string, caregiverName: string): string 
   return "Pause, read the next step slowly, and ask for support if you want it.";
 }
 
-function timeGreeting(name: string, scenarioHour: number | null = null): string {
+function greetingPrefix(scenarioHour: number | null = null): string {
   const hour = scenarioHour !== null ? scenarioHour : new Date().getHours();
-  const preferredName = name || "Alex";
-  if (hour >= 5 && hour < 12) return `Good morning, ${preferredName}.`;
-  if (hour >= 12 && hour < 17) return `Good afternoon, ${preferredName}.`;
-  if (hour >= 17 && hour < 21) return `Good evening, ${preferredName}.`;
-  return `Good night, ${preferredName}.`;
+  if (hour >= 5 && hour < 12) return "Good morning,";
+  if (hour >= 12 && hour < 17) return "Good afternoon,";
+  if (hour >= 17 && hour < 21) return "Good evening,";
+  return "Good night,";
 }
 
 export default function TodayWindowPage() {
@@ -839,7 +857,6 @@ export default function TodayWindowPage() {
   const [callingCaregiver, setCallingCaregiver] = useState(false);
   const [callingEmergency, setCallingEmergency] = useState(false);
   const [lostAlertDismissed, setLostAlertDismissed] = useState(false);
-  const [lastGuidanceUpdate, setLastGuidanceUpdate] = useState<string | null>(null);
   const [state, setState] = useState<DemoState>(initialDemoState);
 
   const [emergencyExpanded, setEmergencyExpanded] = useState(false);
@@ -995,7 +1012,6 @@ export default function TodayWindowPage() {
     persist(nextState);
     setHelpMeNowOpen(true);
     setAskedQuestions([]);
-    setLastGuidanceUpdate(new Date().toLocaleTimeString());
   };
 
   const askQuestion = async (key: QuestionKey) => {
@@ -1188,237 +1204,187 @@ export default function TodayWindowPage() {
     setCallingEmergency(true);
   };
 
-  const eventItems = [...state.activityEvents, ...state.systemEvents].sort(
-    (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-  );
-
   const showUnknownLocationPrompt = resolvedLocation.locationMode === "other";
   const showLostAlert =
     activeScenario.id === "lost_unknown_location" &&
     resolvedLocation.source === "browser_geolocation" &&
     !lostAlertDismissed;
 
+  const dateString = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
+
   return (
-    <main className="mx-auto min-h-screen w-full max-w-3xl px-4 py-8">
-      <div className="space-y-6">
-        <header className="space-y-1 text-center">
-          <h1 className="text-4xl font-semibold text-brand-text">Today</h1>
-          <p className="text-lg text-brand-muted">{timeGreeting(state.profile.preferredName, activeScenario.scenarioHour ?? null)}</p>
-        </header>
-
-        <section className="rounded-3xl border border-brand-border bg-brand-surface p-5 shadow-sm space-y-3">
-          <div className="flex items-center gap-2">
-            <MemoryIcon name="clock" className="h-6 w-6 text-brand-primary" />
-            <h2 className="text-lg font-semibold text-brand-text">
-              {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
-            </h2>
+    <main className="mx-auto min-h-screen w-full max-w-md bg-brand-bg">
+      <div className="space-y-4 px-4 pb-8 pt-4">
+        {/* Section 1: Greeting */}
+        <div className="flex items-start justify-between">
+          <div>
+            <p className="text-xl font-medium text-brand-muted">{greetingPrefix(activeScenario.scenarioHour ?? null)}</p>
+            <p className="font-serif text-4xl font-bold text-brand-text">{state.profile.preferredName}</p>
+            <p className="text-sm text-brand-muted">{dateString}</p>
           </div>
-          <p className="text-sm text-brand-muted">
-            <span className="font-medium text-brand-text">Where:</span>{" "}
-            {activeScenario.id === "lost_unknown_location" && state.resolvedAddress !== null
-              ? state.resolvedAddress
-              : activeLocationSummary.label}
-          </p>
-          {activeLocationSummary.trustedPlaceAddress ? (
-            <p className="text-xs text-brand-muted">
-              Saved place: {activeLocationSummary.trustedPlaceAddress}
-            </p>
-          ) : null}
-          {activeLocationSummary.fallbackMessage ? (
-            <p className="rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-              {activeLocationSummary.fallbackMessage}
-            </p>
-          ) : null}
-          <p className="text-sm text-brand-muted">
-            <span className="font-medium text-brand-text">Next:</span> {contextPacket.next_event}
-          </p>
-          {contextPacket.who_is_expected !== "No other people are required right now." ? (
-            <p className="text-sm text-brand-muted">
-              <span className="font-medium text-brand-text">Who:</span> {contextPacket.who_is_expected}
-            </p>
-          ) : null}
-        </section>
-
-        <section className="space-y-3">
-          <div className="grid grid-cols-1 gap-4 md:gap-0 md:grid-cols-2 md:divide-x md:divide-brand-border">
-            <div className="space-y-3">
-              <button
-                type="button"
-                onClick={handleOpenCheckIn}
-                disabled={checkInOpen}
-                className={`flex min-h-14 w-full items-center gap-3 rounded-2xl px-4 py-4 text-base font-semibold text-white transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-green-400 ${
-                  checkInOpen ? "bg-green-800 opacity-75" : "bg-green-700"
-                }`}
-              >
-                <MemoryIcon name="checkCircle" className="h-6 w-6 shrink-0 text-white" />
-                {checkInDoneThisSession ? "Do another check-in" : "Do a quick check-in"}
-              </button>
-
-              {checkInOpen && checkInQuestionsLoading ? (
-                <p className="text-xs text-brand-muted">Preparing your check-in...</p>
-              ) : null}
-
-              <div
-                className={`overflow-hidden transition-all duration-300 ease-in-out ${
-                  checkInOpen && !checkInQuestionsLoading && aiCheckInQuestions.length > 0
-                    ? "max-h-[500px] opacity-100"
-                    : "max-h-0 opacity-0"
-                }`}
-              >
-                <div className="space-y-2 pt-1">
-                  {aiCheckInQuestions.map((question, index) => {
-                    const isSelected = question === checkInSelectedQuestion;
-                    const isDeselected = checkInSelectedQuestion !== "" && !isSelected;
-
-                    return (
-                      <button
-                        key={index}
-                        type="button"
-                        onClick={() => handleCheckInTap(question)}
-                        className={`w-full cursor-pointer rounded-xl border p-4 text-left text-sm font-medium transition-colors duration-100 focus:outline-none focus:ring-2 focus:ring-lime-400 ${
-                          isSelected
-                            ? "border-lime-500 bg-lime-100 text-brand-text"
-                            : isDeselected
-                              ? "border-brand-border bg-white text-brand-text opacity-60"
-                              : "border-brand-border bg-white text-brand-text hover:bg-lime-50"
-                        }`}
-                      >
-                        {question}
-                      </button>
-                    );
-                  })}
-                  <p className="text-xs text-brand-muted">
-                    {checkInSelectedQuestion
-                      ? "Tap the highlighted option again to confirm."
-                      : "Tap once to select, tap again to confirm."}
-                  </p>
-                </div>
-              </div>
-
-              {checkInDoneThisSession && !checkInOpen ? (
-                <div className="rounded-2xl border border-lime-200 bg-lime-50 px-4 py-3">
-                  <p className="text-sm font-medium text-lime-800">Check-in saved.</p>
-                  <p className="mt-1 text-xs text-brand-muted">{state.checkInStatus}</p>
-                </div>
-              ) : null}
-            </div>
-
-            <div className="space-y-3">
-              <button
-                type="button"
-                onClick={handleHelpMeNow}
-                className="flex min-h-14 w-full items-center gap-3 rounded-2xl bg-brand-primary px-4 py-4 text-base font-semibold text-white focus:outline-none focus:ring-2 focus:ring-brand-compass"
-              >
-                <MemoryIcon name="home" className="h-6 w-6 shrink-0 text-white" />
-                Help Me Now
-              </button>
-              {lastGuidanceUpdate ? (
-                <p className="text-sm text-brand-muted">Last used at {lastGuidanceUpdate}.</p>
-              ) : null}
-
-              <div className="flex justify-end">
-                <button
-                  type="button"
-                  onClick={() => setRecentGuidanceOpen(true)}
-                  className="text-sm text-brand-muted underline underline-offset-2"
-                >
-                  Recent guidance
-                </button>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {showUnknownLocationPrompt ? (
-          <section className="rounded-3xl border border-amber-200 bg-amber-50 p-5 shadow-sm space-y-2">
-            <h2 className="text-lg font-semibold text-amber-900">Unrecognized location</h2>
-            <p className="text-sm text-amber-900">
-              I do not recognize this as one of your saved trusted places. Are you somewhere safe?
-            </p>
-            <p className="text-sm text-amber-800">
-              Stay where you are if it feels safe. You can call {state.profile.caregiverName}, show your helper card, or call emergency services if this feels urgent.
-            </p>
-          </section>
-        ) : null}
-
-        <section className="space-y-3">
-          <div className="space-y-3">
+          <div className="flex items-center gap-2 pt-2">
             <button
               type="button"
               onClick={callCaregiver}
-              className="flex min-h-14 w-full items-center gap-3 rounded-2xl bg-brand-primary px-4 py-4 text-base font-semibold text-white focus:outline-none focus:ring-2 focus:ring-brand-compass"
+              aria-label={`Call ${state.profile.caregiverName}`}
+              className="flex h-11 w-11 items-center justify-center rounded-full bg-brand-sageDark text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-sageDark/40"
             >
-              <MemoryIcon name="phone" className="h-6 w-6 shrink-0 text-white" />
-              {`Call ${state.profile.caregiverName}`}
+              <MemoryIcon name="phone" className="h-5 w-5 text-white" />
             </button>
-            <p className="text-sm text-brand-muted">{`Call ${state.profile.caregiverName} for reassurance.`}</p>
-          </div>
-
-          <div className="space-y-3">
             <button
               type="button"
-              onClick={() => {
-                persist(appendActivityEvent(state, createLocationEvent("helper_card_shown")));
-                setHelperOpen(true);
-              }}
-              className="flex min-h-14 w-full items-center gap-3 rounded-2xl bg-brand-primary px-4 py-4 text-base font-semibold text-white focus:outline-none focus:ring-2 focus:ring-brand-compass"
+              onClick={() => { persist(appendActivityEvent(state, createLocationEvent("helper_card_shown"))); setHelperOpen(true); }}
+              aria-label="Show Helper Card"
+              className="flex h-11 w-11 items-center justify-center rounded-full border border-brand-border bg-brand-surface shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30"
             >
-              <MemoryIcon name="compass" className="h-6 w-6 shrink-0 text-white" />
-              Show helper card
+              <MemoryIcon name="idCard" className="h-5 w-5 text-brand-primary" />
             </button>
-            <p className="text-sm text-brand-muted">A simple screen you can show to a nearby person.</p>
+          </div>
+        </div>
+
+        {/* Section 2: Orientation card */}
+        <div className="overflow-hidden rounded-2xl bg-brand-surface shadow-sm">
+          <div className="flex items-center gap-2 border-b border-[#E3DAC9] bg-[#C8E2C4]/30 px-4 py-3">
+            <MemoryIcon name="mapPin" className="h-4 w-4 text-brand-sageDark" />
+            <span className="text-xs font-bold uppercase tracking-widest text-brand-sageDark">WHERE YOU ARE NOW</span>
           </div>
 
-          <Link
-            href="/app/insights"
-            className="flex min-h-12 w-full items-center justify-center rounded-2xl bg-blue-900 px-4 py-3 text-base font-semibold text-white hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-700"
+          {/* Row 1: Date */}
+          <div className="flex items-center gap-3 border-b border-brand-border px-4 py-3">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-brand-sage/30">
+              <MemoryIcon name="calendar" className="h-5 w-5 text-brand-sageDark" />
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-wide text-brand-muted">TODAY</p>
+              <p className="font-serif text-sm font-semibold text-brand-text">{dateString}</p>
+            </div>
+          </div>
+
+          {/* Row 2: Location */}
+          <div className="flex items-center gap-3 border-b border-brand-border px-4 py-3">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-brand-sage/30">
+              <MemoryIcon name="home" className="h-5 w-5 text-brand-sageDark" />
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-wide text-brand-muted">YOU ARE AT</p>
+              <p className="font-serif text-sm font-semibold text-brand-text">
+                {activeScenario.id === "lost_unknown_location" && state.resolvedAddress !== null
+                  ? state.resolvedAddress
+                  : activeLocationSummary.label}
+              </p>
+              {activeLocationSummary.trustedPlaceAddress ? (
+                <p className="text-xs text-brand-muted">{activeLocationSummary.trustedPlaceAddress}</p>
+              ) : null}
+              {showUnknownLocationPrompt ? (
+                <p className="text-xs font-medium text-amber-700">Unfamiliar location — stay where you are if safe.</p>
+              ) : null}
+            </div>
+          </div>
+
+          {/* Row 3: Next event */}
+          <div className="flex items-center gap-3 border-b border-brand-border px-4 py-3">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-brand-warm">
+              <MemoryIcon name="utensils" className="h-5 w-5 text-brand-warmDark" />
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-wide text-brand-muted">COMING UP NEXT</p>
+              <p className="font-serif text-sm font-semibold text-brand-text">{contextPacket.next_event}</p>
+            </div>
+          </div>
+
+          {/* Row 4: With you (conditional, no border) */}
+          {contextPacket.who_is_expected !== "No other people are required right now." ? (
+            <div className="flex items-center gap-3 px-4 py-3">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-brand-sageDark text-sm font-bold text-white">
+                {contextPacket.who_is_expected.charAt(0).toUpperCase()}
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-wide text-brand-muted">WITH YOU</p>
+                <p className="font-serif text-sm font-semibold text-brand-text">{contextPacket.who_is_expected}</p>
+              </div>
+            </div>
+          ) : null}
+        </div>
+
+        {/* Section 3: Action buttons */}
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={handleOpenCheckIn}
+            disabled={checkInOpen}
+            className={checkInOpen
+              ? "flex min-h-[100px] flex-1 flex-col items-center justify-center gap-2 rounded-3xl border border-brand-sage/50 bg-brand-sage/30 p-4 opacity-75 focus:outline-none focus:ring-2 focus:ring-brand-sageDark/30"
+              : "flex min-h-[100px] flex-1 flex-col items-center justify-center gap-2 rounded-3xl border border-brand-sage/50 bg-brand-sage/30 p-4 focus:outline-none focus:ring-2 focus:ring-brand-sageDark/30"
+            }
           >
-            My Insights
-          </Link>
-        </section>
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-sageDark shadow-sm">
+              <MemoryIcon name="checkCircle" className="h-6 w-6 text-white" />
+            </div>
+            <span className="font-serif text-base font-semibold text-brand-text">Check-In</span>
+            <span className="text-xs text-brand-muted">I&apos;m doing okay</span>
+          </button>
+          <button
+            type="button"
+            onClick={handleHelpMeNow}
+            className="flex min-h-[100px] flex-1 flex-col items-center justify-center gap-2 rounded-3xl border border-brand-warmDark/20 bg-brand-warm/50 p-4 focus:outline-none focus:ring-2 focus:ring-brand-warmDark/30"
+          >
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-warmDark shadow-sm">
+              <MemoryIcon name="home" className="h-6 w-6 text-white" />
+            </div>
+            <span className="font-serif text-base font-semibold text-brand-text">Get Help</span>
+            <span className="text-xs text-brand-muted">I need assistance</span>
+          </button>
+        </div>
 
-        <section className="space-y-3">
-          <div className="rounded-2xl border border-brand-border bg-brand-surface px-4 py-3">
-            <p className="text-sm font-medium text-brand-text">Current demo context</p>
-            <p className="mt-1 text-sm text-brand-muted">{activeScenario.label}</p>
-          </div>
-          <h2 className="text-lg font-semibold text-brand-text">Recent demo events</h2>
-          <EventLogList items={eventItems} defaultCollapsed />
-        </section>
-      </div>
+        {/* Section 4: Check-in questions expansion (preserved exactly) */}
+        {checkInOpen && checkInQuestionsLoading ? (
+          <p className="text-xs text-brand-muted">Preparing your check-in...</p>
+        ) : null}
 
-      <p className="mt-3 text-center text-xs text-brand-muted">
-        Prototype note: data is stored in this browser session for demo purposes.
-      </p>
-
-      {emergencyExpanded ? (
         <div
-          className="fixed inset-0 z-30"
-          onClick={() => setEmergencyExpanded(false)}
-          aria-hidden="true"
-        />
-      ) : null}
-      <div className="fixed bottom-8 left-0 z-40 flex h-20 items-stretch overflow-hidden rounded-r-2xl shadow-lg">
-        <button
-          type="button"
-          aria-label={emergencyExpanded ? "Collapse emergency" : "Emergency"}
-          onClick={() => setEmergencyExpanded((value) => !value)}
-          className="flex w-12 shrink-0 items-center justify-center bg-red-900 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-red-400"
-        >
-          <MemoryIcon name="shield" className="h-5 w-5 text-white" />
-        </button>
-        <button
-          type="button"
-          tabIndex={emergencyExpanded ? 0 : -1}
-          onClick={() => { callEmergency(); setEmergencyExpanded(false); }}
-          className={`flex items-center justify-center overflow-hidden bg-red-600 transition-all duration-200 focus:outline-none ${
-            emergencyExpanded ? "w-[320px] px-4" : "w-0"
+          className={`overflow-hidden transition-all duration-300 ease-in-out ${
+            checkInOpen && !checkInQuestionsLoading && aiCheckInQuestions.length > 0
+              ? "max-h-[500px] opacity-100"
+              : "max-h-0 opacity-0"
           }`}
         >
-          <span className="whitespace-nowrap text-sm font-bold text-white">
-            Urgent: Call Emergency Services
-          </span>
-        </button>
+          <div className="space-y-2 pt-1">
+            {aiCheckInQuestions.map((question, index) => {
+              const isSelected = question === checkInSelectedQuestion;
+              const isDeselected = checkInSelectedQuestion !== "" && !isSelected;
+
+              return (
+                <button
+                  key={index}
+                  type="button"
+                  onClick={() => handleCheckInTap(question)}
+                  className={`w-full cursor-pointer rounded-xl border p-4 text-left text-sm font-medium transition-colors duration-100 focus:outline-none focus:ring-2 focus:ring-[#7C9B78]/40 ${
+                    isSelected
+                      ? "border-[#7C9B78] bg-[#C8E2C4]/40 text-brand-text"
+                      : isDeselected
+                        ? "border-brand-border bg-white text-brand-text opacity-60"
+                        : "border-brand-border bg-white text-brand-text hover:bg-[#C8E2C4]/20"
+                  }`}
+                >
+                  {question}
+                </button>
+              );
+            })}
+            <p className="text-xs text-brand-muted">
+              {checkInSelectedQuestion
+                ? "Tap the highlighted option again to confirm."
+                : "Tap once to select, tap again to confirm."}
+            </p>
+          </div>
+        </div>
+
+        {checkInDoneThisSession && !checkInOpen ? (
+          <div className="rounded-2xl border border-[#7C9B78]/30 bg-[#C8E2C4]/20 px-4 py-3">
+            <p className="text-sm font-medium text-[#4B8B62]">Check-in saved.</p>
+            <p className="mt-1 text-xs text-brand-muted">{state.checkInStatus}</p>
+          </div>
+        ) : null}
+
       </div>
 
       <HelperModal
@@ -1448,6 +1414,15 @@ export default function TodayWindowPage() {
                   {questionLabels[key]}
                 </button>
               ))}
+            </div>
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={() => { setHelpMeNowOpen(false); setRecentGuidanceOpen(true); }}
+                className="text-xs text-brand-muted underline underline-offset-2"
+              >
+                Recent guidance
+              </button>
             </div>
             <button
               type="button"
@@ -3316,12 +3291,9 @@ export default function SiteHeader() {
   return (
     <header className="sticky top-0 z-10 border-b border-brand-border bg-brand-bg/90 backdrop-blur">
       <div className="mx-auto flex w-full max-w-3xl items-center gap-3 px-4 py-3">
-        <Link href="/" className="flex items-center gap-3" aria-label="Memory Assistant home">
+        <Link href="/" className="flex items-center gap-3" aria-label="Claira home">
           <BrandLogo size={42} />
-          <div className="leading-tight">
-            <div className="text-lg font-semibold text-brand-text">Memory Assistant</div>
-            <div className="text-sm text-brand-muted">Present-moment support</div>
-          </div>
+          <div className="text-lg font-semibold text-brand-text">Claira</div>
         </Link>
 
         <nav className="ml-auto hidden items-center gap-2 md:flex" aria-label="Primary">
@@ -3363,7 +3335,7 @@ export default function BrandLogo({ size = 44 }: { size?: number }) {
       viewBox="0 0 64 64"
       xmlns="http://www.w3.org/2000/svg"
       role="img"
-      aria-label="Memory Assistant compass mark"
+      aria-label="Claira mark"
     >
       <defs>
         <style>{`.dot{fill:#A44A3F}.needle{stroke:#A44A3F}`}</style>
@@ -3383,7 +3355,7 @@ export default function BrandLogo({ size = 44 }: { size?: number }) {
       <circle cx="10.5" cy="40.5" r="2.2" className="dot" />
       <circle cx="14.5" cy="28" r="2.2" className="dot" />
 
-      {/* Simple MA wordmark in the center */}
+      {/* Simple C wordmark in the center */}
       <text
         x="32"
         y="37"
@@ -3393,7 +3365,7 @@ export default function BrandLogo({ size = 44 }: { size?: number }) {
         fontWeight="800"
         fill="#A44A3F"
       >
-        MA
+        C
       </text>
     </svg>
   );
@@ -3413,7 +3385,12 @@ export type MemoryIconName =
   | "shield"
   | "phone"
   | "checkCircle"
-  | "compass";
+  | "compass"
+  | "utensils"
+  | "bell"
+  | "chevronRight"
+  | "sun"
+  | "idCard";
 
 type MemoryIconProps = {
   name: MemoryIconName;
@@ -3524,6 +3501,46 @@ export default function MemoryIcon({ name, className, title }: MemoryIconProps) 
           <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="2" />
           <circle cx="12" cy="12" r="1.5" fill="currentColor" />
           <path d="M14.8 9.2 13.7 13.7 9.2 14.8 10.3 10.3 14.8 9.2Z" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+        </svg>
+      );
+    case "utensils":
+      return (
+        <svg {...common}>
+          <path
+            d="M8 3v6M8 13v8M8 9a3 3 0 0 0 0-6M16 3v4a4 4 0 0 1-4 4M16 21V11"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+          />
+        </svg>
+      );
+    case "bell":
+      return (
+        <svg {...common}>
+          <path d="M6 10a6 6 0 0 1 12 0c0 4 2 6 2 6H4s2-2 2-6Z" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+          <path d="M10.3 21a2 2 0 0 0 3.4 0" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        </svg>
+      );
+    case "chevronRight":
+      return (
+        <svg {...common}>
+          <path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      );
+    case "sun":
+      return (
+        <svg {...common}>
+          <circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" strokeWidth="2" />
+          <path d="M12 2v2M12 20v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M2 12h2M20 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        </svg>
+      );
+    case "idCard":
+      return (
+        <svg {...common}>
+          <path d="M2 7a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7Z" fill="none" stroke="currentColor" strokeWidth="2" />
+          <path d="M2 11h20" fill="none" stroke="currentColor" strokeWidth="2" />
+          <path d="M6 15.5h3M13 15.5h5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
         </svg>
       );
     default:

@@ -6,7 +6,12 @@ export type MemoryIconName =
   | "shield"
   | "phone"
   | "checkCircle"
-  | "compass";
+  | "compass"
+  | "utensils"
+  | "bell"
+  | "chevronRight"
+  | "sun"
+  | "idCard";
 
 type MemoryIconProps = {
   name: MemoryIconName;
@@ -117,6 +122,46 @@ export default function MemoryIcon({ name, className, title }: MemoryIconProps) 
           <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="2" />
           <circle cx="12" cy="12" r="1.5" fill="currentColor" />
           <path d="M14.8 9.2 13.7 13.7 9.2 14.8 10.3 10.3 14.8 9.2Z" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+        </svg>
+      );
+    case "utensils":
+      return (
+        <svg {...common}>
+          <path
+            d="M8 3v6M8 13v8M8 9a3 3 0 0 0 0-6M16 3v4a4 4 0 0 1-4 4M16 21V11"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+          />
+        </svg>
+      );
+    case "bell":
+      return (
+        <svg {...common}>
+          <path d="M6 10a6 6 0 0 1 12 0c0 4 2 6 2 6H4s2-2 2-6Z" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+          <path d="M10.3 21a2 2 0 0 0 3.4 0" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        </svg>
+      );
+    case "chevronRight":
+      return (
+        <svg {...common}>
+          <path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      );
+    case "sun":
+      return (
+        <svg {...common}>
+          <circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" strokeWidth="2" />
+          <path d="M12 2v2M12 20v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M2 12h2M20 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        </svg>
+      );
+    case "idCard":
+      return (
+        <svg {...common}>
+          <path d="M2 7a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7Z" fill="none" stroke="currentColor" strokeWidth="2" />
+          <path d="M2 11h20" fill="none" stroke="currentColor" strokeWidth="2" />
+          <path d="M6 15.5h3M13 15.5h5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
         </svg>
       );
     default:

@@ -137,6 +137,12 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
 
 - Phase 9 - UI and Flow Polish (active as of 2026-05-28, UTC-7):
   - [x] Rename to Claira: SiteHeader wordmark updated, subtitle removed; BrandLogo MA→C and aria-label updated; layout.tsx metadata title and description updated
+  - [x] Rewrite app/app/page.tsx return block to Phase 9 mockup: sticky CLAIRA header, greeting section, 4-row orientation card, 2-button grid (Check-In/Get Help), check-in expansion, recent guidance link, support rows (Call caregiver/Helper Card), AI note card; all modals preserved unchanged. Added utensils/bell/chevronRight/sun icon cases to MemoryIcon.tsx.
+  - [x] Remove duplicate sticky header from /app page; fix AI note card to show activeScenario.guidance; move Call for Help button outside the note card as full-width standalone button.
+  - [x] Color and card styling pass on /app page: Check-In button #5E7A5C, Get Help button #7A6545, caregiver row teal-700, orientation card border removed + shadow-sm, row icon slots bg-brand-surface/green-50/amber-50, all card rows py-3.
+  - [x] Greeting area: Call caregiver and Show Helper Card moved to icon buttons (teal phone + idCard) in greeting row. Support rows, AI note card, and standalone Call for Help button removed. Recent guidance link moved into Get Help modal. Check-In updated to #6B9467, Get Help to #8B7B5A. Added idCard icon to MemoryIcon.tsx.
+  - [x] New color palette + Lora/Nunito fonts: tailwind.config.ts updated (brand.bg/text/muted/border, added sage/sageDark/warm/warmDark, fontFamily); layout.tsx font preconnect links; globals.css font-family and background; /app page greeting serif/muted, orientation card sage/warm row styling, Check-In and Get Help buttons restyled with icon containers.
+  - [x] Orientation card header flush to top edge (border-b, no rounded-xl/mb-3); date row py-3 no pt-4; check-in question selection and saved box updated to sage palette.
   - [ ] Review and tighten spacing and typography consistency across all screens
   - [ ] Ensure all scenarios look correct on iPhone SE screen size
   - [ ] Review caregiver dashboard layout on mobile
@@ -315,4 +321,4 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
 
 ## Last Updated
 
-2026-05-28 (UTC-7) — Renamed to Claira: SiteHeader subtitle removed, wordmark updated; BrandLogo C mark; layout.tsx metadata updated. tsc and lint pass clean.
+2026-05-28 (UTC-7) — app/app/page.tsx return block rewritten to Phase 9 mockup. MemoryIcon.tsx gains utensils, bell, chevronRight, sun. tsc and lint pass clean.
