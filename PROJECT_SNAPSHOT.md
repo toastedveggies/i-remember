@@ -54,10 +54,11 @@ When finishing a task:
 
 ## Current Phase
 
-**Phase 7 - Location Additions and Demo Gap Closure (active)**
+**Phase 9 - UI and Flow Polish (active)**
 
+Phase 8 - Lost Scenario and Demo Hardening: complete as of 2026-05-28 (UTC-7)
+Phase 7 - Location Additions and Demo Gap Closure: complete as of 2026-05-28 (UTC-7)
 Phase 6 - AI Integration: complete as of 2026-05-19 (UTC-7)
-
 Phase 5 - Multiple Caregiver Support: complete as of 2026-05-18 (UTC-7)
 Phase 4 - Supabase Backend Integration: complete as of 2026-05-18 (UTC-7)
 Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
@@ -186,13 +187,30 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
 
 ## Active / Next Task
 
-- Phase 7 - Location Additions and Demo Gap Closure (active as of 2026-05-25, UTC-7):
+- Phase 9 - UI and Flow Polish (active as of 2026-05-28, UTC-7):
+  - [ ] Review and tighten spacing and typography consistency across all screens
+  - [ ] Ensure all scenarios look correct on iPhone SE screen size
+  - [ ] Review caregiver dashboard layout on mobile
+  - [ ] Check all modal and overlay z-index layering
+  - [ ] Review color and contrast for accessibility
+  - [ ] Do a full end-to-end demo walkthrough and note any rough edges
+
+- Phase 8 - Lost Scenario and Demo Hardening (complete as of 2026-05-28, UTC-7):
+  - [x] Real-time location tracking for lost_unknown_location scenario
+  - [x] Reverse geocoding of device coordinates into human-readable address
+  - [x] Proactive lost alert shown to user when lost scenario is active
+  - [x] Classroom demo mode toggle on /demo page for lost scenario (UCLA Anderson context override)
+  - [x] Follow-up question buttons in stream panel after AI response
+  - [x] Caregiver lost alert surfaced on caregiver dashboard when lost scenario is active
+  - [x] Call Alex button in lost alert panel on caregiver dashboard
+
+- Phase 7 - Location Additions and Demo Gap Closure (complete as of 2026-05-28, UTC-7):
   - [x] Add "I'm okay", "Call [caregiver]", and "Show this screen" buttons to the streaming response panel in app/app/page.tsx. Log okay_confirmed event. Surface confirmed-okay status on caregiver dashboard.
   - [x] Fix HelperModal hardcoded location and time strings. Pass activeLocationSummary and contextPacket into HelperModal as props and use them for the location and time lines.
   - [x] Add who_is_expected from contextPacket to the Today card in app/app/page.tsx
   - [x] Store AI response text in reorientation_card_viewed event metadata and display it in the caregiver activity panel
 
-- Trusted location handling (in progress as of 2026-05-23, UTC-7):
+- Trusted location handling (complete as of 2026-05-28, UTC-7):
   - [x] Supabase schema updated to support trusted locations and `profiles.active_caregiver_id`
   - [x] `.env.local` updated with Supabase URL, Supabase anon key, and `ANTHROPIC_API_KEY`
   - [x] `data/demoState.ts` updated with shared trusted-location state
@@ -203,7 +221,6 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
   - [x] Checked-in SQL migration updated to reflect trusted-location and caregiver fields already used by the app
   - [x] `/app` now uses trusted-place-aware scenario context for passive grounding, Help Me Now packets, and unknown-location fallback copy
   - [x] Caregiver and demo summaries now surface trusted-place context, scenario mapping, and unrecognized-location support cues
-  - [ ] Start writing `place_id` into activity events when a scenario maps to a trusted place
   - [x] Switch Anthropic model calls from Claude Sonnet to Claude Haiku
   - [x] Verify end-to-end runtime after dependency/env refresh
 - Phase 6 - AI Integration (complete as of 2026-05-19, UTC-7):
@@ -349,7 +366,7 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
 
 ## Last Updated
 
-2026-05-28 (UTC-7) — Classroom demo mode toggle: added demoClassroomMode boolean to DemoState type, initialDemoState (false), and normalizeDemoState; replaced lost_unknown_location demoNote with DEMO OVERRIDE classroom string; SYSTEM_PROMPT in reorient/route.ts gains DEMO OVERRIDE exception rule; askQuestion POST body gates demoNote on state.demoClassroomMode and injects current_address into context when demoClassroomMode is on; demo page shows classroom mode toggle section (Off / On — UCLA Anderson context) when lost_unknown_location is the active scenario. tsc and lint pass clean.
+2026-05-28 (UTC-7) — Phase 8 marked complete (real-time location, reverse geocoding, proactive lost alert, classroom demo mode toggle, follow-up question buttons, caregiver lost alert, Call Alex button). Phase 9 UI and Flow Polish opened as active phase. tsc and lint pass clean.
 
 
 // ---
