@@ -146,6 +146,7 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
   - [x] Caregiver dashboard Phase 9 rewrite: new care color tokens (careGreen/careRust/careTeal/etc.) added to tailwind.config.ts; full primary return rewritten with sticky header (BrandLogo, active badge), status grid, stats row, inline activity feed with dot indicators, Today's Snapshot, Event Log, Insights link; helper functions added; "Memory Assistant" → "Claira" and "Simulation route only" removed from all branches.
   - [x] Activity feed: added formatQuestionKey() helper to display question keys as readable text instead of raw underscore_separated strings.
   - [x] COMING UP NEXT row truncated to short label; tappable chevron opens bottom sheet with full preparation checklist and "Get help with this" button (calls askQuestion("what_should_i_do_next")).
+  - [x] SiteHeader: replaced BrandLogo + "Claira" text with img pointing to /claira-logo.webp; BrandLogo import removed.
   - [ ] Review and tighten spacing and typography consistency across all screens
   - [ ] Ensure all scenarios look correct on iPhone SE screen size
   - [ ] Review caregiver dashboard layout on mobile
@@ -324,4 +325,4 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
 
 ## Last Updated
 
-2026-05-29 (UTC-7) — COMING UP NEXT row now truncated to short label with tappable chevron; bottom sheet shows full prep checklist + "Get help with this" button. parseNextEvent() helper added. tsc and lint pass clean.
+2026-05-29 (UTC-7) — SiteHeader logo replaced with img /claira-logo.webp; COMING UP NEXT row truncated with chevron + prep checklist bottom sheet. tsc and lint pass clean.
