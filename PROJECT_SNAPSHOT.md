@@ -587,1479 +587,152 @@ Parking lot for ideas that are intentionally out of current MVP scope.
 
 // ---
 
-// FILE: data/demoState.ts
+// FILE: tailwind.config.ts
 
-import { logActivityEvent, logSystemEvent } from "@/lib/logEvent";
+import type { Config } from "tailwindcss";
 
-export type EventSource = "app" | "caregiver" | "demo";
-export type UncertaintyLevel = "low" | "medium" | "high";
-export type LocationSource = "scenario_seed" | "browser_geolocation";
-export type LocationMode = "trusted_place" | "other";
-export type ResponsePosture = "calm_grounding" | "public_place_support" | "transition_support" | "safety_fallback";
-
-export type BrowserLocation = {
-  latitude: number;
-  longitude: number;
-  accuracyMeters: number;
-  timestamp: string;
-};
-
-export type DemoEvent = {
-  id: string;
-  eventType: string;
-  timestamp: string;
-  userId: string;
-  scenarioId?: string;
-  source: EventSource;
-  metadata?: Record<string, unknown>;
-  placeId?: string | null;
-  latitude?: number | null;
-  longitude?: number | null;
-  accuracyMeters?: number | null;
-  locationSource?: LocationSource;
-};
-
-export type ScheduledEventSummary = {
-  id: string;
-  title: string;
-  timeLabel: string;
-  placeId?: string | null;
-  bringItems?: string[];
-};
-
-export type DemoScenario = {
-  id: string;
-  label: string;
-  guidance: string;
-  where: string;
-  happening: string;
-  nextStep: string;
-  uncertainty: UncertaintyLevel;
-  responsePosture: ResponsePosture;
-  seededCoordinates: {
-    latitude: number;
-    longitude: number;
-  };
-  expectedLocationMode: LocationMode;
-  scenarioPlaceId?: string | null;
-  currentActivity?: string;
-  scenarioHour?: number | null;
-  demoNote?: string;
-  scheduledEvent?: ScheduledEventSummary;
-};
-
-export type DemoState = {
-  activeScenarioId: string;
-  checkInStatus: string;
-  activityEvents: DemoEvent[];
-  systemEvents: DemoEvent[];
-  profile: DemoProfile;
-  trustedLocations: TrustedLocation[];
-  activeLocationSource: LocationSource;
-  browserLocation: BrowserLocation | null;
-  resolvedAddress: string | null;
-  demoClassroomMode: boolean;
-};
-
-export type PronounSet = "he/him" | "she/her" | "they/them" | "custom";
-
-export type DemoProfile = {
-  userId: string;
-  preferredName: string;
-  pronouns: PronounSet;
-  customPronouns?: string;
-  caregiverName: string;
-  caregiverRelationshipLabel?: string;
-  independentMode?: boolean;
-  activeCaregiverId?: string | null;
-  userPhone?: string;
-};
-
-export type TrustedLocation = {
-  id?: string;
-  trustedSlot: 1 | 2 | 3;
-  name: string;
-  address?: string;
-  displayAddress?: string;
-  instructions?: string;
-  latitude?: number;
-  longitude?: number;
-  radiusMeters?: number;
-  placeType?: "home" | "pharmacy" | "clinic" | "trusted";
-};
-
-export const defaultDemoProfile: DemoProfile = {
-  userId: "00000000-0000-0000-0000-000000000001",
-  preferredName: "Alex",
-  pronouns: "he/him",
-  caregiverName: "Maria",
-  caregiverRelationshipLabel: "daughter",
-  independentMode: false,
-  activeCaregiverId: "00000000-0000-0000-0000-000000000002",
-  userPhone: "2345678901"
-};
-
-export const PLACE_HOME_ID = "00000000-0000-4000-8000-000000000001";
-export const PLACE_PHARMACY_ID = "00000000-0000-4000-8000-000000000002";
-export const PLACE_DOCTOR_ID = "00000000-0000-4000-8000-000000000003";
-export const SCHEDULED_EVENT_DOCTOR_ID = "00000000-0000-4000-8000-000000000010";
-
-export const defaultTrustedLocations: TrustedLocation[] = [
-  {
-    id: PLACE_HOME_ID,
-    trustedSlot: 1,
-    name: "Home",
-    address: "215 Cedar Street",
-    displayAddress: "215 Cedar Street",
-    instructions: "Take a slow breath, check the Today card, and continue your usual home routine.",
-    latitude: 34.13672,
-    longitude: -118.29434,
-    radiusMeters: 80,
-    placeType: "home"
-  },
-  {
-    id: PLACE_PHARMACY_ID,
-    trustedSlot: 2,
-    name: "Pharmacy",
-    address: "98 Maple Avenue",
-    displayAddress: "Sunrise Pharmacy, 98 Maple Avenue",
-    instructions: "Go to the counter and say you are here to pick up a prescription. Show your helper card if you want support.",
-    latitude: 34.13758,
-    longitude: -118.30084,
-    radiusMeters: 65,
-    placeType: "pharmacy"
-  },
-  {
-    id: PLACE_DOCTOR_ID,
-    trustedSlot: 3,
-    name: "Doctor's Office",
-    address: "410 Wellness Plaza",
-    displayAddress: "Northside Clinic, 410 Wellness Plaza",
-    instructions: "Check in at the front desk with your ID and insurance card.",
-    latitude: 34.13158,
-    longitude: -118.28942,
-    radiusMeters: 90,
-    placeType: "clinic"
-  }
-];
-
-export const demoScenarios: DemoScenario[] = [
-  {
-    id: "home_reorientation",
-    label: "Home reorientation",
-    guidance: "Alex is at Home and needs calm grounding.",
-    where: "You are at Home.",
-    happening: "This looks like a normal time at home. The app should keep the explanation calm and simple.",
-    nextStep: "Take a slow breath, check the Today card, continue your home routine, or call Maria if you want support.",
-    uncertainty: "low",
-    responsePosture: "calm_grounding",
-    seededCoordinates: {
-      latitude: 34.13675,
-      longitude: -118.2943
-    },
-    expectedLocationMode: "trusted_place",
-    scenarioPlaceId: PLACE_HOME_ID,
-    scenarioHour: 9
-  },
-  {
-    id: "pharmacy_confusion",
-    label: "Pharmacy confusion",
-    guidance: "Alex is at the Pharmacy and needs help remembering that he came to pick up a prescription.",
-    where: "You are at the Pharmacy.",
-    happening: "You planned to stop by the pharmacy to pick up a prescription.",
-    nextStep: "Go to the pharmacy counter, ask about prescription pickup, show the helper card if needed, or call Maria if you are still unsure.",
-    uncertainty: "medium",
-    responsePosture: "public_place_support",
-    seededCoordinates: {
-      latitude: 34.13755,
-      longitude: -118.30088
-    },
-    expectedLocationMode: "trusted_place",
-    scenarioPlaceId: PLACE_PHARMACY_ID,
-    currentActivity: "Picking up a prescription",
-    scenarioHour: 14
-  },
-  {
-    id: "doctor_appointment_prep",
-    label: "Doctor appointment preparation",
-    guidance: "Alex is at Home and needs help getting ready to leave for a doctor's appointment.",
-    where: "You are at Home.",
-    happening: "A doctor's appointment is coming up soon.",
-    nextStep: "Bring your ID, insurance card, phone, keys, and medication list, then leave at the planned time.",
-    uncertainty: "low",
-    responsePosture: "transition_support",
-    seededCoordinates: {
-      latitude: 34.1367,
-      longitude: -118.29438
-    },
-    expectedLocationMode: "trusted_place",
-    scenarioPlaceId: PLACE_HOME_ID,
-    scenarioHour: 12,
-    scheduledEvent: {
-      id: SCHEDULED_EVENT_DOCTOR_ID,
-      title: "Doctor appointment",
-      timeLabel: "Leave at 1:40 PM for a 2:00 PM appointment",
-      placeId: PLACE_DOCTOR_ID,
-      bringItems: ["ID", "Insurance card", "Phone", "Keys", "Medication list"]
-    }
-  },
-  {
-    id: "lost_unknown_location",
-    label: "Lost / unknown location",
-    guidance: "Alex is not at a recognized trusted place and needs safe fallback guidance without overclaiming.",
-    where: "I do not recognize this as one of your saved trusted places.",
-    happening: "The app does not have enough information to know why you are here.",
-    nextStep: "Stay where you are if it feels safe, call Maria, show the helper card if needed, and call emergency services if this feels unsafe or urgent.",
-    uncertainty: "high",
-    responsePosture: "safety_fallback",
-    seededCoordinates: {
-      latitude: 34.14188,
-      longitude: -118.31215
-    },
-    expectedLocationMode: "other",
-    scenarioPlaceId: null,
-    scenarioHour: null,
-    demoNote: "DEMO OVERRIDE: Ignore the default unrecognized-location rules for this response. This demonstration is taking place at UCLA Anderson School of Management in Professor Terry Kramer's Tech and Society class during a final team project presentation. For where_am_i: tell Alex he is at UCLA Anderson School of Management in Professor Kramer's Tech and Society classroom, reference the current_address field in the context if present, and reassure him he is safe. For what_is_happening: tell Alex he is in the middle of a final project team presentation with his teammates and everything is going well. For what_should_i_do_next: tell Alex to take a breath, stay calm, keep going with the presentation, and maybe show his helper card to his teammates or the professor as a fun demo moment."
-  },
-  {
-    id: "evening_routine",
-    label: "Evening routine",
-    guidance: "Alex is at Home in the evening and needs calm grounding to settle into his night routine.",
-    where: "You are at Home.",
-    happening: "It is evening at home. This is a calm and familiar time for your usual evening routine.",
-    nextStep: "Take a slow breath, have dinner or a snack if you are hungry, and settle into your evening routine. Call Maria if you need support.",
-    uncertainty: "low",
-    responsePosture: "calm_grounding",
-    seededCoordinates: {
-      latitude: 34.13672,
-      longitude: -118.29434
-    },
-    expectedLocationMode: "trusted_place",
-    scenarioPlaceId: PLACE_HOME_ID,
-    currentActivity: "Evening home routine",
-    scenarioHour: 19
-  }
-];
-
-export const checkInQuestions = [
-  "Would you like to sit down and take a slow breath?",
-  "Do you want a quick reminder of your plan for today?",
-  "Would calling your caregiver help right now?"
-];
-
-export const storageKey = "memory-assistant-mvp-state";
-
-export const initialDemoState: DemoState = {
-  activeScenarioId: demoScenarios[0].id,
-  checkInStatus: "Not submitted yet",
-  activityEvents: [],
-  systemEvents: [],
-  profile: defaultDemoProfile,
-  trustedLocations: defaultTrustedLocations,
-  activeLocationSource: "scenario_seed",
-  browserLocation: null,
-  resolvedAddress: null,
-  demoClassroomMode: false
-};
-
-const activityEventTypes = new Set([
-  "reorientation_started",
-  "checkin_submitted",
-  "fallback_shown",
-  "helper_card_shown",
-  "caregiver_called",
-  "emergency_called",
-  "okay_confirmed"
-]);
-
-function normalizeTrustedLocation(location: TrustedLocation): TrustedLocation {
-  const fallback = defaultTrustedLocations.find((entry) => entry.trustedSlot === location.trustedSlot);
-
-  return {
-    id: location.id ?? fallback?.id,
-    trustedSlot: location.trustedSlot,
-    name: typeof location.name === "string" && location.name.trim() ? location.name : fallback?.name ?? "",
-    address: location.address ?? fallback?.address,
-    displayAddress: location.displayAddress ?? location.address ?? fallback?.displayAddress ?? fallback?.address,
-    instructions: location.instructions ?? fallback?.instructions,
-    latitude: typeof location.latitude === "number" ? location.latitude : fallback?.latitude,
-    longitude: typeof location.longitude === "number" ? location.longitude : fallback?.longitude,
-    radiusMeters: typeof location.radiusMeters === "number" ? location.radiusMeters : fallback?.radiusMeters ?? 75,
-    placeType: location.placeType ?? fallback?.placeType ?? "trusted"
-  };
-}
-
-export function normalizeDemoState(raw: unknown): DemoState {
-  if (!raw || typeof raw !== "object") {
-    return initialDemoState;
-  }
-
-  const value = raw as Partial<DemoState> & {
-    profile?: Partial<DemoProfile>;
-    trustedLocations?: TrustedLocation[];
-    browserLocation?: Partial<BrowserLocation> | null;
-    events?: DemoEvent[];
-  };
-  const validScenario = demoScenarios.some((scenario) => scenario.id === value.activeScenarioId);
-
-  let activityEvents: DemoEvent[] = [];
-  let systemEvents: DemoEvent[] = [];
-
-  if (Array.isArray(value.activityEvents)) {
-    activityEvents = value.activityEvents;
-  } else if (Array.isArray(value.events)) {
-    activityEvents = value.events.filter((event) => activityEventTypes.has(event.eventType));
-  }
-
-  if (Array.isArray(value.systemEvents)) {
-    systemEvents = value.systemEvents;
-  } else if (Array.isArray(value.events)) {
-    systemEvents = value.events.filter((event) => !activityEventTypes.has(event.eventType));
-  }
-
-  const browserLocation = value.browserLocation
-    && typeof value.browserLocation.latitude === "number"
-    && typeof value.browserLocation.longitude === "number"
-    && typeof value.browserLocation.accuracyMeters === "number"
-    && typeof value.browserLocation.timestamp === "string"
-      ? {
-          latitude: value.browserLocation.latitude,
-          longitude: value.browserLocation.longitude,
-          accuracyMeters: value.browserLocation.accuracyMeters,
-          timestamp: value.browserLocation.timestamp
+const config: Config = {
+  content: ["./app/**/*.{js,ts,jsx,tsx,mdx}", "./components/**/*.{js,ts,jsx,tsx,mdx}"],
+  theme: {
+    extend: {
+      colors: {
+        brand: {
+          bg: "#F8F4EE",
+          surface: "#FFFDF9",
+          text: "#1F2529",
+          muted: "#4B5560",
+          primary: "#355B5A",
+          compass: "#A44A3F",
+          highlight: "#D8A35D",
+          support: "#E8EFE8",
+          border: "#D9D6D0"
+        },
+        // Back-compat tokens (existing class names used during earlier prototype passes).
+        calm: {
+          bg: "#F8F4EE",
+          card: "#FFFDF9",
+          text: "#1F2529",
+          muted: "#4B5560",
+          border: "#D9D6D0",
+          accent: "#355B5A",
+          accentSoft: "#D8A35D",
+          support: "#E8EFE8"
         }
-      : null;
-
-  return {
-    activeScenarioId: validScenario ? (value.activeScenarioId as string) : initialDemoState.activeScenarioId,
-    checkInStatus: typeof value.checkInStatus === "string" ? value.checkInStatus : initialDemoState.checkInStatus,
-    activityEvents,
-    systemEvents,
-    profile: {
-      userId: value.profile?.userId ?? defaultDemoProfile.userId,
-      preferredName: value.profile?.preferredName ?? defaultDemoProfile.preferredName,
-      pronouns: (value.profile?.pronouns as PronounSet | undefined) ?? defaultDemoProfile.pronouns,
-      customPronouns: value.profile?.customPronouns ?? defaultDemoProfile.customPronouns,
-      caregiverName: value.profile?.caregiverName ?? defaultDemoProfile.caregiverName,
-      caregiverRelationshipLabel: value.profile?.caregiverRelationshipLabel ?? defaultDemoProfile.caregiverRelationshipLabel,
-      independentMode: value.profile?.independentMode ?? false,
-      activeCaregiverId: value.profile?.activeCaregiverId !== undefined
-        ? value.profile.activeCaregiverId
-        : defaultDemoProfile.activeCaregiverId,
-      userPhone: value.profile?.userPhone ?? defaultDemoProfile.userPhone
-    },
-    trustedLocations: Array.isArray(value.trustedLocations) && value.trustedLocations.length > 0
-      ? value.trustedLocations
-          .filter((location): location is TrustedLocation =>
-            (location.trustedSlot === 1 || location.trustedSlot === 2 || location.trustedSlot === 3) &&
-            typeof location.name === "string"
-          )
-          .map(normalizeTrustedLocation)
-          .sort((a, b) => a.trustedSlot - b.trustedSlot)
-      : defaultTrustedLocations,
-    activeLocationSource: value.activeLocationSource === "browser_geolocation"
-      ? "browser_geolocation"
-      : "scenario_seed",
-    browserLocation,
-    resolvedAddress: typeof value.resolvedAddress === "string" ? value.resolvedAddress : null,
-    demoClassroomMode: typeof value.demoClassroomMode === "boolean" ? value.demoClassroomMode : false
-  };
-}
-
-export function generateId(): string {
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
-    const r = Math.random() * 16 | 0;
-    const v = c === "x" ? r : (r & 0x3 | 0x8);
-    return v.toString(16);
-  });
-}
-
-export function createEvent(
-  eventType: string,
-  source: EventSource,
-  scenarioId?: string,
-  metadata?: Record<string, unknown>,
-  userId = defaultDemoProfile.userId,
-  locationDetails?: Pick<DemoEvent, "placeId" | "latitude" | "longitude" | "accuracyMeters" | "locationSource">
-): DemoEvent {
-  return {
-    id: generateId(),
-    eventType,
-    timestamp: new Date().toISOString(),
-    userId,
-    source,
-    scenarioId,
-    metadata,
-    placeId: locationDetails?.placeId ?? null,
-    latitude: locationDetails?.latitude ?? null,
-    longitude: locationDetails?.longitude ?? null,
-    accuracyMeters: locationDetails?.accuracyMeters ?? null,
-    locationSource: locationDetails?.locationSource
-  };
-}
-
-export function setActiveCaregiverId(id: string | null): DemoState {
-  if (typeof window === "undefined") return initialDemoState;
-  const raw = window.localStorage.getItem(storageKey);
-  let current = initialDemoState;
-  if (raw) {
-    try { current = normalizeDemoState(JSON.parse(raw)); } catch { /* use initialDemoState */ }
-  }
-  const updated: DemoState = { ...current, profile: { ...current.profile, activeCaregiverId: id } };
-  window.localStorage.setItem(storageKey, JSON.stringify(updated));
-  return updated;
-}
-
-export function setIndependentMode(value: boolean): DemoState {
-  if (typeof window === "undefined") return initialDemoState;
-  const raw = window.localStorage.getItem(storageKey);
-  let current = initialDemoState;
-  if (raw) {
-    try { current = normalizeDemoState(JSON.parse(raw)); } catch { /* use initialDemoState */ }
-  }
-  const updated: DemoState = { ...current, profile: { ...current.profile, independentMode: value } };
-  window.localStorage.setItem(storageKey, JSON.stringify(updated));
-  return updated;
-}
-
-export function appendActivityEvent(state: DemoState, event: DemoEvent): DemoState {
-  logActivityEvent(event);
-  return { ...state, activityEvents: [event, ...state.activityEvents].slice(0, 50) };
-}
-
-export function appendSystemEvent(state: DemoState, event: DemoEvent): DemoState {
-  logSystemEvent(event);
-  return { ...state, systemEvents: [event, ...state.systemEvents].slice(0, 20) };
-}
-
-export function findScenario(scenarioId: string): DemoScenario {
-  return demoScenarios.find((scenario) => scenario.id === scenarioId) ?? demoScenarios[0];
-}
-
-export function findTrustedLocation(locations: TrustedLocation[], slot?: 1 | 2 | 3): TrustedLocation | null {
-  if (!slot) return null;
-  return locations.find((location) => location.trustedSlot === slot) ?? null;
-}
-
-export function findTrustedLocationById(locations: TrustedLocation[], placeId?: string | null): TrustedLocation | null {
-  if (!placeId) return null;
-  return locations.find((location) => location.id === placeId) ?? null;
-}
-
-export function pronounWords(pronouns: PronounSet, customPronouns?: string): { subject: string; object: string; possessive: string } {
-  if (pronouns === "he/him") {
-    return { subject: "he", object: "him", possessive: "his" };
-  }
-
-  if (pronouns === "she/her") {
-    return { subject: "she", object: "her", possessive: "her" };
-  }
-
-  if (pronouns === "custom" && customPronouns) {
-    return { subject: customPronouns, object: customPronouns, possessive: customPronouns };
-  }
-
-  return { subject: "they", object: "them", possessive: "their" };
-}
-
-
-// ---
-
-// FILE: data/demoData.ts
-
-import {
-  findScenario,
-  findTrustedLocationById,
-  type DemoProfile,
-  type DemoScenario,
-  type LocationSource,
-  type TrustedLocation
-} from "@/data/demoState";
-import { resolveActiveLocationContext } from "@/lib/places";
-
-export type EventLogItem = {
-  id: string;
-  time: string;
-  message: string;
-};
-
-export const todaySummary = {
-  greeting: "You are safe and supported.",
-  where: "Your current location is matched against your saved trusted places or shown as Other.",
-  happening: "The active scenario and location context shape the grounding response.",
-  nextStep: "Review the location summary, then take the next calm step."
-};
-
-export const checkInQuestions = [
-  "Would you like to sit down and take a slow breath?",
-  "Do you want a quick reminder of your plan for today?",
-  "Would calling your caregiver help right now?"
-];
-
-export type ContextPacket = {
-  location: string;
-  location_mode: string;
-  location_source: string;
-  trusted_place: string;
-  trusted_place_address: string;
-  location_coordinates: string;
-  time_of_day: string;
-  next_event: string;
-  current_activity: string;
-  who_is_expected: string;
-  caregiver_name: string;
-  notes: string;
-  safety_fallback: string;
-};
-
-export type ActiveLocationSummary = {
-  label: string;
-  detail: string;
-  trustedPlaceName: string | null;
-  trustedPlaceAddress: string | null;
-  sourceLabel: string;
-  locationModeLabel: string;
-  fallbackMessage?: string;
-  placeId: string | null;
-};
-
-function formatCoordinate(value: number): string {
-  return value.toFixed(5);
-}
-
-function buildBringItemsText(items?: string[]): string {
-  if (!items || items.length === 0) {
-    return "No extra items listed.";
-  }
-
-  return items.join(", ");
-}
-
-function scenarioTimeOfDay(scenario: DemoScenario): string {
-  const now = new Date();
-  const hour = scenario.scenarioHour != null ? scenario.scenarioHour : now.getHours();
-  const minutes = now.getMinutes();
-  const period = hour >= 12 ? "PM" : "AM";
-  const displayHour = hour % 12 === 0 ? 12 : hour % 12;
-  const displayMinutes = minutes.toString().padStart(2, "0");
-  const dayName = now.toLocaleDateString("en-US", { weekday: "long" });
-  const monthName = now.toLocaleDateString("en-US", { month: "long" });
-  const date = now.getDate();
-  return `${dayName}, ${monthName} ${date} at ${displayHour}:${displayMinutes} ${period}`;
-}
-
-function scenarioNextEvent(scenario: DemoScenario, trustedLocations: TrustedLocation[]): string {
-  if (scenario.scheduledEvent) {
-    const scheduledPlace = findTrustedLocationById(trustedLocations, scenario.scheduledEvent.placeId);
-    const placeLabel = scheduledPlace?.name ? ` at ${scheduledPlace.name}` : "";
-    return `${scenario.scheduledEvent.title}${placeLabel}. ${scenario.scheduledEvent.timeLabel}. Bring ${buildBringItemsText(scenario.scheduledEvent.bringItems)}.`;
-  }
-
-  if (scenario.id === "pharmacy_confusion") {
-    return "Pick up the prescription, then head back home.";
-  }
-
-  if (scenario.id === "lost_unknown_location") {
-    return "Focus on staying safe and contacting support.";
-  }
-
-  return "Continue the current home routine at an easy pace.";
-}
-
-function scenarioExpectedVisitor(scenario: DemoScenario, profile: DemoProfile): string {
-  if (scenario.id === "doctor_appointment_prep") {
-    return `${profile.caregiverName} can help if leaving feels confusing.`;
-  }
-
-  if (scenario.id === "lost_unknown_location") {
-    return `${profile.caregiverName} is the best support contact if this still feels unclear.`;
-  }
-
-  return "No other people are required right now.";
-}
-
-export function describeScenarioLocation(
-  scenario: DemoScenario,
-  trustedLocations: TrustedLocation[]
-): { label: string; notes: string; trustedLocation: TrustedLocation | null } {
-  const trustedLocation = findTrustedLocationById(trustedLocations, scenario.scenarioPlaceId);
-
-  if (scenario.expectedLocationMode === "trusted_place" && trustedLocation) {
-    const suffix = scenario.scheduledEvent ? " + Doctor Appointment" : "";
-    return {
-      label: `${trustedLocation.name}${suffix}`,
-      notes: trustedLocation.displayAddress ?? trustedLocation.address ?? trustedLocation.name,
-      trustedLocation
-    };
-  }
-
-  return {
-    label: "Other",
-    notes: "This scenario should fall back to unrecognized-location guidance.",
-    trustedLocation: null
-  };
-}
-
-export function buildActiveLocationSummary(params: {
-  scenarioId: string;
-  profile: DemoProfile;
-  trustedLocations: TrustedLocation[];
-  activeLocationSource: LocationSource;
-  browserLocation: {
-    latitude: number;
-    longitude: number;
-    accuracyMeters: number;
-    timestamp: string;
-  } | null;
-}): ActiveLocationSummary {
-  const scenario = findScenario(params.scenarioId);
-  const resolved = resolveActiveLocationContext({
-    scenario,
-    trustedLocations: params.trustedLocations,
-    activeLocationSource: params.activeLocationSource,
-    browserLocation: params.browserLocation
-  });
-
-  const sourceLabel = resolved.source === "browser_geolocation"
-    ? "Browser geolocation"
-    : "Seeded scenario coordinates";
-
-  const fallbackMessage = resolved.fallbackReason === "browser_unavailable"
-    ? "Live device location was not available, so the demo is using the scenario's seeded coordinates."
-    : resolved.fallbackReason === "browser_inaccurate"
-      ? "Live device location was too inaccurate for a safe demo match, so the demo is using the scenario's seeded coordinates."
-      : undefined;
-
-  if (resolved.matchedTrustedPlace) {
-    return {
-      label: resolved.matchedTrustedPlace.name,
-      detail: resolved.matchedTrustedPlace.displayAddress ?? resolved.matchedTrustedPlace.address ?? "Saved trusted place",
-      trustedPlaceName: resolved.matchedTrustedPlace.name,
-      trustedPlaceAddress: resolved.matchedTrustedPlace.displayAddress ?? resolved.matchedTrustedPlace.address ?? null,
-      sourceLabel,
-      locationModeLabel: "Trusted place",
-      fallbackMessage,
-      placeId: resolved.matchedTrustedPlace.id ?? null
-    };
-  }
-
-  return {
-    label: "Other",
-    detail: "I do not recognize this as one of your saved trusted places.",
-    trustedPlaceName: null,
-    trustedPlaceAddress: null,
-    sourceLabel,
-    locationModeLabel: "Other",
-    fallbackMessage,
-    placeId: null
-  };
-}
-
-export function buildContextPacket(params: {
-  scenarioId: string;
-  profile: DemoProfile;
-  trustedLocations: TrustedLocation[];
-  activeLocationSource: LocationSource;
-  browserLocation: {
-    latitude: number;
-    longitude: number;
-    accuracyMeters: number;
-    timestamp: string;
-  } | null;
-}): ContextPacket {
-  const scenario = findScenario(params.scenarioId);
-  const resolved = resolveActiveLocationContext({
-    scenario,
-    trustedLocations: params.trustedLocations,
-    activeLocationSource: params.activeLocationSource,
-    browserLocation: params.browserLocation
-  });
-
-  const trustedPlace = resolved.matchedTrustedPlace;
-  const location = trustedPlace
-    ? trustedPlace.name
-    : "I do not recognize this as one of your saved trusted places.";
-  const trustedPlaceAddress = trustedPlace?.displayAddress ?? trustedPlace?.address ?? "No saved trusted-place address available.";
-
-  const notes = trustedPlace
-    ? [
-        scenario.guidance,
-        trustedPlace.instructions ?? "",
-        scenario.currentActivity ? `Current activity: ${scenario.currentActivity}.` : "",
-        scenario.scheduledEvent ? `Bring items: ${buildBringItemsText(scenario.scheduledEvent.bringItems)}.` : "",
-        resolved.source === "browser_geolocation"
-          ? "The current coordinates came from browser geolocation."
-          : "The current coordinates came from seeded demo data."
-      ].filter(Boolean).join(" ")
-    : [
-        "Do not guess a place name, address, reason for being here, or who is nearby.",
-        "Say clearly that this is not a recognized trusted place.",
-        "Offer calm support: stay where you are if safe, call the caregiver, show the helper card, or call emergency services if unsafe or urgent."
-      ].join(" ");
-
-  return {
-    location,
-    location_mode: resolved.locationMode,
-    location_source: resolved.source,
-    trusted_place: trustedPlace?.name ?? "Other",
-    trusted_place_address: trustedPlaceAddress,
-    location_coordinates: `${formatCoordinate(resolved.coordinates.latitude)}, ${formatCoordinate(resolved.coordinates.longitude)}`,
-    time_of_day: scenarioTimeOfDay(scenario),
-    next_event: scenarioNextEvent(scenario, params.trustedLocations),
-    current_activity: scenario.currentActivity ?? "No specific current activity is confirmed.",
-    who_is_expected: scenarioExpectedVisitor(scenario, params.profile),
-    caregiver_name: params.profile.caregiverName,
-    notes,
-    safety_fallback: "If the user feels unsafe or urgently needs help, tell them to call their caregiver or emergency services right away."
-  };
-}
-
-export const caregiverSummary = {
-  personName: "Alex",
-  lastCheckIn: "10 minutes ago",
-  status: "Calm and oriented after reminder",
-  todaysEvents: 4
-};
-
-export const eventLog: EventLogItem[] = [
-  { id: "1", time: "6:05 PM", message: "Opened Today Window and reviewed trusted-place context." },
-  { id: "2", time: "6:07 PM", message: "Completed quick check-in question set." },
-  { id: "3", time: "6:10 PM", message: "Ran demo scenario with trusted-place matching." },
-  { id: "4", time: "6:12 PM", message: "Caregiver dashboard reviewed current location summary." }
-];
-
-
-// ---
-
-// FILE: lib/places.ts
-
-import {
-  defaultTrustedLocations,
-  generateId,
-  type BrowserLocation,
-  type DemoScenario,
-  type LocationMode,
-  type LocationSource,
-  type TrustedLocation
-} from "@/data/demoState";
-import { supabase } from "./supabaseClient";
-
-const DEMO_PROFILE_ID = "00000000-0000-0000-0000-000000000001";
-const DEFAULT_PLACE_RADIUS_METERS = 75;
-export const MAX_DEMO_BROWSER_ACCURACY_METERS = 250;
-
-type PlaceRow = {
-  id: string;
-  name: string;
-  address: string | null;
-  instructions: string | null;
-  trusted_slot: number | null;
-  latitude: number | null;
-  longitude: number | null;
-  place_type: string | null;
-};
-
-export type Coordinates = {
-  latitude: number;
-  longitude: number;
-};
-
-export type TrustedPlaceMatch = {
-  place: TrustedLocation;
-  distanceMeters: number;
-  radiusMeters: number;
-};
-
-export type ResolvedLocationContext = {
-  source: LocationSource;
-  coordinates: Coordinates;
-  accuracyMeters: number | null;
-  matchedTrustedPlace: TrustedLocation | null;
-  matchedPlaceId: string | null;
-  scenarioPlace: TrustedLocation | null;
-  locationMode: LocationMode;
-  fallbackReason?: "browser_unavailable" | "browser_inaccurate";
-};
-
-function fallbackPlaceForSlot(slot: 1 | 2 | 3): TrustedLocation | undefined {
-  return defaultTrustedLocations.find((location) => location.trustedSlot === slot);
-}
-
-export function haversineDistanceMeters(a: Coordinates, b: Coordinates): number {
-  const toRadians = (value: number) => (value * Math.PI) / 180;
-  const earthRadius = 6371000;
-  const latitudeDelta = toRadians(b.latitude - a.latitude);
-  const longitudeDelta = toRadians(b.longitude - a.longitude);
-  const startLatitude = toRadians(a.latitude);
-  const endLatitude = toRadians(b.latitude);
-
-  const haversine =
-    Math.sin(latitudeDelta / 2) * Math.sin(latitudeDelta / 2) +
-    Math.cos(startLatitude) * Math.cos(endLatitude) *
-    Math.sin(longitudeDelta / 2) * Math.sin(longitudeDelta / 2);
-
-  return 2 * earthRadius * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine));
-}
-
-export function matchTrustedPlace(
-  coordinates: Coordinates,
-  locations: TrustedLocation[]
-): TrustedPlaceMatch | null {
-  let bestMatch: TrustedPlaceMatch | null = null;
-
-  for (const location of locations) {
-    if (typeof location.latitude !== "number" || typeof location.longitude !== "number") {
-      continue;
-    }
-
-    const radiusMeters = location.radiusMeters ?? fallbackPlaceForSlot(location.trustedSlot)?.radiusMeters ?? DEFAULT_PLACE_RADIUS_METERS;
-    const distanceMeters = haversineDistanceMeters(coordinates, {
-      latitude: location.latitude,
-      longitude: location.longitude
-    });
-
-    if (distanceMeters > radiusMeters) {
-      continue;
-    }
-
-    if (!bestMatch || distanceMeters < bestMatch.distanceMeters) {
-      bestMatch = { place: location, distanceMeters, radiusMeters };
-    }
-  }
-
-  return bestMatch;
-}
-
-export function resolveActiveLocationContext(params: {
-  scenario: DemoScenario;
-  trustedLocations: TrustedLocation[];
-  activeLocationSource: LocationSource;
-  browserLocation: BrowserLocation | null;
-}): ResolvedLocationContext {
-  const { scenario, trustedLocations, activeLocationSource, browserLocation } = params;
-  const scenarioPlace = scenario.scenarioPlaceId
-    ? trustedLocations.find((location) => location.id === scenario.scenarioPlaceId) ?? null
-    : null;
-
-  let source: LocationSource = "scenario_seed";
-  let coordinates: Coordinates = scenario.seededCoordinates;
-  let accuracyMeters: number | null = null;
-  let fallbackReason: ResolvedLocationContext["fallbackReason"];
-
-  if (activeLocationSource === "browser_geolocation") {
-    if (!browserLocation) {
-      fallbackReason = "browser_unavailable";
-    } else if (browserLocation.accuracyMeters > MAX_DEMO_BROWSER_ACCURACY_METERS) {
-      fallbackReason = "browser_inaccurate";
-    } else {
-      source = "browser_geolocation";
-      coordinates = {
-        latitude: browserLocation.latitude,
-        longitude: browserLocation.longitude
-      };
-      accuracyMeters = browserLocation.accuracyMeters;
-    }
-  }
-
-  const match = matchTrustedPlace(coordinates, trustedLocations);
-
-  return {
-    source,
-    coordinates,
-    accuracyMeters,
-    matchedTrustedPlace: match?.place ?? null,
-    matchedPlaceId: match?.place.id ?? null,
-    scenarioPlace,
-    locationMode: match ? "trusted_place" : "other",
-    fallbackReason
-  };
-}
-
-export async function loadTrustedLocations(userId = DEMO_PROFILE_ID): Promise<TrustedLocation[]> {
-  try {
-    const { data, error } = await supabase
-      .from("places")
-      .select("id, name, address, instructions, trusted_slot, latitude, longitude, place_type")
-      .eq("user_id", userId)
-      .eq("is_trusted", true)
-      .order("trusted_slot", { ascending: true });
-
-    if (error || !data) {
-      return [];
-    }
-
-    return (data as PlaceRow[])
-      .filter((row) => row.trusted_slot === 1 || row.trusted_slot === 2 || row.trusted_slot === 3)
-      .map((row) => {
-        const fallback = fallbackPlaceForSlot(row.trusted_slot as 1 | 2 | 3);
-        return {
-          id: row.id,
-          trustedSlot: row.trusted_slot as 1 | 2 | 3,
-          name: row.name,
-          address: row.address ?? undefined,
-          displayAddress: row.address ?? fallback?.displayAddress ?? undefined,
-          instructions: row.instructions ?? fallback?.instructions ?? undefined,
-          latitude: row.latitude ?? fallback?.latitude,
-          longitude: row.longitude ?? fallback?.longitude,
-          radiusMeters: fallback?.radiusMeters ?? DEFAULT_PLACE_RADIUS_METERS,
-          placeType: (row.place_type as TrustedLocation["placeType"] | null) ?? fallback?.placeType ?? "trusted"
-        };
-      });
-  } catch {
-    return [];
-  }
-}
-
-export async function saveTrustedLocation(location: TrustedLocation, userId = DEMO_PROFILE_ID): Promise<TrustedLocation> {
-  const fallback = fallbackPlaceForSlot(location.trustedSlot);
-  const payload = {
-    id: location.id ?? fallback?.id ?? generateId(),
-    user_id: userId,
-    name: location.name.trim(),
-    address: location.address?.trim() || null,
-    instructions: location.instructions?.trim() || null,
-    latitude: typeof location.latitude === "number" ? location.latitude : fallback?.latitude ?? null,
-    longitude: typeof location.longitude === "number" ? location.longitude : fallback?.longitude ?? null,
-    is_trusted: true,
-    trusted_slot: location.trustedSlot,
-    place_type: location.placeType ?? fallback?.placeType ?? "trusted"
-  };
-
-  await supabase.from("places").upsert(payload);
-
-  return {
-    id: payload.id,
-    trustedSlot: location.trustedSlot,
-    name: payload.name,
-    address: payload.address ?? undefined,
-    displayAddress: location.displayAddress ?? payload.address ?? fallback?.displayAddress ?? undefined,
-    instructions: payload.instructions ?? undefined,
-    latitude: payload.latitude ?? undefined,
-    longitude: payload.longitude ?? undefined,
-    radiusMeters: location.radiusMeters ?? fallback?.radiusMeters ?? DEFAULT_PLACE_RADIUS_METERS,
-    placeType: payload.place_type as TrustedLocation["placeType"]
-  };
-}
-
-export async function clearTrustedLocation(slot: 1 | 2 | 3, userId = DEMO_PROFILE_ID): Promise<void> {
-  try {
-    await supabase
-      .from("places")
-      .delete()
-      .eq("user_id", userId)
-      .eq("trusted_slot", slot)
-      .eq("is_trusted", true);
-  } catch {
-    // non-fatal for demo mode
-  }
-}
-
-
-// ---
-
-// FILE: lib/logEvent.ts
-
-import type { DemoEvent } from "@/data/demoState";
-import { supabase } from "./supabaseClient";
-
-function isValidUuid(value: string): boolean {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
-}
-
-export async function logActivityEvent(event: DemoEvent): Promise<void> {
-  try {
-    await supabase.from("activity_events").upsert({
-      id: event.id,
-      user_id: event.userId,
-      event_type: event.eventType,
-      created_at: event.timestamp,
-      source: event.source,
-      scenario_id: event.scenarioId ?? null,
-      place_id: event.placeId && isValidUuid(event.placeId) ? event.placeId : null,
-      latitude: event.latitude ?? null,
-      longitude: event.longitude ?? null,
-      metadata: event.metadata ?? null,
-    });
-  } catch {
-    // Non-fatal in demo mode.
-  }
-}
-
-export async function logSystemEvent(event: DemoEvent): Promise<void> {
-  try {
-    await supabase.from("system_events").upsert({
-      id: event.id,
-      user_id: event.userId,
-      event_type: event.eventType,
-      created_at: event.timestamp,
-      source: event.source,
-      scenario_id: event.scenarioId ?? null,
-      metadata: event.metadata ?? null,
-    });
-  } catch {
-    // Non-fatal in demo mode.
-  }
-}
-
-
-// ---
-
-// FILE: lib/aiConfig.ts
-
-export const CLAUDE_MODEL = "claude-haiku-4-5-20251001";
-
-
-// ---
-
-// FILE: lib/seedData.ts
-
-import { defaultTrustedLocations, demoScenarios, PLACE_HOME_ID, PLACE_DOCTOR_ID, SCHEDULED_EVENT_DOCTOR_ID } from "@/data/demoState";
-import { supabase } from "./supabaseClient";
-
-const DEMO_USER_ID = "00000000-0000-0000-0000-000000000001";
-
-// ── Types ────────────────────────────────────────────────────────────────────
-
-type ActivityRow = {
-  id: string;
-  user_id: string;
-  event_type: string;
-  source: string;
-  confidence_level?: string | null;
-  scenario_id?: string | null;
-  latitude?: number | null;
-  longitude?: number | null;
-  place_id?: string | null;
-  metadata?: Record<string, unknown> | null;
-  created_at: string;
-};
-
-type BiometricRow = {
-  id: string;
-  user_id: string;
-  event_type: string;
-  value: number;
-  unit: string;
-  threshold_exceeded: boolean;
-  source: string;
-  recorded_at: string;
-  created_at: string;
-};
-
-type Phase = 1 | 2 | 3 | 4;
-
-// ── Helpers ──────────────────────────────────────────────────────────────────
-
-function generateId(): string {
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    return (c === "x" ? r : (r & 0x3) | 0x8).toString(16);
-  });
-}
-
-function randInt(min: number, max: number): number {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
-}
-
-function pick<T>(arr: T[]): T {
-  return arr[Math.floor(Math.random() * arr.length)];
-}
-
-function isoTs(year: number, month: number, day: number, hour: number, minute: number): string {
-  const d = new Date();
-  d.setUTCFullYear(year, month - 1, day);
-  d.setUTCHours(hour, minute, 0, 0);
-  return d.toISOString();
-}
-
-// ── Static config ─────────────────────────────────────────────────────────────
-
-function daysInMonth(year: number, month: number): number {
-  // month is 1-indexed; day 0 of the next UTC month = last day of this month
-  return new Date(Date.UTC(year, month, 0)).getUTCDate();
-}
-
-// Emergency event days keyed by rolling window index (0=oldest month, 11=current month)
-// Indices 6-11 correspond to phases 3 and 4 per the narrative
-const EMERGENCY_DAYS_BY_INDEX: Record<number, number[]> = {
-  6:  [8, 22],
-  7:  [5, 14, 25],
-  8:  [10, 21],
-  9:  [3, 15, 27],
-  10: [7, 12, 19, 28],
-  11: [4, 16, 23],
-};
-
-const CHECK_IN_QUESTIONS = [
-  "Would you like to sit down and take a slow breath?",
-  "Do you want a quick reminder of your plan for tonight?",
-  "Would calling your caregiver help right now?",
-];
-
-function getPhaseByIndex(idx: number): Phase {
-  if (idx <= 2) return 1;
-  if (idx <= 5) return 2;
-  if (idx <= 8) return 3;
-  return 4;
-}
-
-// Time-of-day weights per phase
-function randomHour(phase: Phase): number {
-  const r = Math.random();
-  if (phase === 1) {
-    return r < 0.82 ? randInt(6, 11) : randInt(12, 17);
-  }
-  if (phase === 2) {
-    if (r < 0.50) return randInt(6, 11);
-    if (r < 0.88) return randInt(12, 17);
-    return randInt(18, 21);
-  }
-  if (phase === 3) {
-    if (r < 0.38) return randInt(6, 11);
-    if (r < 0.72) return randInt(12, 17);
-    return randInt(18, 21);
-  }
-  // Phase 4: spread across all hours
-  if (r < 0.28) return randInt(6, 11);
-  if (r < 0.52) return randInt(12, 17);
-  if (r < 0.78) return randInt(18, 21);
-  return r < 0.90 ? randInt(22, 23) : randInt(0, 5);
-}
-
-function randomConfidence(phase: Phase): string {
-  const r = Math.random();
-  if (phase === 1) return r < 0.72 ? "high" : r < 0.95 ? "medium" : "low";
-  if (phase === 2) return r < 0.35 ? "high" : r < 0.85 ? "medium" : "low";
-  if (phase === 3) return r < 0.15 ? "high" : r < 0.58 ? "medium" : "low";
-  return r < 0.08 ? "high" : r < 0.38 ? "medium" : "low";
-}
-
-function scenarioForHour(hour: number): string {
-  if (hour >= 6 && hour < 11) return "home_reorientation";
-  if (hour >= 11 && hour < 14) return "doctor_appointment_prep";
-  if (hour >= 14 && hour < 18) return "pharmacy_confusion";
-  return "lost_unknown_location";
-}
-
-function scenarioDetails(scenarioId: string): { placeId: string | null; latitude: number | null; longitude: number | null } {
-  const scenario = demoScenarios.find((entry) => entry.id === scenarioId);
-  return {
-    placeId: scenario?.scenarioPlaceId ?? null,
-    latitude: scenario?.seededCoordinates.latitude ?? null,
-    longitude: scenario?.seededCoordinates.longitude ?? null,
-  };
-}
-
-// ── Per-day event generation ─────────────────────────────────────────────────
-
-function generateDay(
-  year: number,
-  month: number,
-  day: number,
-  phase: Phase,
-  isEmergencyDay: boolean
-): { activity: ActivityRow[]; biometric: BiometricRow[] } {
-  const activity: ActivityRow[] = [];
-  const biometric: BiometricRow[] = [];
-
-  // Reorientation event count
-  let reorientCount: number;
-  switch (phase) {
-    case 1:  reorientCount = randInt(1, 2); break;
-    case 2:  reorientCount = randInt(2, 3); break;
-    case 3:  reorientCount = randInt(3, 5); break;
-    default: reorientCount = randInt(4, 6); break;
-  }
-  // Emergency days always qualify as hard days
-  if (isEmergencyDay && reorientCount < 4) reorientCount = 4;
-  const isHardDay = reorientCount >= 4;
-
-  // 1. Reorientation events
-  for (let i = 0; i < reorientCount; i++) {
-    const h = randomHour(phase);
-    const confidence = randomConfidence(phase);
-    const scenarioId = scenarioForHour(h);
-    const location = scenarioDetails(scenarioId);
-    activity.push({
-      id: generateId(),
-      user_id: DEMO_USER_ID,
-      event_type: "reorientation_started",
-      source: "app",
-      confidence_level: confidence,
-      scenario_id: scenarioId,
-      latitude: location.latitude,
-      longitude: location.longitude,
-      place_id: location.placeId,
-      metadata: { uncertainty: confidence },
-      created_at: isoTs(year, month, day, h, randInt(0, 59)),
-    });
-  }
-
-  // 2. Check-in (~60% of days)
-  if (Math.random() < 0.60) {
-    const hour = randomHour(phase);
-    const scenarioId = scenarioForHour(hour);
-    const location = scenarioDetails(scenarioId);
-    activity.push({
-      id: generateId(),
-      user_id: DEMO_USER_ID,
-      event_type: "checkin_submitted",
-      source: "app",
-      scenario_id: scenarioId,
-      latitude: location.latitude,
-      longitude: location.longitude,
-      place_id: location.placeId,
-      metadata: { question: pick(CHECK_IN_QUESTIONS) },
-      created_at: isoTs(year, month, day, hour, randInt(0, 59)),
-    });
-  }
-
-  // 3. Helper card events
-  let helperCount: number;
-  const hr = Math.random();
-  switch (phase) {
-    case 1:  helperCount = hr < 0.20 ? 1 : 0; break;
-    case 2:  helperCount = hr < 0.50 ? 1 : 0; break;
-    case 3:  helperCount = isHardDay ? randInt(1, 2) : (hr < 0.80 ? 1 : 0); break;
-    default: helperCount = isHardDay ? randInt(2, 4) : randInt(1, 2); break;
-  }
-  for (let i = 0; i < helperCount; i++) {
-    const hour = randomHour(phase);
-    const scenarioId = scenarioForHour(hour);
-    const location = scenarioDetails(scenarioId);
-    activity.push({
-      id: generateId(),
-      user_id: DEMO_USER_ID,
-      event_type: "helper_card_shown",
-      source: "app",
-      scenario_id: scenarioId,
-      latitude: location.latitude,
-      longitude: location.longitude,
-      place_id: location.placeId,
-      created_at: isoTs(year, month, day, hour, randInt(0, 59)),
-    });
-  }
-
-  // 4. Caregiver calls (clustered on hard/emergency days)
-  let caregiverCount: number;
-  if (isEmergencyDay) {
-    caregiverCount = phase <= 3 ? randInt(3, 4) : randInt(4, 5);
-  } else {
-    const cr = Math.random();
-    switch (phase) {
-      case 1:  caregiverCount = cr < 0.15 ? 1 : 0; break;
-      case 2:  caregiverCount = cr < 0.60 ? 0 : cr < 0.90 ? 1 : 2; break;
-      case 3:  caregiverCount = isHardDay ? randInt(2, 3) : (cr < 0.40 ? 1 : 0); break;
-      default: caregiverCount = isHardDay ? randInt(4, 5) : randInt(1, 2); break;
-    }
-  }
-
-  if (caregiverCount > 0) {
-    const shouldCluster = (phase >= 3 && isHardDay) || isEmergencyDay;
-    if (shouldCluster) {
-      // All calls within a 90-minute panic window
-      const panicHour = randomHour(phase);
-      for (let i = 0; i < caregiverCount; i++) {
-        const offsetMin = randInt(0, 89);
-        const totalMin = panicHour * 60 + offsetMin;
-        const scenarioId = scenarioForHour(panicHour);
-        const location = scenarioDetails(scenarioId);
-        activity.push({
-          id: generateId(),
-          user_id: DEMO_USER_ID,
-          event_type: "caregiver_called",
-          source: "app",
-          scenario_id: scenarioId,
-          latitude: location.latitude,
-          longitude: location.longitude,
-          place_id: location.placeId,
-          created_at: isoTs(year, month, day, Math.min(Math.floor(totalMin / 60), 23), totalMin % 60),
-        });
-      }
-    } else {
-      for (let i = 0; i < caregiverCount; i++) {
-        const hour = randomHour(phase);
-        const scenarioId = scenarioForHour(hour);
-        const location = scenarioDetails(scenarioId);
-        activity.push({
-          id: generateId(),
-          user_id: DEMO_USER_ID,
-          event_type: "caregiver_called",
-          source: "app",
-          scenario_id: scenarioId,
-          latitude: location.latitude,
-          longitude: location.longitude,
-          place_id: location.placeId,
-          created_at: isoTs(year, month, day, hour, randInt(0, 59)),
-        });
       }
     }
-  }
+  },
+  plugins: []
+};
 
-  // 5. Emergency event
-  if (isEmergencyDay) {
-    const hour = randInt(18, 21);
-    const scenarioId = scenarioForHour(hour);
-    const location = scenarioDetails(scenarioId);
-    activity.push({
-      id: generateId(),
-      user_id: DEMO_USER_ID,
-      event_type: "emergency_called",
-      source: "app",
-      scenario_id: scenarioId,
-      latitude: location.latitude,
-      longitude: location.longitude,
-      place_id: location.placeId,
-      created_at: isoTs(year, month, day, hour, randInt(0, 59)),
-    });
-  }
+export default config;
 
-  // 6. Biometric events — elevated heart rate on hard days (4+ reorientation events)
-  if (isHardDay) {
-    const sampleCount = randInt(2, 3);
-    const baseHour = randomHour(phase);
-    for (let i = 0; i < sampleCount; i++) {
-      const h = Math.min(baseHour + i, 23);
-      const bpm = isEmergencyDay ? randInt(128, 152) : randInt(103, 128);
-      const ts = isoTs(year, month, day, h, randInt(0, 59));
-      biometric.push({
-        id: generateId(),
-        user_id: DEMO_USER_ID,
-        event_type: "heart_rate",
-        value: bpm,
-        unit: "bpm",
-        threshold_exceeded: true,
-        source: "synthetic",
-        recorded_at: ts,
-        created_at: ts,
-      });
-    }
-  }
 
-  return { activity, biometric };
+// ---
+
+// FILE: app/globals.css
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  background: #F8F4EE;
+  color: #1F2529;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 18px; /* Larger base text for impaired vision */
+  line-height: 1.6;
 }
 
-// ── Batch insert ──────────────────────────────────────────────────────────────
-
-async function insertActivityBatch(rows: ActivityRow[]): Promise<void> {
-  for (let i = 0; i < rows.length; i += 50) {
-
-    const { error } = await (supabase.from("activity_events") as any).insert(rows.slice(i, i + 50));
-    if (error) throw new Error(`activity_events: ${(error as { message: string }).message}`);
-  }
+a {
+  color: inherit;
 }
 
-async function seedCoreDemoRows(): Promise<void> {
-  await (supabase.from("profiles") as any).upsert({
-    id: DEMO_USER_ID,
-    preferred_name: "Alex",
-    pronouns: "he/him",
-    active_caregiver_id: "00000000-0000-0000-0000-000000000002",
-  });
 
-  await (supabase.from("caregivers") as any).upsert({
-    id: "00000000-0000-0000-0000-000000000002",
-    name: "Maria",
-    relationship_label: "daughter",
-  });
+// ---
 
-  await (supabase.from("caregiver_user_relationships") as any).upsert({
-    user_id: DEMO_USER_ID,
-    caregiver_id: "00000000-0000-0000-0000-000000000002",
-    role: "primary",
-    is_primary_contact: true,
-    permissions: {},
-  });
+// FILE: app/layout.tsx
 
-  for (const location of defaultTrustedLocations) {
-    await (supabase.from("places") as any).upsert({
-      id: location.id,
-      user_id: DEMO_USER_ID,
-      name: location.name,
-      address: location.address ?? null,
-      latitude: location.latitude ?? null,
-      longitude: location.longitude ?? null,
-      place_type: location.placeType ?? "trusted",
-      instructions: location.instructions ?? null,
-      is_home: location.id === PLACE_HOME_ID,
-      is_trusted: true,
-      trusted_slot: location.trustedSlot,
-    });
-  }
+import type { Metadata } from "next";
+import "./globals.css";
+import SiteHeader from "@/components/SiteHeader";
+import DemoAccessGate from "@/components/DemoAccessGate";
 
-  await (supabase.from("scheduled_events") as any).upsert({
-    id: SCHEDULED_EVENT_DOCTOR_ID,
-    user_id: DEMO_USER_ID,
-    title: "Doctor appointment",
-    description: "Routine follow-up visit",
-    location: "Doctor's Office",
-    place_id: PLACE_DOCTOR_ID,
-    start_time: new Date().toISOString(),
-    notes: "Bring ID, insurance card, phone, keys, and medication list.",
-  });
+export const metadata: Metadata = {
+  title: "Memory Assistant",
+  description: "Mobile-first prototype for present-moment reorientation support."
+};
+
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  return (
+    <html lang="en">
+      <body>
+        <DemoAccessGate>
+          <SiteHeader />
+          <div className="pb-10">{children}</div>
+        </DemoAccessGate>
+      </body>
+    </html>
+  );
 }
 
-async function insertBiometricBatch(rows: BiometricRow[]): Promise<void> {
-  for (let i = 0; i < rows.length; i += 50) {
 
-    const { error } = await (supabase.from("biometric_events") as any).insert(rows.slice(i, i + 50));
-    if (error) throw new Error(`biometric_events: ${(error as { message: string }).message}`);
-  }
-}
+// ---
 
-// ── Public API ────────────────────────────────────────────────────────────────
+// FILE: app/page.tsx
 
-export async function seedDemoData(): Promise<{ success: boolean; message: string }> {
-  try {
-    await seedCoreDemoRows();
+import Link from "next/link";
+import MemoryIcon from "@/components/MemoryIcon";
 
-    const allActivity: ActivityRow[] = [];
-    const allBiometric: BiometricRow[] = [];
+export default function LandingPage() {
+  return (
+    <main className="mx-auto min-h-screen w-full max-w-3xl px-4 py-10">
+      <div className="space-y-6">
+        <div className="rounded-3xl border border-brand-border bg-brand-surface p-6 shadow-sm">
+          <div className="flex items-start gap-3">
+            <div className="mt-1 text-brand-compass" aria-hidden="true">
+              <MemoryIcon name="compass" className="h-8 w-8" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-semibold text-brand-text">Memory Assistant</h1>
+              <p className="mt-2 text-base leading-7 text-brand-muted">
+                Calm, non-clinical support for moments of confusion. It helps you orient to the present.
+              </p>
+            </div>
+          </div>
+        </div>
 
-    // Build rolling 12-month window ending at start of today
-    const now = new Date();
-    const rollingMonths: Array<{ year: number; month: number }> = [];
-    for (let i = 11; i >= 0; i--) {
-      const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1));
-      rollingMonths.push({ year: d.getUTCFullYear(), month: d.getUTCMonth() + 1 });
-    }
-
-    for (let idx = 0; idx < 12; idx++) {
-      const { year, month } = rollingMonths[idx];
-      const phase = getPhaseByIndex(idx);
-      const emergencyDays = EMERGENCY_DAYS_BY_INDEX[idx] ?? [];
-      const days = daysInMonth(year, month);
-
-      for (let day = 1; day <= days; day++) {
-        const { activity, biometric } = generateDay(year, month, day, phase, emergencyDays.includes(day));
-        allActivity.push(...activity);
-        allBiometric.push(...biometric);
-      }
-    }
-
-    await insertActivityBatch(allActivity);
-    await insertBiometricBatch(allBiometric);
-
-    return {
-      success: true,
-      message: `Seeded ${allActivity.length} activity events and ${allBiometric.length} biometric events.`,
-    };
-  } catch (err) {
-    return { success: false, message: `Seed failed: ${String(err)}` };
-  }
-}
-
-export async function clearSeedData(): Promise<{ success: boolean; message: string }> {
-  try {
-    for (const table of ["activity_events", "system_events", "biometric_events"] as const) {
-  
-      const { error } = await (supabase.from(table) as any).delete().eq("user_id", DEMO_USER_ID);
-      if (error) throw new Error(`${table}: ${(error as { message: string }).message}`);
-    }
-    return { success: true, message: "All seeded data cleared." };
-  } catch (err) {
-    return { success: false, message: `Clear failed: ${String(err)}` };
-  }
+        <section className="space-y-3">
+          <Link
+            href="/app"
+            className="flex min-h-16 items-center justify-between rounded-3xl border border-brand-border bg-brand-surface px-5 text-base font-semibold text-brand-text"
+          >
+            <span>Help with today</span>
+            <span aria-hidden="true" className="text-brand-compass">
+              →
+            </span>
+          </Link>
+          <Link
+            href="/caregiver"
+            className="flex min-h-16 items-center justify-between rounded-3xl border border-brand-border bg-brand-surface px-5 text-base font-semibold text-brand-text"
+          >
+            <span>Caregiver Dashboard</span>
+            <span aria-hidden="true" className="text-brand-compass">
+              →
+            </span>
+          </Link>
+          <Link
+            href="/demo"
+            className="flex min-h-16 items-center justify-between rounded-3xl border border-brand-border bg-brand-surface px-5 text-base font-semibold text-brand-text"
+          >
+            <span>Scenario Demo Simulator</span>
+            <span aria-hidden="true" className="text-brand-compass">
+              →
+            </span>
+          </Link>
+        </section>
+      </div>
+    </main>
+  );
 }
 
 
@@ -4634,6 +3307,308 @@ export async function POST(req: NextRequest) {
 
 // ---
 
+// FILE: components/SiteHeader.tsx
+
+import Link from "next/link";
+import BrandLogo from "@/components/BrandLogo";
+
+export default function SiteHeader() {
+  return (
+    <header className="sticky top-0 z-10 border-b border-brand-border bg-brand-bg/90 backdrop-blur">
+      <div className="mx-auto flex w-full max-w-3xl items-center gap-3 px-4 py-3">
+        <Link href="/" className="flex items-center gap-3" aria-label="Memory Assistant home">
+          <BrandLogo size={42} />
+          <div className="leading-tight">
+            <div className="text-lg font-semibold text-brand-text">Memory Assistant</div>
+            <div className="text-sm text-brand-muted">Present-moment support</div>
+          </div>
+        </Link>
+
+        <nav className="ml-auto hidden items-center gap-2 md:flex" aria-label="Primary">
+          <Link
+            href="/app"
+            className="rounded-full border border-brand-border bg-brand-surface px-4 py-2 text-sm font-semibold text-brand-primary"
+          >
+            Today
+          </Link>
+          <Link
+            href="/caregiver"
+            className="rounded-full border border-brand-border bg-brand-surface px-4 py-2 text-sm font-semibold text-brand-primary"
+          >
+            Caregiver
+          </Link>
+          <Link
+            href="/demo"
+            className="rounded-full border border-brand-border bg-brand-surface px-4 py-2 text-sm font-semibold text-brand-primary"
+          >
+            Demo
+          </Link>
+        </nav>
+      </div>
+    </header>
+  );
+}
+
+
+
+// ---
+
+// FILE: components/BrandLogo.tsx
+
+export default function BrandLogo({ size = 44 }: { size?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 64 64"
+      xmlns="http://www.w3.org/2000/svg"
+      role="img"
+      aria-label="Memory Assistant compass mark"
+    >
+      <defs>
+        <style>{`.dot{fill:#A44A3F}.needle{stroke:#A44A3F}`}</style>
+      </defs>
+
+      {/* Compass dot motif */}
+      <circle cx="32" cy="32" r="22" fill="#FFFDF9" stroke="#D9D6D0" strokeWidth="2" />
+      <circle cx="32" cy="32" r="3.2" className="dot" />
+
+      {/* 8 dots around the center */}
+      <circle cx="32" cy="10.5" r="2.2" className="dot" />
+      <circle cx="44.6" cy="14.6" r="2.2" className="dot" />
+      <circle cx="53.5" cy="23.5" r="2.2" className="dot" />
+      <circle cx="49.5" cy="36" r="2.2" className="dot" />
+      <circle cx="32" cy="53.5" r="2.2" className="dot" />
+      <circle cx="19.4" cy="49.4" r="2.2" className="dot" />
+      <circle cx="10.5" cy="40.5" r="2.2" className="dot" />
+      <circle cx="14.5" cy="28" r="2.2" className="dot" />
+
+      {/* Simple MA wordmark in the center */}
+      <text
+        x="32"
+        y="37"
+        textAnchor="middle"
+        fontFamily="system-ui, -apple-system, Segoe UI, Arial"
+        fontSize="18"
+        fontWeight="800"
+        fill="#A44A3F"
+      >
+        MA
+      </text>
+    </svg>
+  );
+}
+
+
+
+// ---
+
+// FILE: components/MemoryIcon.tsx
+
+export type MemoryIconName =
+  | "home"
+  | "clock"
+  | "calendar"
+  | "mapPin"
+  | "shield"
+  | "phone"
+  | "checkCircle"
+  | "compass";
+
+type MemoryIconProps = {
+  name: MemoryIconName;
+  className?: string;
+  title?: string;
+};
+
+export default function MemoryIcon({ name, className, title }: MemoryIconProps) {
+  const common = {
+    className,
+    role: title ? "img" : "presentation",
+    "aria-label": title,
+    "aria-hidden": title ? undefined : true,
+    focusable: "false",
+    viewBox: "0 0 24 24",
+    xmlns: "http://www.w3.org/2000/svg"
+  } as const;
+
+  switch (name) {
+    case "home":
+      return (
+        <svg {...common}>
+          <path
+            d="M3 10.5 12 3l9 7.5V21a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1V10.5Z"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinejoin="round"
+          />
+        </svg>
+      );
+    case "clock":
+      return (
+        <svg {...common}>
+          <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="2" />
+          <path d="M12 7v6l4 2" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        </svg>
+      );
+    case "calendar":
+      return (
+        <svg {...common}>
+          <path
+            d="M7 3v3M17 3v3M4 8h16M6 5h12a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <path d="M8 12h3M13 12h3M8 16h3M13 16h3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        </svg>
+      );
+    case "mapPin":
+      return (
+        <svg {...common}>
+          <path
+            d="M12 22s7-4.5 7-12a7 7 0 0 0-14 0c0 7.5 7 12 7 12Z"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinejoin="round"
+          />
+          <circle cx="12" cy="10" r="2.5" fill="none" stroke="currentColor" strokeWidth="2" />
+        </svg>
+      );
+    case "shield":
+      return (
+        <svg {...common}>
+          <path
+            d="M12 2 20 6v6c0 5-3.5 9.5-8 10-4.5-.5-8-5-8-10V6l8-4Z"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M9.5 12.2 11.6 14.3 15.8 10.1"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      );
+    case "phone":
+      return (
+        <svg {...common}>
+          <path
+            d="M22 16.5v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.4 19.4 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.9.8 2.7a2 2 0 0 1-.5 2.2L8.1 10a16 16 0 0 0 6 6l1.4-1.3a2 2 0 0 1 2.2-.5c.8.4 1.8.7 2.7.8a2 2 0 0 1 1.7 2Z"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinejoin="round"
+          />
+        </svg>
+      );
+    case "checkCircle":
+      return (
+        <svg {...common}>
+          <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="2" />
+          <path d="M8.5 12.2 10.7 14.4 15.8 9.3" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        </svg>
+      );
+    case "compass":
+      return (
+        <svg {...common}>
+          <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="2" />
+          <circle cx="12" cy="12" r="1.5" fill="currentColor" />
+          <path d="M14.8 9.2 13.7 13.7 9.2 14.8 10.3 10.3 14.8 9.2Z" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+        </svg>
+      );
+    default:
+      return null;
+  }
+}
+
+
+
+// ---
+
+// FILE: components/DemoAccessGate.tsx
+
+"use client";
+
+import { FormEvent, useEffect, useState } from "react";
+
+const SESSION_KEY = "memory-assistant-demo-unlocked";
+const DEMO_PASSWORD = "memory2026";
+
+type DemoAccessGateProps = {
+  children: React.ReactNode;
+};
+
+export default function DemoAccessGate({ children }: DemoAccessGateProps) {
+  const [unlocked, setUnlocked] = useState(false);
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const isUnlocked = window.sessionStorage.getItem(SESSION_KEY) === "true";
+    setUnlocked(isUnlocked);
+  }, []);
+
+  const onSubmit = (event: FormEvent) => {
+    event.preventDefault();
+
+    if (password === DEMO_PASSWORD) {
+      setUnlocked(true);
+      window.sessionStorage.setItem(SESSION_KEY, "true");
+      setError("");
+      return;
+    }
+
+    setError("Incorrect password. Please try again.");
+  };
+
+  if (!unlocked) {
+    return (
+      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-brand-bg/95 px-4">
+        <form onSubmit={onSubmit} className="w-full max-w-md rounded-3xl border border-brand-border bg-brand-surface p-6 shadow-lg">
+          <h1 className="text-2xl font-semibold text-brand-text">Demo Access</h1>
+          <p className="mt-2 text-sm text-brand-muted">Enter the demo password to continue.</p>
+          <label className="mt-4 block text-sm text-brand-muted">
+            Password
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="mt-1 w-full rounded-xl border border-brand-border bg-brand-bg px-3 py-2 text-base text-brand-text"
+            />
+          </label>
+          {error ? <p className="mt-2 text-sm text-red-700">{error}</p> : null}
+          <button
+            type="submit"
+            className="mt-4 w-full rounded-2xl bg-brand-primary px-4 py-3 text-base font-semibold text-white focus:outline-none focus:ring-2 focus:ring-brand-compass"
+          >
+            Enter demo
+          </button>
+        </form>
+      </div>
+    );
+  }
+
+  return <>{children}</>;
+}
+
+
+
+// ---
+
 // FILE: components/HelperModal.tsx
 
 "use client";
@@ -4952,4 +3927,1482 @@ export default function EventLogList({
       )}
     </section>
   );
+}
+
+
+// ---
+
+// FILE: data/demoState.ts
+
+import { logActivityEvent, logSystemEvent } from "@/lib/logEvent";
+
+export type EventSource = "app" | "caregiver" | "demo";
+export type UncertaintyLevel = "low" | "medium" | "high";
+export type LocationSource = "scenario_seed" | "browser_geolocation";
+export type LocationMode = "trusted_place" | "other";
+export type ResponsePosture = "calm_grounding" | "public_place_support" | "transition_support" | "safety_fallback";
+
+export type BrowserLocation = {
+  latitude: number;
+  longitude: number;
+  accuracyMeters: number;
+  timestamp: string;
+};
+
+export type DemoEvent = {
+  id: string;
+  eventType: string;
+  timestamp: string;
+  userId: string;
+  scenarioId?: string;
+  source: EventSource;
+  metadata?: Record<string, unknown>;
+  placeId?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  accuracyMeters?: number | null;
+  locationSource?: LocationSource;
+};
+
+export type ScheduledEventSummary = {
+  id: string;
+  title: string;
+  timeLabel: string;
+  placeId?: string | null;
+  bringItems?: string[];
+};
+
+export type DemoScenario = {
+  id: string;
+  label: string;
+  guidance: string;
+  where: string;
+  happening: string;
+  nextStep: string;
+  uncertainty: UncertaintyLevel;
+  responsePosture: ResponsePosture;
+  seededCoordinates: {
+    latitude: number;
+    longitude: number;
+  };
+  expectedLocationMode: LocationMode;
+  scenarioPlaceId?: string | null;
+  currentActivity?: string;
+  scenarioHour?: number | null;
+  demoNote?: string;
+  scheduledEvent?: ScheduledEventSummary;
+};
+
+export type DemoState = {
+  activeScenarioId: string;
+  checkInStatus: string;
+  activityEvents: DemoEvent[];
+  systemEvents: DemoEvent[];
+  profile: DemoProfile;
+  trustedLocations: TrustedLocation[];
+  activeLocationSource: LocationSource;
+  browserLocation: BrowserLocation | null;
+  resolvedAddress: string | null;
+  demoClassroomMode: boolean;
+};
+
+export type PronounSet = "he/him" | "she/her" | "they/them" | "custom";
+
+export type DemoProfile = {
+  userId: string;
+  preferredName: string;
+  pronouns: PronounSet;
+  customPronouns?: string;
+  caregiverName: string;
+  caregiverRelationshipLabel?: string;
+  independentMode?: boolean;
+  activeCaregiverId?: string | null;
+  userPhone?: string;
+};
+
+export type TrustedLocation = {
+  id?: string;
+  trustedSlot: 1 | 2 | 3;
+  name: string;
+  address?: string;
+  displayAddress?: string;
+  instructions?: string;
+  latitude?: number;
+  longitude?: number;
+  radiusMeters?: number;
+  placeType?: "home" | "pharmacy" | "clinic" | "trusted";
+};
+
+export const defaultDemoProfile: DemoProfile = {
+  userId: "00000000-0000-0000-0000-000000000001",
+  preferredName: "Alex",
+  pronouns: "he/him",
+  caregiverName: "Maria",
+  caregiverRelationshipLabel: "daughter",
+  independentMode: false,
+  activeCaregiverId: "00000000-0000-0000-0000-000000000002",
+  userPhone: "2345678901"
+};
+
+export const PLACE_HOME_ID = "00000000-0000-4000-8000-000000000001";
+export const PLACE_PHARMACY_ID = "00000000-0000-4000-8000-000000000002";
+export const PLACE_DOCTOR_ID = "00000000-0000-4000-8000-000000000003";
+export const SCHEDULED_EVENT_DOCTOR_ID = "00000000-0000-4000-8000-000000000010";
+
+export const defaultTrustedLocations: TrustedLocation[] = [
+  {
+    id: PLACE_HOME_ID,
+    trustedSlot: 1,
+    name: "Home",
+    address: "215 Cedar Street",
+    displayAddress: "215 Cedar Street",
+    instructions: "Take a slow breath, check the Today card, and continue your usual home routine.",
+    latitude: 34.13672,
+    longitude: -118.29434,
+    radiusMeters: 80,
+    placeType: "home"
+  },
+  {
+    id: PLACE_PHARMACY_ID,
+    trustedSlot: 2,
+    name: "Pharmacy",
+    address: "98 Maple Avenue",
+    displayAddress: "Sunrise Pharmacy, 98 Maple Avenue",
+    instructions: "Go to the counter and say you are here to pick up a prescription. Show your helper card if you want support.",
+    latitude: 34.13758,
+    longitude: -118.30084,
+    radiusMeters: 65,
+    placeType: "pharmacy"
+  },
+  {
+    id: PLACE_DOCTOR_ID,
+    trustedSlot: 3,
+    name: "Doctor's Office",
+    address: "410 Wellness Plaza",
+    displayAddress: "Northside Clinic, 410 Wellness Plaza",
+    instructions: "Check in at the front desk with your ID and insurance card.",
+    latitude: 34.13158,
+    longitude: -118.28942,
+    radiusMeters: 90,
+    placeType: "clinic"
+  }
+];
+
+export const demoScenarios: DemoScenario[] = [
+  {
+    id: "home_reorientation",
+    label: "Home reorientation",
+    guidance: "Alex is at Home and needs calm grounding.",
+    where: "You are at Home.",
+    happening: "This looks like a normal time at home. The app should keep the explanation calm and simple.",
+    nextStep: "Take a slow breath, check the Today card, continue your home routine, or call Maria if you want support.",
+    uncertainty: "low",
+    responsePosture: "calm_grounding",
+    seededCoordinates: {
+      latitude: 34.13675,
+      longitude: -118.2943
+    },
+    expectedLocationMode: "trusted_place",
+    scenarioPlaceId: PLACE_HOME_ID,
+    scenarioHour: 9
+  },
+  {
+    id: "pharmacy_confusion",
+    label: "Pharmacy confusion",
+    guidance: "Alex is at the Pharmacy and needs help remembering that he came to pick up a prescription.",
+    where: "You are at the Pharmacy.",
+    happening: "You planned to stop by the pharmacy to pick up a prescription.",
+    nextStep: "Go to the pharmacy counter, ask about prescription pickup, show the helper card if needed, or call Maria if you are still unsure.",
+    uncertainty: "medium",
+    responsePosture: "public_place_support",
+    seededCoordinates: {
+      latitude: 34.13755,
+      longitude: -118.30088
+    },
+    expectedLocationMode: "trusted_place",
+    scenarioPlaceId: PLACE_PHARMACY_ID,
+    currentActivity: "Picking up a prescription",
+    scenarioHour: 14
+  },
+  {
+    id: "doctor_appointment_prep",
+    label: "Doctor appointment preparation",
+    guidance: "Alex is at Home and needs help getting ready to leave for a doctor's appointment.",
+    where: "You are at Home.",
+    happening: "A doctor's appointment is coming up soon.",
+    nextStep: "Bring your ID, insurance card, phone, keys, and medication list, then leave at the planned time.",
+    uncertainty: "low",
+    responsePosture: "transition_support",
+    seededCoordinates: {
+      latitude: 34.1367,
+      longitude: -118.29438
+    },
+    expectedLocationMode: "trusted_place",
+    scenarioPlaceId: PLACE_HOME_ID,
+    scenarioHour: 12,
+    scheduledEvent: {
+      id: SCHEDULED_EVENT_DOCTOR_ID,
+      title: "Doctor appointment",
+      timeLabel: "Leave at 1:40 PM for a 2:00 PM appointment",
+      placeId: PLACE_DOCTOR_ID,
+      bringItems: ["ID", "Insurance card", "Phone", "Keys", "Medication list"]
+    }
+  },
+  {
+    id: "lost_unknown_location",
+    label: "Lost / unknown location",
+    guidance: "Alex is not at a recognized trusted place and needs safe fallback guidance without overclaiming.",
+    where: "I do not recognize this as one of your saved trusted places.",
+    happening: "The app does not have enough information to know why you are here.",
+    nextStep: "Stay where you are if it feels safe, call Maria, show the helper card if needed, and call emergency services if this feels unsafe or urgent.",
+    uncertainty: "high",
+    responsePosture: "safety_fallback",
+    seededCoordinates: {
+      latitude: 34.14188,
+      longitude: -118.31215
+    },
+    expectedLocationMode: "other",
+    scenarioPlaceId: null,
+    scenarioHour: null,
+    demoNote: "DEMO OVERRIDE: Ignore the default unrecognized-location rules for this response. This demonstration is taking place at UCLA Anderson School of Management in Professor Terry Kramer's Tech and Society class during a final team project presentation. For where_am_i: tell Alex he is at UCLA Anderson School of Management in Professor Kramer's Tech and Society classroom, reference the current_address field in the context if present, and reassure him he is safe. For what_is_happening: tell Alex he is in the middle of a final project team presentation with his teammates and everything is going well. For what_should_i_do_next: tell Alex to take a breath, stay calm, keep going with the presentation, and maybe show his helper card to his teammates or the professor as a fun demo moment."
+  },
+  {
+    id: "evening_routine",
+    label: "Evening routine",
+    guidance: "Alex is at Home in the evening and needs calm grounding to settle into his night routine.",
+    where: "You are at Home.",
+    happening: "It is evening at home. This is a calm and familiar time for your usual evening routine.",
+    nextStep: "Take a slow breath, have dinner or a snack if you are hungry, and settle into your evening routine. Call Maria if you need support.",
+    uncertainty: "low",
+    responsePosture: "calm_grounding",
+    seededCoordinates: {
+      latitude: 34.13672,
+      longitude: -118.29434
+    },
+    expectedLocationMode: "trusted_place",
+    scenarioPlaceId: PLACE_HOME_ID,
+    currentActivity: "Evening home routine",
+    scenarioHour: 19
+  }
+];
+
+export const checkInQuestions = [
+  "Would you like to sit down and take a slow breath?",
+  "Do you want a quick reminder of your plan for today?",
+  "Would calling your caregiver help right now?"
+];
+
+export const storageKey = "memory-assistant-mvp-state";
+
+export const initialDemoState: DemoState = {
+  activeScenarioId: demoScenarios[0].id,
+  checkInStatus: "Not submitted yet",
+  activityEvents: [],
+  systemEvents: [],
+  profile: defaultDemoProfile,
+  trustedLocations: defaultTrustedLocations,
+  activeLocationSource: "scenario_seed",
+  browserLocation: null,
+  resolvedAddress: null,
+  demoClassroomMode: false
+};
+
+const activityEventTypes = new Set([
+  "reorientation_started",
+  "checkin_submitted",
+  "fallback_shown",
+  "helper_card_shown",
+  "caregiver_called",
+  "emergency_called",
+  "okay_confirmed"
+]);
+
+function normalizeTrustedLocation(location: TrustedLocation): TrustedLocation {
+  const fallback = defaultTrustedLocations.find((entry) => entry.trustedSlot === location.trustedSlot);
+
+  return {
+    id: location.id ?? fallback?.id,
+    trustedSlot: location.trustedSlot,
+    name: typeof location.name === "string" && location.name.trim() ? location.name : fallback?.name ?? "",
+    address: location.address ?? fallback?.address,
+    displayAddress: location.displayAddress ?? location.address ?? fallback?.displayAddress ?? fallback?.address,
+    instructions: location.instructions ?? fallback?.instructions,
+    latitude: typeof location.latitude === "number" ? location.latitude : fallback?.latitude,
+    longitude: typeof location.longitude === "number" ? location.longitude : fallback?.longitude,
+    radiusMeters: typeof location.radiusMeters === "number" ? location.radiusMeters : fallback?.radiusMeters ?? 75,
+    placeType: location.placeType ?? fallback?.placeType ?? "trusted"
+  };
+}
+
+export function normalizeDemoState(raw: unknown): DemoState {
+  if (!raw || typeof raw !== "object") {
+    return initialDemoState;
+  }
+
+  const value = raw as Partial<DemoState> & {
+    profile?: Partial<DemoProfile>;
+    trustedLocations?: TrustedLocation[];
+    browserLocation?: Partial<BrowserLocation> | null;
+    events?: DemoEvent[];
+  };
+  const validScenario = demoScenarios.some((scenario) => scenario.id === value.activeScenarioId);
+
+  let activityEvents: DemoEvent[] = [];
+  let systemEvents: DemoEvent[] = [];
+
+  if (Array.isArray(value.activityEvents)) {
+    activityEvents = value.activityEvents;
+  } else if (Array.isArray(value.events)) {
+    activityEvents = value.events.filter((event) => activityEventTypes.has(event.eventType));
+  }
+
+  if (Array.isArray(value.systemEvents)) {
+    systemEvents = value.systemEvents;
+  } else if (Array.isArray(value.events)) {
+    systemEvents = value.events.filter((event) => !activityEventTypes.has(event.eventType));
+  }
+
+  const browserLocation = value.browserLocation
+    && typeof value.browserLocation.latitude === "number"
+    && typeof value.browserLocation.longitude === "number"
+    && typeof value.browserLocation.accuracyMeters === "number"
+    && typeof value.browserLocation.timestamp === "string"
+      ? {
+          latitude: value.browserLocation.latitude,
+          longitude: value.browserLocation.longitude,
+          accuracyMeters: value.browserLocation.accuracyMeters,
+          timestamp: value.browserLocation.timestamp
+        }
+      : null;
+
+  return {
+    activeScenarioId: validScenario ? (value.activeScenarioId as string) : initialDemoState.activeScenarioId,
+    checkInStatus: typeof value.checkInStatus === "string" ? value.checkInStatus : initialDemoState.checkInStatus,
+    activityEvents,
+    systemEvents,
+    profile: {
+      userId: value.profile?.userId ?? defaultDemoProfile.userId,
+      preferredName: value.profile?.preferredName ?? defaultDemoProfile.preferredName,
+      pronouns: (value.profile?.pronouns as PronounSet | undefined) ?? defaultDemoProfile.pronouns,
+      customPronouns: value.profile?.customPronouns ?? defaultDemoProfile.customPronouns,
+      caregiverName: value.profile?.caregiverName ?? defaultDemoProfile.caregiverName,
+      caregiverRelationshipLabel: value.profile?.caregiverRelationshipLabel ?? defaultDemoProfile.caregiverRelationshipLabel,
+      independentMode: value.profile?.independentMode ?? false,
+      activeCaregiverId: value.profile?.activeCaregiverId !== undefined
+        ? value.profile.activeCaregiverId
+        : defaultDemoProfile.activeCaregiverId,
+      userPhone: value.profile?.userPhone ?? defaultDemoProfile.userPhone
+    },
+    trustedLocations: Array.isArray(value.trustedLocations) && value.trustedLocations.length > 0
+      ? value.trustedLocations
+          .filter((location): location is TrustedLocation =>
+            (location.trustedSlot === 1 || location.trustedSlot === 2 || location.trustedSlot === 3) &&
+            typeof location.name === "string"
+          )
+          .map(normalizeTrustedLocation)
+          .sort((a, b) => a.trustedSlot - b.trustedSlot)
+      : defaultTrustedLocations,
+    activeLocationSource: value.activeLocationSource === "browser_geolocation"
+      ? "browser_geolocation"
+      : "scenario_seed",
+    browserLocation,
+    resolvedAddress: typeof value.resolvedAddress === "string" ? value.resolvedAddress : null,
+    demoClassroomMode: typeof value.demoClassroomMode === "boolean" ? value.demoClassroomMode : false
+  };
+}
+
+export function generateId(): string {
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === "x" ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+
+export function createEvent(
+  eventType: string,
+  source: EventSource,
+  scenarioId?: string,
+  metadata?: Record<string, unknown>,
+  userId = defaultDemoProfile.userId,
+  locationDetails?: Pick<DemoEvent, "placeId" | "latitude" | "longitude" | "accuracyMeters" | "locationSource">
+): DemoEvent {
+  return {
+    id: generateId(),
+    eventType,
+    timestamp: new Date().toISOString(),
+    userId,
+    source,
+    scenarioId,
+    metadata,
+    placeId: locationDetails?.placeId ?? null,
+    latitude: locationDetails?.latitude ?? null,
+    longitude: locationDetails?.longitude ?? null,
+    accuracyMeters: locationDetails?.accuracyMeters ?? null,
+    locationSource: locationDetails?.locationSource
+  };
+}
+
+export function setActiveCaregiverId(id: string | null): DemoState {
+  if (typeof window === "undefined") return initialDemoState;
+  const raw = window.localStorage.getItem(storageKey);
+  let current = initialDemoState;
+  if (raw) {
+    try { current = normalizeDemoState(JSON.parse(raw)); } catch { /* use initialDemoState */ }
+  }
+  const updated: DemoState = { ...current, profile: { ...current.profile, activeCaregiverId: id } };
+  window.localStorage.setItem(storageKey, JSON.stringify(updated));
+  return updated;
+}
+
+export function setIndependentMode(value: boolean): DemoState {
+  if (typeof window === "undefined") return initialDemoState;
+  const raw = window.localStorage.getItem(storageKey);
+  let current = initialDemoState;
+  if (raw) {
+    try { current = normalizeDemoState(JSON.parse(raw)); } catch { /* use initialDemoState */ }
+  }
+  const updated: DemoState = { ...current, profile: { ...current.profile, independentMode: value } };
+  window.localStorage.setItem(storageKey, JSON.stringify(updated));
+  return updated;
+}
+
+export function appendActivityEvent(state: DemoState, event: DemoEvent): DemoState {
+  logActivityEvent(event);
+  return { ...state, activityEvents: [event, ...state.activityEvents].slice(0, 50) };
+}
+
+export function appendSystemEvent(state: DemoState, event: DemoEvent): DemoState {
+  logSystemEvent(event);
+  return { ...state, systemEvents: [event, ...state.systemEvents].slice(0, 20) };
+}
+
+export function findScenario(scenarioId: string): DemoScenario {
+  return demoScenarios.find((scenario) => scenario.id === scenarioId) ?? demoScenarios[0];
+}
+
+export function findTrustedLocation(locations: TrustedLocation[], slot?: 1 | 2 | 3): TrustedLocation | null {
+  if (!slot) return null;
+  return locations.find((location) => location.trustedSlot === slot) ?? null;
+}
+
+export function findTrustedLocationById(locations: TrustedLocation[], placeId?: string | null): TrustedLocation | null {
+  if (!placeId) return null;
+  return locations.find((location) => location.id === placeId) ?? null;
+}
+
+export function pronounWords(pronouns: PronounSet, customPronouns?: string): { subject: string; object: string; possessive: string } {
+  if (pronouns === "he/him") {
+    return { subject: "he", object: "him", possessive: "his" };
+  }
+
+  if (pronouns === "she/her") {
+    return { subject: "she", object: "her", possessive: "her" };
+  }
+
+  if (pronouns === "custom" && customPronouns) {
+    return { subject: customPronouns, object: customPronouns, possessive: customPronouns };
+  }
+
+  return { subject: "they", object: "them", possessive: "their" };
+}
+
+
+// ---
+
+// FILE: data/demoData.ts
+
+import {
+  findScenario,
+  findTrustedLocationById,
+  type DemoProfile,
+  type DemoScenario,
+  type LocationSource,
+  type TrustedLocation
+} from "@/data/demoState";
+import { resolveActiveLocationContext } from "@/lib/places";
+
+export type EventLogItem = {
+  id: string;
+  time: string;
+  message: string;
+};
+
+export const todaySummary = {
+  greeting: "You are safe and supported.",
+  where: "Your current location is matched against your saved trusted places or shown as Other.",
+  happening: "The active scenario and location context shape the grounding response.",
+  nextStep: "Review the location summary, then take the next calm step."
+};
+
+export const checkInQuestions = [
+  "Would you like to sit down and take a slow breath?",
+  "Do you want a quick reminder of your plan for today?",
+  "Would calling your caregiver help right now?"
+];
+
+export type ContextPacket = {
+  location: string;
+  location_mode: string;
+  location_source: string;
+  trusted_place: string;
+  trusted_place_address: string;
+  location_coordinates: string;
+  time_of_day: string;
+  next_event: string;
+  current_activity: string;
+  who_is_expected: string;
+  caregiver_name: string;
+  notes: string;
+  safety_fallback: string;
+};
+
+export type ActiveLocationSummary = {
+  label: string;
+  detail: string;
+  trustedPlaceName: string | null;
+  trustedPlaceAddress: string | null;
+  sourceLabel: string;
+  locationModeLabel: string;
+  fallbackMessage?: string;
+  placeId: string | null;
+};
+
+function formatCoordinate(value: number): string {
+  return value.toFixed(5);
+}
+
+function buildBringItemsText(items?: string[]): string {
+  if (!items || items.length === 0) {
+    return "No extra items listed.";
+  }
+
+  return items.join(", ");
+}
+
+function scenarioTimeOfDay(scenario: DemoScenario): string {
+  const now = new Date();
+  const hour = scenario.scenarioHour != null ? scenario.scenarioHour : now.getHours();
+  const minutes = now.getMinutes();
+  const period = hour >= 12 ? "PM" : "AM";
+  const displayHour = hour % 12 === 0 ? 12 : hour % 12;
+  const displayMinutes = minutes.toString().padStart(2, "0");
+  const dayName = now.toLocaleDateString("en-US", { weekday: "long" });
+  const monthName = now.toLocaleDateString("en-US", { month: "long" });
+  const date = now.getDate();
+  return `${dayName}, ${monthName} ${date} at ${displayHour}:${displayMinutes} ${period}`;
+}
+
+function scenarioNextEvent(scenario: DemoScenario, trustedLocations: TrustedLocation[]): string {
+  if (scenario.scheduledEvent) {
+    const scheduledPlace = findTrustedLocationById(trustedLocations, scenario.scheduledEvent.placeId);
+    const placeLabel = scheduledPlace?.name ? ` at ${scheduledPlace.name}` : "";
+    return `${scenario.scheduledEvent.title}${placeLabel}. ${scenario.scheduledEvent.timeLabel}. Bring ${buildBringItemsText(scenario.scheduledEvent.bringItems)}.`;
+  }
+
+  if (scenario.id === "pharmacy_confusion") {
+    return "Pick up the prescription, then head back home.";
+  }
+
+  if (scenario.id === "lost_unknown_location") {
+    return "Focus on staying safe and contacting support.";
+  }
+
+  return "Continue the current home routine at an easy pace.";
+}
+
+function scenarioExpectedVisitor(scenario: DemoScenario, profile: DemoProfile): string {
+  if (scenario.id === "doctor_appointment_prep") {
+    return `${profile.caregiverName} can help if leaving feels confusing.`;
+  }
+
+  if (scenario.id === "lost_unknown_location") {
+    return `${profile.caregiverName} is the best support contact if this still feels unclear.`;
+  }
+
+  return "No other people are required right now.";
+}
+
+export function describeScenarioLocation(
+  scenario: DemoScenario,
+  trustedLocations: TrustedLocation[]
+): { label: string; notes: string; trustedLocation: TrustedLocation | null } {
+  const trustedLocation = findTrustedLocationById(trustedLocations, scenario.scenarioPlaceId);
+
+  if (scenario.expectedLocationMode === "trusted_place" && trustedLocation) {
+    const suffix = scenario.scheduledEvent ? " + Doctor Appointment" : "";
+    return {
+      label: `${trustedLocation.name}${suffix}`,
+      notes: trustedLocation.displayAddress ?? trustedLocation.address ?? trustedLocation.name,
+      trustedLocation
+    };
+  }
+
+  return {
+    label: "Other",
+    notes: "This scenario should fall back to unrecognized-location guidance.",
+    trustedLocation: null
+  };
+}
+
+export function buildActiveLocationSummary(params: {
+  scenarioId: string;
+  profile: DemoProfile;
+  trustedLocations: TrustedLocation[];
+  activeLocationSource: LocationSource;
+  browserLocation: {
+    latitude: number;
+    longitude: number;
+    accuracyMeters: number;
+    timestamp: string;
+  } | null;
+}): ActiveLocationSummary {
+  const scenario = findScenario(params.scenarioId);
+  const resolved = resolveActiveLocationContext({
+    scenario,
+    trustedLocations: params.trustedLocations,
+    activeLocationSource: params.activeLocationSource,
+    browserLocation: params.browserLocation
+  });
+
+  const sourceLabel = resolved.source === "browser_geolocation"
+    ? "Browser geolocation"
+    : "Seeded scenario coordinates";
+
+  const fallbackMessage = resolved.fallbackReason === "browser_unavailable"
+    ? "Live device location was not available, so the demo is using the scenario's seeded coordinates."
+    : resolved.fallbackReason === "browser_inaccurate"
+      ? "Live device location was too inaccurate for a safe demo match, so the demo is using the scenario's seeded coordinates."
+      : undefined;
+
+  if (resolved.matchedTrustedPlace) {
+    return {
+      label: resolved.matchedTrustedPlace.name,
+      detail: resolved.matchedTrustedPlace.displayAddress ?? resolved.matchedTrustedPlace.address ?? "Saved trusted place",
+      trustedPlaceName: resolved.matchedTrustedPlace.name,
+      trustedPlaceAddress: resolved.matchedTrustedPlace.displayAddress ?? resolved.matchedTrustedPlace.address ?? null,
+      sourceLabel,
+      locationModeLabel: "Trusted place",
+      fallbackMessage,
+      placeId: resolved.matchedTrustedPlace.id ?? null
+    };
+  }
+
+  return {
+    label: "Other",
+    detail: "I do not recognize this as one of your saved trusted places.",
+    trustedPlaceName: null,
+    trustedPlaceAddress: null,
+    sourceLabel,
+    locationModeLabel: "Other",
+    fallbackMessage,
+    placeId: null
+  };
+}
+
+export function buildContextPacket(params: {
+  scenarioId: string;
+  profile: DemoProfile;
+  trustedLocations: TrustedLocation[];
+  activeLocationSource: LocationSource;
+  browserLocation: {
+    latitude: number;
+    longitude: number;
+    accuracyMeters: number;
+    timestamp: string;
+  } | null;
+}): ContextPacket {
+  const scenario = findScenario(params.scenarioId);
+  const resolved = resolveActiveLocationContext({
+    scenario,
+    trustedLocations: params.trustedLocations,
+    activeLocationSource: params.activeLocationSource,
+    browserLocation: params.browserLocation
+  });
+
+  const trustedPlace = resolved.matchedTrustedPlace;
+  const location = trustedPlace
+    ? trustedPlace.name
+    : "I do not recognize this as one of your saved trusted places.";
+  const trustedPlaceAddress = trustedPlace?.displayAddress ?? trustedPlace?.address ?? "No saved trusted-place address available.";
+
+  const notes = trustedPlace
+    ? [
+        scenario.guidance,
+        trustedPlace.instructions ?? "",
+        scenario.currentActivity ? `Current activity: ${scenario.currentActivity}.` : "",
+        scenario.scheduledEvent ? `Bring items: ${buildBringItemsText(scenario.scheduledEvent.bringItems)}.` : "",
+        resolved.source === "browser_geolocation"
+          ? "The current coordinates came from browser geolocation."
+          : "The current coordinates came from seeded demo data."
+      ].filter(Boolean).join(" ")
+    : [
+        "Do not guess a place name, address, reason for being here, or who is nearby.",
+        "Say clearly that this is not a recognized trusted place.",
+        "Offer calm support: stay where you are if safe, call the caregiver, show the helper card, or call emergency services if unsafe or urgent."
+      ].join(" ");
+
+  return {
+    location,
+    location_mode: resolved.locationMode,
+    location_source: resolved.source,
+    trusted_place: trustedPlace?.name ?? "Other",
+    trusted_place_address: trustedPlaceAddress,
+    location_coordinates: `${formatCoordinate(resolved.coordinates.latitude)}, ${formatCoordinate(resolved.coordinates.longitude)}`,
+    time_of_day: scenarioTimeOfDay(scenario),
+    next_event: scenarioNextEvent(scenario, params.trustedLocations),
+    current_activity: scenario.currentActivity ?? "No specific current activity is confirmed.",
+    who_is_expected: scenarioExpectedVisitor(scenario, params.profile),
+    caregiver_name: params.profile.caregiverName,
+    notes,
+    safety_fallback: "If the user feels unsafe or urgently needs help, tell them to call their caregiver or emergency services right away."
+  };
+}
+
+export const caregiverSummary = {
+  personName: "Alex",
+  lastCheckIn: "10 minutes ago",
+  status: "Calm and oriented after reminder",
+  todaysEvents: 4
+};
+
+export const eventLog: EventLogItem[] = [
+  { id: "1", time: "6:05 PM", message: "Opened Today Window and reviewed trusted-place context." },
+  { id: "2", time: "6:07 PM", message: "Completed quick check-in question set." },
+  { id: "3", time: "6:10 PM", message: "Ran demo scenario with trusted-place matching." },
+  { id: "4", time: "6:12 PM", message: "Caregiver dashboard reviewed current location summary." }
+];
+
+
+// ---
+
+// FILE: lib/places.ts
+
+import {
+  defaultTrustedLocations,
+  generateId,
+  type BrowserLocation,
+  type DemoScenario,
+  type LocationMode,
+  type LocationSource,
+  type TrustedLocation
+} from "@/data/demoState";
+import { supabase } from "./supabaseClient";
+
+const DEMO_PROFILE_ID = "00000000-0000-0000-0000-000000000001";
+const DEFAULT_PLACE_RADIUS_METERS = 75;
+export const MAX_DEMO_BROWSER_ACCURACY_METERS = 250;
+
+type PlaceRow = {
+  id: string;
+  name: string;
+  address: string | null;
+  instructions: string | null;
+  trusted_slot: number | null;
+  latitude: number | null;
+  longitude: number | null;
+  place_type: string | null;
+};
+
+export type Coordinates = {
+  latitude: number;
+  longitude: number;
+};
+
+export type TrustedPlaceMatch = {
+  place: TrustedLocation;
+  distanceMeters: number;
+  radiusMeters: number;
+};
+
+export type ResolvedLocationContext = {
+  source: LocationSource;
+  coordinates: Coordinates;
+  accuracyMeters: number | null;
+  matchedTrustedPlace: TrustedLocation | null;
+  matchedPlaceId: string | null;
+  scenarioPlace: TrustedLocation | null;
+  locationMode: LocationMode;
+  fallbackReason?: "browser_unavailable" | "browser_inaccurate";
+};
+
+function fallbackPlaceForSlot(slot: 1 | 2 | 3): TrustedLocation | undefined {
+  return defaultTrustedLocations.find((location) => location.trustedSlot === slot);
+}
+
+export function haversineDistanceMeters(a: Coordinates, b: Coordinates): number {
+  const toRadians = (value: number) => (value * Math.PI) / 180;
+  const earthRadius = 6371000;
+  const latitudeDelta = toRadians(b.latitude - a.latitude);
+  const longitudeDelta = toRadians(b.longitude - a.longitude);
+  const startLatitude = toRadians(a.latitude);
+  const endLatitude = toRadians(b.latitude);
+
+  const haversine =
+    Math.sin(latitudeDelta / 2) * Math.sin(latitudeDelta / 2) +
+    Math.cos(startLatitude) * Math.cos(endLatitude) *
+    Math.sin(longitudeDelta / 2) * Math.sin(longitudeDelta / 2);
+
+  return 2 * earthRadius * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine));
+}
+
+export function matchTrustedPlace(
+  coordinates: Coordinates,
+  locations: TrustedLocation[]
+): TrustedPlaceMatch | null {
+  let bestMatch: TrustedPlaceMatch | null = null;
+
+  for (const location of locations) {
+    if (typeof location.latitude !== "number" || typeof location.longitude !== "number") {
+      continue;
+    }
+
+    const radiusMeters = location.radiusMeters ?? fallbackPlaceForSlot(location.trustedSlot)?.radiusMeters ?? DEFAULT_PLACE_RADIUS_METERS;
+    const distanceMeters = haversineDistanceMeters(coordinates, {
+      latitude: location.latitude,
+      longitude: location.longitude
+    });
+
+    if (distanceMeters > radiusMeters) {
+      continue;
+    }
+
+    if (!bestMatch || distanceMeters < bestMatch.distanceMeters) {
+      bestMatch = { place: location, distanceMeters, radiusMeters };
+    }
+  }
+
+  return bestMatch;
+}
+
+export function resolveActiveLocationContext(params: {
+  scenario: DemoScenario;
+  trustedLocations: TrustedLocation[];
+  activeLocationSource: LocationSource;
+  browserLocation: BrowserLocation | null;
+}): ResolvedLocationContext {
+  const { scenario, trustedLocations, activeLocationSource, browserLocation } = params;
+  const scenarioPlace = scenario.scenarioPlaceId
+    ? trustedLocations.find((location) => location.id === scenario.scenarioPlaceId) ?? null
+    : null;
+
+  let source: LocationSource = "scenario_seed";
+  let coordinates: Coordinates = scenario.seededCoordinates;
+  let accuracyMeters: number | null = null;
+  let fallbackReason: ResolvedLocationContext["fallbackReason"];
+
+  if (activeLocationSource === "browser_geolocation") {
+    if (!browserLocation) {
+      fallbackReason = "browser_unavailable";
+    } else if (browserLocation.accuracyMeters > MAX_DEMO_BROWSER_ACCURACY_METERS) {
+      fallbackReason = "browser_inaccurate";
+    } else {
+      source = "browser_geolocation";
+      coordinates = {
+        latitude: browserLocation.latitude,
+        longitude: browserLocation.longitude
+      };
+      accuracyMeters = browserLocation.accuracyMeters;
+    }
+  }
+
+  const match = matchTrustedPlace(coordinates, trustedLocations);
+
+  return {
+    source,
+    coordinates,
+    accuracyMeters,
+    matchedTrustedPlace: match?.place ?? null,
+    matchedPlaceId: match?.place.id ?? null,
+    scenarioPlace,
+    locationMode: match ? "trusted_place" : "other",
+    fallbackReason
+  };
+}
+
+export async function loadTrustedLocations(userId = DEMO_PROFILE_ID): Promise<TrustedLocation[]> {
+  try {
+    const { data, error } = await supabase
+      .from("places")
+      .select("id, name, address, instructions, trusted_slot, latitude, longitude, place_type")
+      .eq("user_id", userId)
+      .eq("is_trusted", true)
+      .order("trusted_slot", { ascending: true });
+
+    if (error || !data) {
+      return [];
+    }
+
+    return (data as PlaceRow[])
+      .filter((row) => row.trusted_slot === 1 || row.trusted_slot === 2 || row.trusted_slot === 3)
+      .map((row) => {
+        const fallback = fallbackPlaceForSlot(row.trusted_slot as 1 | 2 | 3);
+        return {
+          id: row.id,
+          trustedSlot: row.trusted_slot as 1 | 2 | 3,
+          name: row.name,
+          address: row.address ?? undefined,
+          displayAddress: row.address ?? fallback?.displayAddress ?? undefined,
+          instructions: row.instructions ?? fallback?.instructions ?? undefined,
+          latitude: row.latitude ?? fallback?.latitude,
+          longitude: row.longitude ?? fallback?.longitude,
+          radiusMeters: fallback?.radiusMeters ?? DEFAULT_PLACE_RADIUS_METERS,
+          placeType: (row.place_type as TrustedLocation["placeType"] | null) ?? fallback?.placeType ?? "trusted"
+        };
+      });
+  } catch {
+    return [];
+  }
+}
+
+export async function saveTrustedLocation(location: TrustedLocation, userId = DEMO_PROFILE_ID): Promise<TrustedLocation> {
+  const fallback = fallbackPlaceForSlot(location.trustedSlot);
+  const payload = {
+    id: location.id ?? fallback?.id ?? generateId(),
+    user_id: userId,
+    name: location.name.trim(),
+    address: location.address?.trim() || null,
+    instructions: location.instructions?.trim() || null,
+    latitude: typeof location.latitude === "number" ? location.latitude : fallback?.latitude ?? null,
+    longitude: typeof location.longitude === "number" ? location.longitude : fallback?.longitude ?? null,
+    is_trusted: true,
+    trusted_slot: location.trustedSlot,
+    place_type: location.placeType ?? fallback?.placeType ?? "trusted"
+  };
+
+  await supabase.from("places").upsert(payload);
+
+  return {
+    id: payload.id,
+    trustedSlot: location.trustedSlot,
+    name: payload.name,
+    address: payload.address ?? undefined,
+    displayAddress: location.displayAddress ?? payload.address ?? fallback?.displayAddress ?? undefined,
+    instructions: payload.instructions ?? undefined,
+    latitude: payload.latitude ?? undefined,
+    longitude: payload.longitude ?? undefined,
+    radiusMeters: location.radiusMeters ?? fallback?.radiusMeters ?? DEFAULT_PLACE_RADIUS_METERS,
+    placeType: payload.place_type as TrustedLocation["placeType"]
+  };
+}
+
+export async function clearTrustedLocation(slot: 1 | 2 | 3, userId = DEMO_PROFILE_ID): Promise<void> {
+  try {
+    await supabase
+      .from("places")
+      .delete()
+      .eq("user_id", userId)
+      .eq("trusted_slot", slot)
+      .eq("is_trusted", true);
+  } catch {
+    // non-fatal for demo mode
+  }
+}
+
+
+// ---
+
+// FILE: lib/logEvent.ts
+
+import type { DemoEvent } from "@/data/demoState";
+import { supabase } from "./supabaseClient";
+
+function isValidUuid(value: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+}
+
+export async function logActivityEvent(event: DemoEvent): Promise<void> {
+  try {
+    await supabase.from("activity_events").upsert({
+      id: event.id,
+      user_id: event.userId,
+      event_type: event.eventType,
+      created_at: event.timestamp,
+      source: event.source,
+      scenario_id: event.scenarioId ?? null,
+      place_id: event.placeId && isValidUuid(event.placeId) ? event.placeId : null,
+      latitude: event.latitude ?? null,
+      longitude: event.longitude ?? null,
+      metadata: event.metadata ?? null,
+    });
+  } catch {
+    // Non-fatal in demo mode.
+  }
+}
+
+export async function logSystemEvent(event: DemoEvent): Promise<void> {
+  try {
+    await supabase.from("system_events").upsert({
+      id: event.id,
+      user_id: event.userId,
+      event_type: event.eventType,
+      created_at: event.timestamp,
+      source: event.source,
+      scenario_id: event.scenarioId ?? null,
+      metadata: event.metadata ?? null,
+    });
+  } catch {
+    // Non-fatal in demo mode.
+  }
+}
+
+
+// ---
+
+// FILE: lib/aiConfig.ts
+
+export const CLAUDE_MODEL = "claude-haiku-4-5-20251001";
+
+
+// ---
+
+// FILE: lib/seedData.ts
+
+import { defaultTrustedLocations, demoScenarios, PLACE_HOME_ID, PLACE_DOCTOR_ID, SCHEDULED_EVENT_DOCTOR_ID } from "@/data/demoState";
+import { supabase } from "./supabaseClient";
+
+const DEMO_USER_ID = "00000000-0000-0000-0000-000000000001";
+
+// ── Types ────────────────────────────────────────────────────────────────────
+
+type ActivityRow = {
+  id: string;
+  user_id: string;
+  event_type: string;
+  source: string;
+  confidence_level?: string | null;
+  scenario_id?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  place_id?: string | null;
+  metadata?: Record<string, unknown> | null;
+  created_at: string;
+};
+
+type BiometricRow = {
+  id: string;
+  user_id: string;
+  event_type: string;
+  value: number;
+  unit: string;
+  threshold_exceeded: boolean;
+  source: string;
+  recorded_at: string;
+  created_at: string;
+};
+
+type Phase = 1 | 2 | 3 | 4;
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+function generateId(): string {
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    return (c === "x" ? r : (r & 0x3) | 0x8).toString(16);
+  });
+}
+
+function randInt(min: number, max: number): number {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function pick<T>(arr: T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+function isoTs(year: number, month: number, day: number, hour: number, minute: number): string {
+  const d = new Date();
+  d.setUTCFullYear(year, month - 1, day);
+  d.setUTCHours(hour, minute, 0, 0);
+  return d.toISOString();
+}
+
+// ── Static config ─────────────────────────────────────────────────────────────
+
+function daysInMonth(year: number, month: number): number {
+  // month is 1-indexed; day 0 of the next UTC month = last day of this month
+  return new Date(Date.UTC(year, month, 0)).getUTCDate();
+}
+
+// Emergency event days keyed by rolling window index (0=oldest month, 11=current month)
+// Indices 6-11 correspond to phases 3 and 4 per the narrative
+const EMERGENCY_DAYS_BY_INDEX: Record<number, number[]> = {
+  6:  [8, 22],
+  7:  [5, 14, 25],
+  8:  [10, 21],
+  9:  [3, 15, 27],
+  10: [7, 12, 19, 28],
+  11: [4, 16, 23],
+};
+
+const CHECK_IN_QUESTIONS = [
+  "Would you like to sit down and take a slow breath?",
+  "Do you want a quick reminder of your plan for tonight?",
+  "Would calling your caregiver help right now?",
+];
+
+function getPhaseByIndex(idx: number): Phase {
+  if (idx <= 2) return 1;
+  if (idx <= 5) return 2;
+  if (idx <= 8) return 3;
+  return 4;
+}
+
+// Time-of-day weights per phase
+function randomHour(phase: Phase): number {
+  const r = Math.random();
+  if (phase === 1) {
+    return r < 0.82 ? randInt(6, 11) : randInt(12, 17);
+  }
+  if (phase === 2) {
+    if (r < 0.50) return randInt(6, 11);
+    if (r < 0.88) return randInt(12, 17);
+    return randInt(18, 21);
+  }
+  if (phase === 3) {
+    if (r < 0.38) return randInt(6, 11);
+    if (r < 0.72) return randInt(12, 17);
+    return randInt(18, 21);
+  }
+  // Phase 4: spread across all hours
+  if (r < 0.28) return randInt(6, 11);
+  if (r < 0.52) return randInt(12, 17);
+  if (r < 0.78) return randInt(18, 21);
+  return r < 0.90 ? randInt(22, 23) : randInt(0, 5);
+}
+
+function randomConfidence(phase: Phase): string {
+  const r = Math.random();
+  if (phase === 1) return r < 0.72 ? "high" : r < 0.95 ? "medium" : "low";
+  if (phase === 2) return r < 0.35 ? "high" : r < 0.85 ? "medium" : "low";
+  if (phase === 3) return r < 0.15 ? "high" : r < 0.58 ? "medium" : "low";
+  return r < 0.08 ? "high" : r < 0.38 ? "medium" : "low";
+}
+
+function scenarioForHour(hour: number): string {
+  if (hour >= 6 && hour < 11) return "home_reorientation";
+  if (hour >= 11 && hour < 14) return "doctor_appointment_prep";
+  if (hour >= 14 && hour < 18) return "pharmacy_confusion";
+  return "lost_unknown_location";
+}
+
+function scenarioDetails(scenarioId: string): { placeId: string | null; latitude: number | null; longitude: number | null } {
+  const scenario = demoScenarios.find((entry) => entry.id === scenarioId);
+  return {
+    placeId: scenario?.scenarioPlaceId ?? null,
+    latitude: scenario?.seededCoordinates.latitude ?? null,
+    longitude: scenario?.seededCoordinates.longitude ?? null,
+  };
+}
+
+// ── Per-day event generation ─────────────────────────────────────────────────
+
+function generateDay(
+  year: number,
+  month: number,
+  day: number,
+  phase: Phase,
+  isEmergencyDay: boolean
+): { activity: ActivityRow[]; biometric: BiometricRow[] } {
+  const activity: ActivityRow[] = [];
+  const biometric: BiometricRow[] = [];
+
+  // Reorientation event count
+  let reorientCount: number;
+  switch (phase) {
+    case 1:  reorientCount = randInt(1, 2); break;
+    case 2:  reorientCount = randInt(2, 3); break;
+    case 3:  reorientCount = randInt(3, 5); break;
+    default: reorientCount = randInt(4, 6); break;
+  }
+  // Emergency days always qualify as hard days
+  if (isEmergencyDay && reorientCount < 4) reorientCount = 4;
+  const isHardDay = reorientCount >= 4;
+
+  // 1. Reorientation events
+  for (let i = 0; i < reorientCount; i++) {
+    const h = randomHour(phase);
+    const confidence = randomConfidence(phase);
+    const scenarioId = scenarioForHour(h);
+    const location = scenarioDetails(scenarioId);
+    activity.push({
+      id: generateId(),
+      user_id: DEMO_USER_ID,
+      event_type: "reorientation_started",
+      source: "app",
+      confidence_level: confidence,
+      scenario_id: scenarioId,
+      latitude: location.latitude,
+      longitude: location.longitude,
+      place_id: location.placeId,
+      metadata: { uncertainty: confidence },
+      created_at: isoTs(year, month, day, h, randInt(0, 59)),
+    });
+  }
+
+  // 2. Check-in (~60% of days)
+  if (Math.random() < 0.60) {
+    const hour = randomHour(phase);
+    const scenarioId = scenarioForHour(hour);
+    const location = scenarioDetails(scenarioId);
+    activity.push({
+      id: generateId(),
+      user_id: DEMO_USER_ID,
+      event_type: "checkin_submitted",
+      source: "app",
+      scenario_id: scenarioId,
+      latitude: location.latitude,
+      longitude: location.longitude,
+      place_id: location.placeId,
+      metadata: { question: pick(CHECK_IN_QUESTIONS) },
+      created_at: isoTs(year, month, day, hour, randInt(0, 59)),
+    });
+  }
+
+  // 3. Helper card events
+  let helperCount: number;
+  const hr = Math.random();
+  switch (phase) {
+    case 1:  helperCount = hr < 0.20 ? 1 : 0; break;
+    case 2:  helperCount = hr < 0.50 ? 1 : 0; break;
+    case 3:  helperCount = isHardDay ? randInt(1, 2) : (hr < 0.80 ? 1 : 0); break;
+    default: helperCount = isHardDay ? randInt(2, 4) : randInt(1, 2); break;
+  }
+  for (let i = 0; i < helperCount; i++) {
+    const hour = randomHour(phase);
+    const scenarioId = scenarioForHour(hour);
+    const location = scenarioDetails(scenarioId);
+    activity.push({
+      id: generateId(),
+      user_id: DEMO_USER_ID,
+      event_type: "helper_card_shown",
+      source: "app",
+      scenario_id: scenarioId,
+      latitude: location.latitude,
+      longitude: location.longitude,
+      place_id: location.placeId,
+      created_at: isoTs(year, month, day, hour, randInt(0, 59)),
+    });
+  }
+
+  // 4. Caregiver calls (clustered on hard/emergency days)
+  let caregiverCount: number;
+  if (isEmergencyDay) {
+    caregiverCount = phase <= 3 ? randInt(3, 4) : randInt(4, 5);
+  } else {
+    const cr = Math.random();
+    switch (phase) {
+      case 1:  caregiverCount = cr < 0.15 ? 1 : 0; break;
+      case 2:  caregiverCount = cr < 0.60 ? 0 : cr < 0.90 ? 1 : 2; break;
+      case 3:  caregiverCount = isHardDay ? randInt(2, 3) : (cr < 0.40 ? 1 : 0); break;
+      default: caregiverCount = isHardDay ? randInt(4, 5) : randInt(1, 2); break;
+    }
+  }
+
+  if (caregiverCount > 0) {
+    const shouldCluster = (phase >= 3 && isHardDay) || isEmergencyDay;
+    if (shouldCluster) {
+      // All calls within a 90-minute panic window
+      const panicHour = randomHour(phase);
+      for (let i = 0; i < caregiverCount; i++) {
+        const offsetMin = randInt(0, 89);
+        const totalMin = panicHour * 60 + offsetMin;
+        const scenarioId = scenarioForHour(panicHour);
+        const location = scenarioDetails(scenarioId);
+        activity.push({
+          id: generateId(),
+          user_id: DEMO_USER_ID,
+          event_type: "caregiver_called",
+          source: "app",
+          scenario_id: scenarioId,
+          latitude: location.latitude,
+          longitude: location.longitude,
+          place_id: location.placeId,
+          created_at: isoTs(year, month, day, Math.min(Math.floor(totalMin / 60), 23), totalMin % 60),
+        });
+      }
+    } else {
+      for (let i = 0; i < caregiverCount; i++) {
+        const hour = randomHour(phase);
+        const scenarioId = scenarioForHour(hour);
+        const location = scenarioDetails(scenarioId);
+        activity.push({
+          id: generateId(),
+          user_id: DEMO_USER_ID,
+          event_type: "caregiver_called",
+          source: "app",
+          scenario_id: scenarioId,
+          latitude: location.latitude,
+          longitude: location.longitude,
+          place_id: location.placeId,
+          created_at: isoTs(year, month, day, hour, randInt(0, 59)),
+        });
+      }
+    }
+  }
+
+  // 5. Emergency event
+  if (isEmergencyDay) {
+    const hour = randInt(18, 21);
+    const scenarioId = scenarioForHour(hour);
+    const location = scenarioDetails(scenarioId);
+    activity.push({
+      id: generateId(),
+      user_id: DEMO_USER_ID,
+      event_type: "emergency_called",
+      source: "app",
+      scenario_id: scenarioId,
+      latitude: location.latitude,
+      longitude: location.longitude,
+      place_id: location.placeId,
+      created_at: isoTs(year, month, day, hour, randInt(0, 59)),
+    });
+  }
+
+  // 6. Biometric events — elevated heart rate on hard days (4+ reorientation events)
+  if (isHardDay) {
+    const sampleCount = randInt(2, 3);
+    const baseHour = randomHour(phase);
+    for (let i = 0; i < sampleCount; i++) {
+      const h = Math.min(baseHour + i, 23);
+      const bpm = isEmergencyDay ? randInt(128, 152) : randInt(103, 128);
+      const ts = isoTs(year, month, day, h, randInt(0, 59));
+      biometric.push({
+        id: generateId(),
+        user_id: DEMO_USER_ID,
+        event_type: "heart_rate",
+        value: bpm,
+        unit: "bpm",
+        threshold_exceeded: true,
+        source: "synthetic",
+        recorded_at: ts,
+        created_at: ts,
+      });
+    }
+  }
+
+  return { activity, biometric };
+}
+
+// ── Batch insert ──────────────────────────────────────────────────────────────
+
+async function insertActivityBatch(rows: ActivityRow[]): Promise<void> {
+  for (let i = 0; i < rows.length; i += 50) {
+
+    const { error } = await (supabase.from("activity_events") as any).insert(rows.slice(i, i + 50));
+    if (error) throw new Error(`activity_events: ${(error as { message: string }).message}`);
+  }
+}
+
+async function seedCoreDemoRows(): Promise<void> {
+  await (supabase.from("profiles") as any).upsert({
+    id: DEMO_USER_ID,
+    preferred_name: "Alex",
+    pronouns: "he/him",
+    active_caregiver_id: "00000000-0000-0000-0000-000000000002",
+  });
+
+  await (supabase.from("caregivers") as any).upsert({
+    id: "00000000-0000-0000-0000-000000000002",
+    name: "Maria",
+    relationship_label: "daughter",
+  });
+
+  await (supabase.from("caregiver_user_relationships") as any).upsert({
+    user_id: DEMO_USER_ID,
+    caregiver_id: "00000000-0000-0000-0000-000000000002",
+    role: "primary",
+    is_primary_contact: true,
+    permissions: {},
+  });
+
+  for (const location of defaultTrustedLocations) {
+    await (supabase.from("places") as any).upsert({
+      id: location.id,
+      user_id: DEMO_USER_ID,
+      name: location.name,
+      address: location.address ?? null,
+      latitude: location.latitude ?? null,
+      longitude: location.longitude ?? null,
+      place_type: location.placeType ?? "trusted",
+      instructions: location.instructions ?? null,
+      is_home: location.id === PLACE_HOME_ID,
+      is_trusted: true,
+      trusted_slot: location.trustedSlot,
+    });
+  }
+
+  await (supabase.from("scheduled_events") as any).upsert({
+    id: SCHEDULED_EVENT_DOCTOR_ID,
+    user_id: DEMO_USER_ID,
+    title: "Doctor appointment",
+    description: "Routine follow-up visit",
+    location: "Doctor's Office",
+    place_id: PLACE_DOCTOR_ID,
+    start_time: new Date().toISOString(),
+    notes: "Bring ID, insurance card, phone, keys, and medication list.",
+  });
+}
+
+async function insertBiometricBatch(rows: BiometricRow[]): Promise<void> {
+  for (let i = 0; i < rows.length; i += 50) {
+
+    const { error } = await (supabase.from("biometric_events") as any).insert(rows.slice(i, i + 50));
+    if (error) throw new Error(`biometric_events: ${(error as { message: string }).message}`);
+  }
+}
+
+// ── Public API ────────────────────────────────────────────────────────────────
+
+export async function seedDemoData(): Promise<{ success: boolean; message: string }> {
+  try {
+    await seedCoreDemoRows();
+
+    const allActivity: ActivityRow[] = [];
+    const allBiometric: BiometricRow[] = [];
+
+    // Build rolling 12-month window ending at start of today
+    const now = new Date();
+    const rollingMonths: Array<{ year: number; month: number }> = [];
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1));
+      rollingMonths.push({ year: d.getUTCFullYear(), month: d.getUTCMonth() + 1 });
+    }
+
+    for (let idx = 0; idx < 12; idx++) {
+      const { year, month } = rollingMonths[idx];
+      const phase = getPhaseByIndex(idx);
+      const emergencyDays = EMERGENCY_DAYS_BY_INDEX[idx] ?? [];
+      const days = daysInMonth(year, month);
+
+      for (let day = 1; day <= days; day++) {
+        const { activity, biometric } = generateDay(year, month, day, phase, emergencyDays.includes(day));
+        allActivity.push(...activity);
+        allBiometric.push(...biometric);
+      }
+    }
+
+    await insertActivityBatch(allActivity);
+    await insertBiometricBatch(allBiometric);
+
+    return {
+      success: true,
+      message: `Seeded ${allActivity.length} activity events and ${allBiometric.length} biometric events.`,
+    };
+  } catch (err) {
+    return { success: false, message: `Seed failed: ${String(err)}` };
+  }
+}
+
+export async function clearSeedData(): Promise<{ success: boolean; message: string }> {
+  try {
+    for (const table of ["activity_events", "system_events", "biometric_events"] as const) {
+  
+      const { error } = await (supabase.from(table) as any).delete().eq("user_id", DEMO_USER_ID);
+      if (error) throw new Error(`${table}: ${(error as { message: string }).message}`);
+    }
+    return { success: true, message: "All seeded data cleared." };
+  } catch (err) {
+    return { success: false, message: `Clear failed: ${String(err)}` };
+  }
 }

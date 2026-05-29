@@ -136,6 +136,7 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
 ## Active / Next Task
 
 - Phase 9 - UI and Flow Polish (active as of 2026-05-28, UTC-7):
+  - [x] Rename to Claira: SiteHeader wordmark updated, subtitle removed; BrandLogo MA→C and aria-label updated; layout.tsx metadata title and description updated
   - [ ] Review and tighten spacing and typography consistency across all screens
   - [ ] Ensure all scenarios look correct on iPhone SE screen size
   - [ ] Review caregiver dashboard layout on mobile
@@ -314,4 +315,4 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
 
 ## Last Updated
 
-2026-05-28 (UTC-7) — Phase 8 marked complete (real-time location, reverse geocoding, proactive lost alert, classroom demo mode toggle, follow-up question buttons, caregiver lost alert, Call Alex button). Phase 9 UI and Flow Polish opened as active phase. tsc and lint pass clean.
+2026-05-28 (UTC-7) — Renamed to Claira: SiteHeader subtitle removed, wordmark updated; BrandLogo C mark; layout.tsx metadata updated. tsc and lint pass clean.

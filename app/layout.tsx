@@ -4,8 +4,8 @@ import SiteHeader from "@/components/SiteHeader";
 import DemoAccessGate from "@/components/DemoAccessGate";
 
 export const metadata: Metadata = {
-  title: "Memory Assistant",
-  description: "Mobile-first prototype for present-moment reorientation support."
+  title: "Claira",
+  description: "Present-moment support for people with memory impairment."
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

@@ -6,7 +6,7 @@ export default function BrandLogo({ size = 44 }: { size?: number }) {
       viewBox="0 0 64 64"
       xmlns="http://www.w3.org/2000/svg"
       role="img"
-      aria-label="Memory Assistant compass mark"
+      aria-label="Claira mark"
     >
       <defs>
         <style>{`.dot{fill:#A44A3F}.needle{stroke:#A44A3F}`}</style>
@@ -26,7 +26,7 @@ export default function BrandLogo({ size = 44 }: { size?: number }) {
       <circle cx="10.5" cy="40.5" r="2.2" className="dot" />
       <circle cx="14.5" cy="28" r="2.2" className="dot" />
 
-      {/* Simple MA wordmark in the center */}
+      {/* Simple C wordmark in the center */}
       <text
         x="32"
         y="37"
@@ -36,7 +36,7 @@ export default function BrandLogo({ size = 44 }: { size?: number }) {
         fontWeight="800"
         fill="#A44A3F"
       >
-        MA
+        C
       </text>
     </svg>
   );
