@@ -89,6 +89,22 @@ function greetingPrefix(scenarioHour: number | null = null): string {
   return "Good night,";
 }
 
+function parseNextEvent(raw: string): { shortLabel: string; details: string[] } {
+  const sentences = raw.split(/\.\s+/).filter(Boolean).map((s) => s.replace(/\.$/, "").trim());
+  if (sentences.length === 0) return { shortLabel: raw, details: [] };
+  const shortLabel = sentences[0];
+  const rawDetails = sentences.slice(1);
+  const details: string[] = [];
+  for (const item of rawDetails) {
+    if (item.toLowerCase().startsWith("bring ")) {
+      item.replace(/^bring /i, "").split(/,\s*/).forEach((t) => details.push(`Bring ${t.trim()}`));
+    } else {
+      details.push(item);
+    }
+  }
+  return { shortLabel, details };
+}
+
 export default function TodayWindowPage() {
   const [helperOpen, setHelperOpen] = useState(false);
   const [callingCaregiver, setCallingCaregiver] = useState(false);
@@ -122,6 +138,7 @@ export default function TodayWindowPage() {
   const [checkInResponseText, setCheckInResponseText] = useState("");
   const [checkInResponseLoading, setCheckInResponseLoading] = useState(false);
   const [checkInActiveQuestion, setCheckInActiveQuestion] = useState("");
+  const [nextEventDetailOpen, setNextEventDetailOpen] = useState(false);
 
   useEffect(() => {
     setState(loadState());
@@ -161,6 +178,8 @@ export default function TodayWindowPage() {
     }),
     [state.activeScenarioId, state.activeLocationSource, state.browserLocation, state.profile, state.trustedLocations]
   );
+
+  const parsedNextEvent = parseNextEvent(contextPacket.next_event);
 
   const persist = (nextState: DemoState) => {
     setState(nextState);
@@ -519,15 +538,22 @@ export default function TodayWindowPage() {
           </div>
 
           {/* Row 3: Next event */}
-          <div className="flex items-center gap-3 border-b border-brand-border px-4 py-3">
+          <button
+            type="button"
+            onClick={() => setNextEventDetailOpen(true)}
+            className="flex w-full items-center gap-3 border-b border-brand-border px-4 py-3 text-left focus:outline-none"
+          >
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-brand-warm">
               <MemoryIcon name="utensils" className="h-5 w-5 text-brand-warmDark" />
             </div>
-            <div>
-              <p className="text-xs uppercase tracking-wide text-brand-muted">COMING UP NEXT</p>
-              <p className="font-serif text-sm font-semibold text-brand-text">{contextPacket.next_event}</p>
+            <div className="flex flex-1 items-start justify-between gap-2">
+              <div className="flex-1">
+                <p className="text-xs uppercase tracking-wide text-brand-muted">COMING UP NEXT</p>
+                <p className="font-serif text-sm font-semibold text-brand-text">{parsedNextEvent.shortLabel}</p>
+              </div>
+              <MemoryIcon name="chevronRight" className="mt-3 h-4 w-4 shrink-0 text-brand-muted" />
             </div>
-          </div>
+          </button>
 
           {/* Row 4: With you (conditional, no border) */}
           {contextPacket.who_is_expected !== "No other people are required right now." ? (
@@ -796,6 +822,46 @@ export default function TodayWindowPage() {
               type="button"
               onClick={() => setRecentGuidanceOpen(false)}
               className="mt-5 min-h-12 w-full rounded-2xl border border-brand-border bg-brand-bg px-4 py-3 text-base font-semibold text-brand-text focus:outline-none focus:ring-2 focus:ring-brand-compass/40"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {nextEventDetailOpen ? (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4">
+          <div className="w-full max-w-lg rounded-t-3xl border border-brand-border bg-brand-surface p-6 shadow-xl sm:rounded-3xl space-y-5">
+            <div className="flex justify-center">
+              <div className="h-1 w-10 rounded-full bg-brand-border" />
+            </div>
+            <div>
+              <p className="font-serif text-xl font-bold text-brand-text">{parsedNextEvent.shortLabel}</p>
+              {parsedNextEvent.details.length > 0 ? (
+                <p className="mt-1 text-sm text-brand-muted">To prepare before you leave</p>
+              ) : null}
+            </div>
+            {parsedNextEvent.details.length > 0 ? (
+              <ul className="space-y-3">
+                {parsedNextEvent.details.map((item, i) => (
+                  <li key={i} className="flex items-start gap-3">
+                    <div className="mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 border-brand-sageDark" />
+                    <span className="text-base text-brand-text">{item}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => { setNextEventDetailOpen(false); void askQuestion("what_should_i_do_next"); }}
+              className="min-h-12 w-full rounded-2xl bg-brand-sageDark px-4 py-3 text-base font-semibold text-white focus:outline-none focus:ring-2 focus:ring-brand-sageDark/50"
+            >
+              Get help with this
+            </button>
+            <button
+              type="button"
+              onClick={() => setNextEventDetailOpen(false)}
+              className="block w-full text-center text-sm text-brand-muted underline underline-offset-2 focus:outline-none"
             >
               Close
             </button>
