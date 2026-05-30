@@ -2,6 +2,18 @@ import { logActivityEvent, logSystemEvent } from "@/lib/logEvent";
 
 export type EventSource = "app" | "caregiver" | "demo";
 export type UncertaintyLevel = "low" | "medium" | "high";
+
+export type CheckInResponse = {
+  positive: string;
+  uncertain: string;
+  confused: string;
+};
+
+export type CheckInQuestion = {
+  id: string;
+  text: string;
+  responses: CheckInResponse;
+};
 export type LocationSource = "scenario_seed" | "browser_geolocation";
 export type LocationMode = "trusted_place" | "other";
 export type ResponsePosture = "calm_grounding" | "public_place_support" | "transition_support" | "safety_fallback";

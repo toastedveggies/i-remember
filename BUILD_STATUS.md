@@ -147,6 +147,12 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
   - [x] Activity feed: added formatQuestionKey() helper to display question keys as readable text instead of raw underscore_separated strings.
   - [x] COMING UP NEXT row truncated to short label; tappable chevron opens bottom sheet with full preparation checklist and "Get help with this" button (calls askQuestion("what_should_i_do_next")).
   - [x] SiteHeader: replaced BrandLogo + "Claira" text with img pointing to /claira-logo.webp; BrandLogo import removed.
+  - [x] /app page return rewritten to user-home.html mockup: max-w-[375px] container, updated greeting/icon layout, redesigned orientation card (larger text, new row styling), check-in expansion preserved, action buttons restyled to 70px icon squares.
+  - [x] checkin API: added packet mode (structured 3-question JSON with emoji response labels) and branch mode (streaming contextual reply based on uncertain/confused selection); CheckInQuestion and CheckInResponse types exported from demoState.ts.
+  - [x] /app check-in flow replaced: old inline expansion removed; new modal-based flow with pre-generated packet (fetched on scenario change), 3-step modal (question → response branch → branch stream), history sheet; two-region no-scroll layout; date removed from greeting.
+  - [x] /app bottom region: viewport fixed to 100svh; saved box removed; action area restructured with left status column (saved indicator + history button) and smaller h-32 action buttons.
+  - [x] HelperModal fully rewritten to mockup design: top bar with logo + × button, scrollable 5-section content (identity, key info cards, how-to-help steps, caregiver card + call button, emergency section), fixed footer with close CTA. BrandLogo import removed.
+  - [x] Layout flex chain: body gets h-svh flex-col; children wrapper becomes flex min-h-0 flex-1 overflow-hidden; /app main uses h-full. Row 3 button gets text-left; text div gets items-start. HelperModal emergency button wrapper div removed.
   - [ ] Review and tighten spacing and typography consistency across all screens
   - [ ] Ensure all scenarios look correct on iPhone SE screen size
   - [ ] Review caregiver dashboard layout on mobile
@@ -325,4 +331,4 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
 
 ## Last Updated
 
-2026-05-29 (UTC-7) — SiteHeader logo replaced with img /claira-logo.webp; COMING UP NEXT row truncated with chevron + prep checklist bottom sheet. tsc and lint pass clean.
+2026-05-29 (UTC-7) — New modal check-in flow with packet pre-generation, branch streaming, history sheet; two-region layout; date removed from greeting. tsc and lint pass clean.

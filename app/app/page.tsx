@@ -10,6 +10,7 @@ import {
   initialDemoState,
   normalizeDemoState,
   storageKey,
+  type CheckInQuestion,
   type DemoState,
 } from "@/data/demoState";
 import { buildActiveLocationSummary, buildContextPacket } from "@/data/demoData";
@@ -65,21 +66,6 @@ function saveState(nextState: DemoState): void {
   }
 }
 
-function recommendedNextAction(question: string, caregiverName: string): string {
-  if (question.includes("slow breath")) {
-    return "Take three slow breaths, then look at the next step card again.";
-  }
-
-  if (question.includes("plan")) {
-    return "Review the next event and gather only the items you need right now.";
-  }
-
-  if (question.includes("calling your caregiver")) {
-    return `Call ${caregiverName} for reassurance now.`;
-  }
-
-  return "Pause, read the next step slowly, and ask for support if you want it.";
-}
 
 function greetingPrefix(scenarioHour: number | null = null): string {
   const hour = scenarioHour !== null ? scenarioHour : new Date().getHours();
@@ -130,15 +116,16 @@ export default function TodayWindowPage() {
   const [recentGuidance, setRecentGuidance] = useState<GuidanceEntry[]>([]);
 
   const [checkInDoneThisSession, setCheckInDoneThisSession] = useState(false);
-  const [checkInOpen, setCheckInOpen] = useState(false);
-  const [checkInQuestionsLoading, setCheckInQuestionsLoading] = useState(false);
-  const [aiCheckInQuestions, setAiCheckInQuestions] = useState<string[]>([]);
-  const [checkInSelectedQuestion, setCheckInSelectedQuestion] = useState("");
-  const [checkInResponseOpen, setCheckInResponseOpen] = useState(false);
-  const [checkInResponseText, setCheckInResponseText] = useState("");
-  const [checkInResponseLoading, setCheckInResponseLoading] = useState(false);
-  const [checkInActiveQuestion, setCheckInActiveQuestion] = useState("");
   const [nextEventDetailOpen, setNextEventDetailOpen] = useState(false);
+  const [checkInModalOpen, setCheckInModalOpen] = useState(false);
+  const [checkInPacket, setCheckInPacket] = useState<CheckInQuestion[] | null>(null);
+  const [checkInPacketLoading, setCheckInPacketLoading] = useState(false);
+  const [checkInSelectedId, setCheckInSelectedId] = useState<string | null>(null);
+  const [checkInBranchOpen, setCheckInBranchOpen] = useState(false);
+  const [checkInBranchType, setCheckInBranchType] = useState<"uncertain" | "confused" | null>(null);
+  const [checkInBranchText, setCheckInBranchText] = useState("");
+  const [checkInBranchLoading, setCheckInBranchLoading] = useState(false);
+  const [checkInHistoryOpen, setCheckInHistoryOpen] = useState(false);
 
   useEffect(() => {
     setState(loadState());
@@ -221,6 +208,49 @@ export default function TodayWindowPage() {
   useEffect(() => {
     // renders the lost alert when the condition is met; no async work needed
   }, [activeScenario.id, resolvedLocation.source, lostAlertDismissed]);
+
+  useEffect(() => {
+    const packetFallback: CheckInQuestion[] = [
+      { id: "q1", text: "How are you feeling right now?", responses: { positive: "Feeling good 😊", uncertain: "A bit unsure 🤔", confused: "Not sure 😳" } },
+      { id: "q2", text: "Do you know what is coming up next?", responses: { positive: "Yes I do 😊", uncertain: "Kind of, not sure 🤔", confused: "No idea 😳" } },
+      { id: "q3", text: "Is there anything on your mind?", responses: { positive: "All good 😊", uncertain: "A little worried 🤔", confused: "Feeling confused 😳" } },
+    ];
+    const generateCheckInPacket = async () => {
+      setCheckInPacketLoading(true);
+      setCheckInPacket(null);
+      setCheckInSelectedId(null);
+      setCheckInBranchOpen(false);
+      setCheckInBranchText("");
+      try {
+        const response = await fetch("/api/checkin", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            mode: "packet",
+            context: {
+              location: activeLocationSummary.label,
+              next_event: contextPacket.next_event,
+              who_is_expected: contextPacket.who_is_expected,
+              scenario: activeScenario.label,
+            },
+            userName: state.profile.preferredName,
+          }),
+        });
+        const result = await response.json() as CheckInQuestion[];
+        if (Array.isArray(result) && result.length === 3) {
+          setCheckInPacket(result);
+        } else {
+          setCheckInPacket(packetFallback);
+        }
+      } catch {
+        setCheckInPacket(packetFallback);
+      } finally {
+        setCheckInPacketLoading(false);
+      }
+    };
+    void generateCheckInPacket();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeScenario.id]);
 
   const eventLocationDetails = useMemo(
     () => ({
@@ -344,112 +374,6 @@ export default function TodayWindowPage() {
     setStreamedText("");
   };
 
-  const handleOpenCheckIn = () => {
-    setCheckInOpen(true);
-    setCheckInQuestionsLoading(true);
-    setAiCheckInQuestions([]);
-    setCheckInSelectedQuestion("");
-
-    const recentQuestion = loadRecentGuidance()[0]?.question ?? null;
-
-    fetch("/api/checkin", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        mode: "questions",
-        context: {
-          ...contextPacket,
-          scenario: activeScenario.id,
-          ...(recentQuestion ? { recentHelpMeNowQuestion: recentQuestion } : {}),
-        },
-        userName: state.profile.preferredName,
-      }),
-    })
-      .then((response) => {
-        if (!response.ok) throw new Error("Failed");
-        return response.json() as Promise<string[]>;
-      })
-      .then((questions) => {
-        if (Array.isArray(questions) && questions.length > 0) {
-          setAiCheckInQuestions(questions);
-          return;
-        }
-        throw new Error("Invalid");
-      })
-      .catch(() => {
-        setAiCheckInQuestions([
-          "How are you feeling right now?",
-          "Would you like a moment to sit and breathe?",
-          "Is there anything you need help with?",
-        ]);
-      })
-      .finally(() => setCheckInQuestionsLoading(false));
-  };
-
-  const handleCheckInTap = (question: string) => {
-    if (question !== checkInSelectedQuestion) {
-      setCheckInSelectedQuestion(question);
-      return;
-    }
-
-    void commitCheckIn(question);
-  };
-
-  const commitCheckIn = async (question: string) => {
-    const nextAction = recommendedNextAction(question, state.profile.caregiverName);
-    const nextState = appendActivityEvent(
-      { ...state, checkInStatus: `Check-in saved: ${question} Recommended next action: ${nextAction}` },
-      createLocationEvent("checkin_submitted", {
-        question,
-        locationMode: resolvedLocation.locationMode,
-        trustedPlace: activeLocationSummary.trustedPlaceName,
-        trustedPlaceAddress: activeLocationSummary.trustedPlaceAddress,
-      })
-    );
-    persist(nextState);
-
-    setCheckInDoneThisSession(true);
-    setCheckInActiveQuestion(question);
-    setCheckInResponseText("");
-    setCheckInResponseLoading(true);
-    setCheckInResponseOpen(true);
-
-    try {
-      const response = await fetch("/api/checkin", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          mode: "response",
-          context: contextPacket,
-          selectedQuestion: question,
-          userName: state.profile.preferredName,
-        }),
-      });
-
-      if (!response.ok || !response.body) {
-        setCheckInResponseText("I hear you. Take a gentle breath. You are doing well.");
-        setCheckInResponseLoading(false);
-        return;
-      }
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let fullText = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        fullText += decoder.decode(value, { stream: true });
-        setCheckInResponseText(fullText);
-      }
-
-      setCheckInResponseLoading(false);
-    } catch {
-      setCheckInResponseText("I hear you. Take a gentle breath. You are doing well.");
-      setCheckInResponseLoading(false);
-    }
-  };
-
   const callCaregiver = () => {
     persist(appendActivityEvent(state, createLocationEvent("caregiver_called")));
     setCallingCaregiver(true);
@@ -458,6 +382,59 @@ export default function TodayWindowPage() {
   const callEmergency = () => {
     persist(appendActivityEvent(state, createLocationEvent("emergency_called")));
     setCallingEmergency(true);
+  };
+
+  const handleCheckInBranch = async (questionId: string, branch: "positive" | "uncertain" | "confused"): Promise<void> => {
+    const question = checkInPacket?.find((q) => q.id === questionId) ?? null;
+    persist(appendActivityEvent(state, createLocationEvent("checkin_submitted", {
+      question: question?.text ?? "",
+      response: question?.responses[branch] ?? "",
+      branch,
+      locationMode: resolvedLocation.locationMode,
+      trustedPlace: activeLocationSummary.trustedPlaceName,
+      trustedPlaceAddress: activeLocationSummary.trustedPlaceAddress,
+    })));
+    if (branch === "positive") {
+      setCheckInDoneThisSession(true);
+      setCheckInModalOpen(false);
+      setCheckInSelectedId(null);
+      return;
+    }
+    setCheckInBranchType(branch);
+    setCheckInBranchOpen(true);
+    setCheckInBranchLoading(true);
+    setCheckInBranchText("");
+    try {
+      const response = await fetch("/api/checkin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mode: "branch",
+          branch,
+          selectedQuestion: question?.text ?? "",
+          selectedResponse: question?.responses[branch] ?? "",
+          context: {
+            location: activeLocationSummary.label,
+            next_event: contextPacket.next_event,
+            scenario: activeScenario.label,
+          },
+          userName: state.profile.preferredName,
+        }),
+      });
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error("No body");
+      const decoder = new TextDecoder();
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const decoded = decoder.decode(value, { stream: true });
+        setCheckInBranchText((prev) => prev + decoded);
+      }
+    } catch {
+      setCheckInBranchText("That is okay. Take a breath. Would you like to see the details?");
+    } finally {
+      setCheckInBranchLoading(false);
+    }
   };
 
   const showUnknownLocationPrompt = resolvedLocation.locationMode === "other";
@@ -469,186 +446,253 @@ export default function TodayWindowPage() {
   const dateString = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
 
   return (
-    <main className="mx-auto min-h-screen w-full max-w-md bg-brand-bg">
-      <div className="space-y-4 px-4 pb-8 pt-4">
-        {/* Section 1: Greeting */}
+    <main className="mx-auto flex h-full w-full max-w-[375px] flex-col overflow-hidden bg-[#F6F3EE] font-sans">
+
+      {/* Top region */}
+      <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-hidden px-5 pt-6">
+
+        {/* Section A: Greeting and action icons */}
         <div className="flex items-start justify-between">
-          <div>
-            <p className="text-xl font-medium text-brand-muted">{greetingPrefix(activeScenario.scenarioHour ?? null)}</p>
-            <p className="font-serif text-4xl font-bold text-brand-text">{state.profile.preferredName}</p>
-            <p className="text-sm text-brand-muted">{dateString}</p>
+          <div className="flex flex-col gap-0.5">
+            <p className="text-xl text-[#8B7D6B]">{greetingPrefix(activeScenario.scenarioHour ?? null)}</p>
+            <p className="font-serif text-4xl font-bold tracking-tight text-[#5A4A3A]">{state.profile.preferredName}</p>
           </div>
-          <div className="flex items-center gap-2 pt-2">
-            <button
-              type="button"
-              onClick={callCaregiver}
-              aria-label={`Call ${state.profile.caregiverName}`}
-              className="flex h-11 w-11 items-center justify-center rounded-full bg-brand-sageDark text-white shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-sageDark/40"
-            >
-              <MemoryIcon name="phone" className="h-5 w-5 text-white" />
-            </button>
+          <div className="flex gap-3 pt-1">
             <button
               type="button"
               onClick={() => { persist(appendActivityEvent(state, createLocationEvent("helper_card_shown"))); setHelperOpen(true); }}
-              aria-label="Show Helper Card"
-              className="flex h-11 w-11 items-center justify-center rounded-full border border-brand-border bg-brand-surface shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-primary/30"
+              aria-label="Show helper card"
+              className="flex h-[50px] w-20 items-center justify-center rounded-[15px] border-[3px] border-[#D3C3A7] bg-white shadow-[0px_1px_5px_-2px_rgba(0,0,0,0.35)] transition-transform active:scale-95"
             >
-              <MemoryIcon name="idCard" className="h-5 w-5 text-brand-primary" />
+              <MemoryIcon name="idCard" className="h-6 w-6 text-[#8B7D6B]" />
+            </button>
+            <button
+              type="button"
+              onClick={callCaregiver}
+              aria-label="Call caregiver"
+              className="flex h-[50px] w-[50px] items-center justify-center rounded-full border-[3px] border-[#7CAC77] bg-[#95C18F] shadow-[0px_0px_5px_-2px_rgba(0,0,0,0.35)] transition-transform active:scale-95"
+            >
+              <MemoryIcon name="phone" className="h-5 w-5 text-white" />
             </button>
           </div>
         </div>
 
-        {/* Section 2: Orientation card */}
-        <div className="overflow-hidden rounded-2xl bg-brand-surface shadow-sm">
-          <div className="flex items-center gap-2 border-b border-[#E3DAC9] bg-[#C8E2C4]/30 px-4 py-3">
-            <MemoryIcon name="mapPin" className="h-4 w-4 text-brand-sageDark" />
-            <span className="text-xs font-bold uppercase tracking-widest text-brand-sageDark">WHERE YOU ARE NOW</span>
+        {/* Section B: Orientation card */}
+        <section className="mt-2 overflow-hidden rounded-[20px] border-[3px] border-[#F6FFF5] bg-white shadow-[0px_0px_10px_-2px_rgba(0,0,0,0.35)]">
+          <div className="flex h-[37px] items-center gap-2 border-b border-[#E3DAC9] bg-[#E4F6DD] px-5 py-3">
+            <MemoryIcon name="mapPin" className="h-4 w-4 text-[#7C9B78]" />
+            <span className="text-sm font-medium uppercase tracking-[1px] text-[#719E6B]">Where you are now</span>
           </div>
-
-          {/* Row 1: Date */}
-          <div className="flex items-center gap-3 border-b border-brand-border px-4 py-3">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-brand-sage/30">
-              <MemoryIcon name="calendar" className="h-5 w-5 text-brand-sageDark" />
-            </div>
-            <div>
-              <p className="text-xs uppercase tracking-wide text-brand-muted">TODAY</p>
-              <p className="font-serif text-sm font-semibold text-brand-text">{dateString}</p>
-            </div>
-          </div>
-
-          {/* Row 2: Location */}
-          <div className="flex items-center gap-3 border-b border-brand-border px-4 py-3">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-brand-sage/30">
-              <MemoryIcon name="home" className="h-5 w-5 text-brand-sageDark" />
-            </div>
-            <div>
-              <p className="text-xs uppercase tracking-wide text-brand-muted">YOU ARE AT</p>
-              <p className="font-serif text-sm font-semibold text-brand-text">
-                {activeScenario.id === "lost_unknown_location" && state.resolvedAddress !== null
-                  ? state.resolvedAddress
-                  : activeLocationSummary.label}
-              </p>
-              {activeLocationSummary.trustedPlaceAddress ? (
-                <p className="text-xs text-brand-muted">{activeLocationSummary.trustedPlaceAddress}</p>
-              ) : null}
-              {showUnknownLocationPrompt ? (
-                <p className="text-xs font-medium text-amber-700">Unfamiliar location — stay where you are if safe.</p>
-              ) : null}
-            </div>
-          </div>
-
-          {/* Row 3: Next event */}
-          <button
-            type="button"
-            onClick={() => setNextEventDetailOpen(true)}
-            className="flex w-full items-center gap-3 border-b border-brand-border px-4 py-3 text-left focus:outline-none"
-          >
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-brand-warm">
-              <MemoryIcon name="utensils" className="h-5 w-5 text-brand-warmDark" />
-            </div>
-            <div className="flex flex-1 items-start justify-between gap-2">
-              <div className="flex-1">
-                <p className="text-xs uppercase tracking-wide text-brand-muted">COMING UP NEXT</p>
-                <p className="font-serif text-sm font-semibold text-brand-text">{parsedNextEvent.shortLabel}</p>
+          <div className="flex flex-col">
+            {/* Row 1: Date */}
+            <div className="flex items-center gap-4 border-b border-[#E3DAC9] px-5 py-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#C8E2C4]/20 text-[#7C9B78]">
+                <MemoryIcon name="calendar" className="h-6 w-6" />
               </div>
-              <MemoryIcon name="chevronRight" className="mt-3 h-4 w-4 shrink-0 text-brand-muted" />
-            </div>
-          </button>
-
-          {/* Row 4: With you (conditional, no border) */}
-          {contextPacket.who_is_expected !== "No other people are required right now." ? (
-            <div className="flex items-center gap-3 px-4 py-3">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-brand-sageDark text-sm font-bold text-white">
-                {contextPacket.who_is_expected.charAt(0).toUpperCase()}
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-wide text-brand-muted">WITH YOU</p>
-                <p className="font-serif text-sm font-semibold text-brand-text">{contextPacket.who_is_expected}</p>
+              <div className="flex flex-col">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[#8B7D6B]">Today</span>
+                <span className="font-serif text-xl font-medium text-[#5A4A3A]">{dateString}</span>
               </div>
             </div>
-          ) : null}
-        </div>
-
-        {/* Section 3: Action buttons */}
-        <div className="flex gap-3">
-          <button
-            type="button"
-            onClick={handleOpenCheckIn}
-            disabled={checkInOpen}
-            className={checkInOpen
-              ? "flex min-h-[100px] flex-1 flex-col items-center justify-center gap-2 rounded-3xl border border-brand-sage/50 bg-brand-sage/30 p-4 opacity-75 focus:outline-none focus:ring-2 focus:ring-brand-sageDark/30"
-              : "flex min-h-[100px] flex-1 flex-col items-center justify-center gap-2 rounded-3xl border border-brand-sage/50 bg-brand-sage/30 p-4 focus:outline-none focus:ring-2 focus:ring-brand-sageDark/30"
-            }
-          >
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-sageDark shadow-sm">
-              <MemoryIcon name="checkCircle" className="h-6 w-6 text-white" />
+            {/* Row 2: Location */}
+            <div className="flex items-center gap-4 border-b border-[#E3DAC9] px-5 py-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#C8E2C4]/20 text-[#7C9B78]">
+                <MemoryIcon name="home" className="h-6 w-6" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[#8B7D6B]">You are at</span>
+                <span className="font-serif text-xl font-medium text-[#5A4A3A]">
+                  {activeScenario.id === "lost_unknown_location" && state.resolvedAddress !== null
+                    ? state.resolvedAddress
+                    : activeLocationSummary.label}
+                </span>
+                {activeLocationSummary.trustedPlaceAddress ? (
+                  <span className="text-xs font-medium text-[#8B7D6B]">{activeLocationSummary.trustedPlaceAddress}</span>
+                ) : null}
+                {showUnknownLocationPrompt ? (
+                  <span className="text-xs font-medium text-amber-700">Unfamiliar location — stay where you are if safe.</span>
+                ) : null}
+              </div>
             </div>
-            <span className="font-serif text-base font-semibold text-brand-text">Check-In</span>
-            <span className="text-xs text-brand-muted">I&apos;m doing okay</span>
-          </button>
-          <button
-            type="button"
-            onClick={handleHelpMeNow}
-            className="flex min-h-[100px] flex-1 flex-col items-center justify-center gap-2 rounded-3xl border border-brand-warmDark/20 bg-brand-warm/50 p-4 focus:outline-none focus:ring-2 focus:ring-brand-warmDark/30"
-          >
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-warmDark shadow-sm">
-              <MemoryIcon name="home" className="h-6 w-6 text-white" />
-            </div>
-            <span className="font-serif text-base font-semibold text-brand-text">Get Help</span>
-            <span className="text-xs text-brand-muted">I need assistance</span>
-          </button>
-        </div>
-
-        {/* Section 4: Check-in questions expansion (preserved exactly) */}
-        {checkInOpen && checkInQuestionsLoading ? (
-          <p className="text-xs text-brand-muted">Preparing your check-in...</p>
-        ) : null}
-
-        <div
-          className={`overflow-hidden transition-all duration-300 ease-in-out ${
-            checkInOpen && !checkInQuestionsLoading && aiCheckInQuestions.length > 0
-              ? "max-h-[500px] opacity-100"
-              : "max-h-0 opacity-0"
-          }`}
-        >
-          <div className="space-y-2 pt-1">
-            {aiCheckInQuestions.map((question, index) => {
-              const isSelected = question === checkInSelectedQuestion;
-              const isDeselected = checkInSelectedQuestion !== "" && !isSelected;
-
-              return (
-                <button
-                  key={index}
-                  type="button"
-                  onClick={() => handleCheckInTap(question)}
-                  className={`w-full cursor-pointer rounded-xl border p-4 text-left text-sm font-medium transition-colors duration-100 focus:outline-none focus:ring-2 focus:ring-[#7C9B78]/40 ${
-                    isSelected
-                      ? "border-[#7C9B78] bg-[#C8E2C4]/40 text-brand-text"
-                      : isDeselected
-                        ? "border-brand-border bg-white text-brand-text opacity-60"
-                        : "border-brand-border bg-white text-brand-text hover:bg-[#C8E2C4]/20"
-                  }`}
-                >
-                  {question}
-                </button>
-              );
-            })}
-            <p className="text-xs text-brand-muted">
-              {checkInSelectedQuestion
-                ? "Tap the highlighted option again to confirm."
-                : "Tap once to select, tap again to confirm."}
-            </p>
+            {/* Row 3: Next event */}
+            <button
+              type="button"
+              onClick={() => setNextEventDetailOpen(true)}
+              className="flex w-full items-center justify-between border-b border-[#E3DAC9] px-5 py-4 text-left transition-colors active:bg-gray-50 focus:outline-none"
+            >
+              <div className="flex items-center gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#EBE3D5]/60 text-[#8B7355]">
+                  <MemoryIcon name="utensils" className="h-6 w-6" />
+                </div>
+                <div className="flex flex-col items-start pr-2">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-[#8B7D6B]">Coming up next</span>
+                  <span className="mt-0.5 font-serif text-base font-medium leading-tight text-[#5A4A3A]">{parsedNextEvent.shortLabel}</span>
+                </div>
+              </div>
+              <MemoryIcon name="chevronRight" className="h-4 w-4 shrink-0 text-[#8B7D6B]" />
+            </button>
+            {/* Row 4: With you (conditional) */}
+            {contextPacket.who_is_expected !== "No other people are required right now." ? (
+              <div className="flex items-center gap-4 px-5 py-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#7C9B78] text-xl font-serif font-bold text-white opacity-75">
+                  {state.profile.caregiverName.charAt(0).toUpperCase()}
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-[#8B7D6B]">With you</span>
+                  <span className="mt-0.5 font-serif text-lg font-medium leading-tight text-[#5A4A3A]">{state.profile.caregiverName}</span>
+                  <span className="text-[13px] font-medium text-[#8B7D6B]">{state.profile.caregiverRelationshipLabel ?? ""}</span>
+                </div>
+              </div>
+            ) : null}
           </div>
-        </div>
-
-        {checkInDoneThisSession && !checkInOpen ? (
-          <div className="rounded-2xl border border-[#7C9B78]/30 bg-[#C8E2C4]/20 px-4 py-3">
-            <p className="text-sm font-medium text-[#4B8B62]">Check-in saved.</p>
-            <p className="mt-1 text-xs text-brand-muted">{state.checkInStatus}</p>
-          </div>
-        ) : null}
+        </section>
 
       </div>
+
+      {/* Bottom region */}
+      <div className="shrink-0 px-5 pb-6 pt-3">
+        {/* Section D: Action buttons */}
+        <div className="flex items-stretch gap-2">
+          {/* Left status column */}
+          <div className="flex w-16 shrink-0 flex-col gap-2">
+            {checkInDoneThisSession ? (
+              <div className="flex flex-1 flex-col items-center justify-center gap-1 rounded-2xl border-2 border-[#7C9B78]/40 bg-[#C8E2C4]/30 p-2">
+                <MemoryIcon name="checkCircle" className="h-5 w-5 text-[#7C9B78]" />
+                <span className="text-center text-[10px] font-bold leading-tight text-[#4B8B62]">Saved</span>
+              </div>
+            ) : (
+              <div className="flex-1" />
+            )}
+            <button
+              type="button"
+              onClick={() => setCheckInHistoryOpen(true)}
+              className="flex flex-1 flex-col items-center justify-center gap-1 rounded-2xl border-2 border-[#E3DAC9] bg-white p-2 focus:outline-none active:scale-95"
+            >
+              <MemoryIcon name="clock" className="h-5 w-5 text-[#8B7D6B]" />
+              <span className="text-center text-[10px] font-bold leading-tight text-[#8B7D6B]">History</span>
+            </button>
+          </div>
+          {/* Main action buttons */}
+          <div className="flex flex-1 gap-2">
+            <button
+              type="button"
+              onClick={() => setCheckInModalOpen(true)}
+              className="flex h-32 flex-1 flex-col items-center justify-center gap-2 rounded-2xl border-[3px] border-[#7C9B78]/60 bg-[#C8E2C4]/40 p-4 transition-transform focus:outline-none active:scale-95"
+            >
+              <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-[#7C9B78] shadow-sm">
+                <MemoryIcon name="checkCircle" className="h-6 w-6 text-white" />
+              </div>
+              <span className="font-serif text-base font-bold text-[#5A4A3A]">Check-In</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleHelpMeNow}
+              className="flex h-32 flex-1 flex-col items-center justify-center gap-2 rounded-2xl border-[3px] border-[#8B7355]/50 bg-[#EBE3D5]/70 p-4 transition-transform focus:outline-none active:scale-95"
+            >
+              <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-[#9B776F] shadow-sm">
+                <MemoryIcon name="home" className="h-6 w-6 text-white" />
+              </div>
+              <span className="font-serif text-base font-bold text-[#5A4A3A]">Get Help</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {checkInModalOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-xl space-y-4">
+            {!checkInSelectedId ? (
+              <>
+                <h2 className="font-serif text-xl font-bold text-[#5A4A3A]">How are you doing?</h2>
+                <div className="space-y-3">
+                  {checkInPacketLoading || !checkInPacket ? (
+                    <div className="flex items-center justify-center gap-1 py-8">
+                      <div className="h-2 w-2 animate-pulse rounded-full bg-[#7C9B78]" />
+                      <div className="h-2 w-2 animate-pulse rounded-full bg-[#7C9B78] [animation-delay:0.2s]" />
+                      <div className="h-2 w-2 animate-pulse rounded-full bg-[#7C9B78] [animation-delay:0.4s]" />
+                    </div>
+                  ) : (
+                    checkInPacket.map((q) => (
+                      <button key={q.id} type="button" onClick={() => setCheckInSelectedId(q.id)} className="min-h-12 w-full rounded-2xl border border-[#E3DAC9] bg-[#F6F3EE] px-4 py-3 text-left text-base font-medium text-[#5A4A3A] hover:bg-[#C8E2C4]/20 focus:outline-none focus:ring-2 focus:ring-[#7C9B78]/40">
+                        {q.text}
+                      </button>
+                    ))
+                  )}
+                </div>
+                <div className="flex items-center justify-between pt-1">
+                  <button type="button" onClick={() => setCheckInHistoryOpen(true)} className="text-xs text-[#8B7D6B] underline underline-offset-2">View past check-ins</button>
+                  <button type="button" onClick={() => { setCheckInModalOpen(false); setCheckInSelectedId(null); }} className="text-sm text-[#8B7D6B] underline underline-offset-2">Back</button>
+                </div>
+              </>
+            ) : !checkInBranchOpen ? (
+              <>
+                <p className="text-xs font-semibold uppercase tracking-wide text-[#8B7D6B]">{checkInPacket?.find((q) => q.id === checkInSelectedId)?.text}</p>
+                <div className="space-y-3">
+                  {(["positive", "uncertain", "confused"] as const).map((branch) => {
+                    const label = checkInPacket?.find((q) => q.id === checkInSelectedId)?.responses[branch] ?? "";
+                    return (
+                      <button key={branch} type="button" onClick={() => void handleCheckInBranch(checkInSelectedId!, branch)} className="min-h-12 w-full rounded-2xl border border-[#E3DAC9] bg-[#F6F3EE] px-4 py-3 text-left text-base font-medium text-[#5A4A3A] hover:bg-[#C8E2C4]/20 focus:outline-none focus:ring-2 focus:ring-[#7C9B78]/40">
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+                <button type="button" onClick={() => setCheckInSelectedId(null)} className="text-sm text-[#8B7D6B] underline underline-offset-2">Back</button>
+              </>
+            ) : (
+              <>
+                <div className="min-h-20 text-base leading-relaxed text-[#5A4A3A]">
+                  {checkInBranchLoading && !checkInBranchText ? (
+                    <span className="text-[#8B7D6B]">One moment...</span>
+                  ) : checkInBranchText}
+                  {checkInBranchLoading ? <span className="ml-1 inline-block h-3 w-0.5 animate-pulse bg-[#7C9B78]" /> : null}
+                </div>
+                {!checkInBranchLoading ? (
+                  <div className="space-y-3">
+                    <button type="button" onClick={() => { setCheckInModalOpen(false); setCheckInSelectedId(null); setCheckInBranchOpen(false); setCheckInBranchType(null); setCheckInBranchText(""); setNextEventDetailOpen(true); }} className="min-h-12 w-full rounded-2xl bg-[#7C9B78] px-4 py-3 text-base font-semibold text-white focus:outline-none">
+                      Show me the details
+                    </button>
+                    <button type="button" onClick={() => { setCheckInDoneThisSession(true); setCheckInModalOpen(false); setCheckInSelectedId(null); setCheckInBranchOpen(false); setCheckInBranchType(null); setCheckInBranchText(""); }} className="min-h-12 w-full rounded-2xl border border-[#E3DAC9] bg-[#F6F3EE] px-4 py-3 text-base font-semibold text-[#5A4A3A] focus:outline-none">
+                      I&apos;m okay, thanks
+                    </button>
+                  </div>
+                ) : null}
+              </>
+            )}
+          </div>
+        </div>
+      ) : null}
+
+      {checkInHistoryOpen ? (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4">
+          <div className="max-h-[80vh] w-full max-w-lg overflow-y-auto rounded-t-3xl border border-[#E3DAC9] bg-white p-6 shadow-xl sm:rounded-3xl space-y-4">
+            <h2 className="font-serif text-lg font-bold text-[#5A4A3A]">Past check-ins</h2>
+            {state.activityEvents.filter((e) => e.eventType === "checkin_submitted").length === 0 ? (
+              <p className="text-sm text-[#8B7D6B]">No check-ins yet this session.</p>
+            ) : (
+              <ul className="space-y-3">
+                {state.activityEvents
+                  .filter((e) => e.eventType === "checkin_submitted")
+                  .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+                  .slice(0, 10)
+                  .map((event, i) => (
+                    <li key={i} className="rounded-2xl border border-[#E3DAC9] bg-[#F6F3EE] p-4 space-y-1">
+                      <p className="text-xs font-semibold text-[#8B7D6B]">
+                        {new Date(event.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                        {typeof event.metadata?.branch === "string" ? ` · ${event.metadata.branch}` : ""}
+                      </p>
+                      {typeof event.metadata?.question === "string" ? <p className="text-sm text-[#5A4A3A]">{event.metadata.question as string}</p> : null}
+                      {typeof event.metadata?.response === "string" ? <p className="text-sm font-medium text-[#7C9B78]">{event.metadata.response as string}</p> : null}
+                    </li>
+                  ))}
+              </ul>
+            )}
+            <button type="button" onClick={() => setCheckInHistoryOpen(false)} className="min-h-12 w-full rounded-2xl border border-[#E3DAC9] bg-[#F6F3EE] px-4 py-3 text-base font-semibold text-[#5A4A3A] focus:outline-none">
+              Close
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       <HelperModal
         open={helperOpen}
@@ -694,40 +738,6 @@ export default function TodayWindowPage() {
             >
               Back
             </button>
-          </div>
-        </div>
-      ) : null}
-
-      {checkInResponseOpen ? (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4">
-          <div className="w-full max-w-lg rounded-t-3xl border border-brand-border bg-brand-surface p-6 shadow-xl sm:rounded-3xl">
-            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-brand-muted">
-              {checkInActiveQuestion}
-            </p>
-            <div className="min-h-24 text-base leading-relaxed text-brand-text">
-              {checkInResponseLoading && !checkInResponseText ? (
-                <span className="text-brand-muted">One moment...</span>
-              ) : (
-                checkInResponseText
-              )}
-              {checkInResponseLoading ? (
-                <span className="ml-1 inline-block h-3 w-0.5 animate-pulse bg-brand-primary" />
-              ) : null}
-            </div>
-            {!checkInResponseLoading ? (
-              <button
-                type="button"
-                onClick={() => {
-                  setCheckInResponseOpen(false);
-                  setCheckInResponseText("");
-                  setCheckInOpen(false);
-                  setCheckInSelectedQuestion("");
-                }}
-                className="mt-5 min-h-12 w-full rounded-2xl bg-brand-primary px-4 py-3 text-base font-semibold text-white focus:outline-none focus:ring-2 focus:ring-brand-compass"
-              >
-                Got it
-              </button>
-            ) : null}
           </div>
         </div>
       ) : null}
