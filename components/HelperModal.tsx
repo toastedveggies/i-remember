@@ -31,13 +31,7 @@ export default function HelperModal({ open, onClose, profile, activeLocationSumm
 
   if (!open) return null;
 
-  const subjectCap = words.subject
-    ? words.subject.charAt(0).toUpperCase() + words.subject.slice(1)
-    : profile.preferredName;
-
-  const caregiverLabel = profile.caregiverRelationshipLabel
-    ? profile.caregiverRelationshipLabel.charAt(0).toUpperCase() + profile.caregiverRelationshipLabel.slice(1)
-    : "Caregiver";
+  const fullName = profile.fullName && profile.fullName.trim() !== "" ? profile.fullName : profile.preferredName;
 
   return (
     <div className="fixed inset-0 z-50 font-sans" role="dialog" aria-modal="true" aria-label="Helper card">
@@ -65,35 +59,25 @@ export default function HelperModal({ open, onClose, profile, activeLocationSumm
 
         {/* Identity block */}
         <div className="flex flex-col items-center gap-2 px-5 py-4 text-center">
-          <div className="relative">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#7C9B78] font-serif text-3xl font-bold text-white shadow-md">
-              {profile.preferredName.charAt(0).toUpperCase()}
-            </div>
-            <div className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full border-2 border-white bg-[#E4F6DD]">
-              <MemoryIcon name="checkCircle" className="h-3 w-3 text-[#7C9B78]" />
-            </div>
-          </div>
-          <div>
-            <p className="text-[9px] font-bold uppercase tracking-widest text-[#8B7D6B]">This person&apos;s name is</p>
-            <h1 className="font-serif text-2xl font-bold tracking-tight text-[#5A4A3A]">{profile.preferredName}</h1>
-            <p className="text-sm text-[#8B7D6B]">
-              {subjectCap}{" "}
-              {profile.pronouns === "they/them" ? "have" : "has"} a memory condition and may need your help.
-            </p>
-          </div>
+          <p className="text-[17px] font-medium text-[#8B7D6B]">Hi, my name is</p>
+          <h1 className="font-serif text-3xl font-bold tracking-tight text-[#5A4A3A]">{fullName}</h1>
+          <p className="mt-0.5 text-[17px] text-[#8B7D6B]">I need a little help right now.</p>
         </div>
 
         <hr className="mx-5 h-px border-0 bg-gradient-to-r from-transparent via-[#E3DAC9] to-transparent" />
 
         {/* Key info */}
         <div className="flex flex-col gap-2 px-5 py-3">
+          <div className="mb-2 flex items-center gap-1.5">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-[#8B7D6B]">Can you tell {profile.preferredName}</span>
+          </div>
           {/* Location row */}
           <div className="flex items-center gap-3 rounded-2xl border-2 border-[#E3DAC9]/60 bg-[#F6F3EE] px-4 py-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#C8E2C4]/20">
               <MemoryIcon name="home" className="h-5 w-5 text-[#7C9B78]" />
             </div>
             <div className="flex flex-col">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-[#8B7D6B]">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[#8B7D6B]">
                 Where {words.subject ?? "they"} {profile.pronouns === "they/them" ? "are" : "is"}
               </span>
               <span className="font-serif text-sm font-semibold text-[#5A4A3A]">
@@ -113,7 +97,7 @@ export default function HelperModal({ open, onClose, profile, activeLocationSumm
                 <MemoryIcon name="mapPin" className="h-5 w-5 text-[#7C9B78]" />
               </div>
               <div className="flex flex-col">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[#8B7D6B]">Situation</span>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[#8B7D6B]">What&apos;s happening</span>
                 <span className="text-sm leading-snug text-[#5A4A3A]">{briefContext}</span>
               </div>
             </div>
@@ -122,47 +106,60 @@ export default function HelperModal({ open, onClose, profile, activeLocationSumm
 
         <hr className="mx-5 h-px border-0 bg-gradient-to-r from-transparent via-[#E3DAC9] to-transparent" />
 
-        {/* Actions */}
+        {/* Caregiver */}
         <div className="flex flex-col gap-2 px-5 py-3">
-          <div className="mb-1 flex items-center gap-2">
-            <MemoryIcon name="phone" className="h-3 w-3 text-[#7C9B78]" />
-            <span className="text-[10px] font-bold uppercase tracking-widest text-[#719E6B]">Contact for help</span>
+          <div className="flex items-center gap-3 rounded-2xl border-2 border-[#C8E2C4] bg-[#C8E2C4]/20 px-4 py-3.5">
+            <div className="flex flex-1 flex-col gap-0.5">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-[#5A4A3A]/60">
+                If {profile.preferredName} needs more assistance
+              </p>
+              <p className="font-serif text-sm font-semibold text-[#7C9B78]">
+                Call {profile.caregiverName}, {words.possessive} {profile.caregiverRelationshipLabel ?? "caregiver"}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onCallCaregiver}
+              aria-label={`Call ${profile.caregiverName}`}
+              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-2 border-[#DFFFC4] bg-[#7C9B78] shadow-md transition-transform active:scale-95"
+            >
+              <div className="flex flex-col items-center leading-none gap-0">
+                <span className="text-[8px] font-bold uppercase tracking-wide text-white">call</span>
+                <span className="font-serif text-sm font-bold text-white">{profile.caregiverName.charAt(0).toUpperCase()}</span>
+              </div>
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={onCallCaregiver}
-            className="flex w-full items-center justify-center gap-2.5 rounded-2xl bg-[#7C9B78] py-3.5 text-base font-bold text-white shadow-md transition-transform active:scale-[0.98]"
-          >
-            <MemoryIcon name="phone" className="h-4 w-4 text-white" />
-            {`Call ${profile.caregiverName} — ${caregiverLabel}`}
-          </button>
-          <button
-            type="button"
-            onClick={onCallEmergency}
-            className="flex w-full items-center justify-center gap-2.5 rounded-2xl border-2 border-[#A64D4D]/40 bg-[#E8B4B4]/20 py-3 text-sm font-bold text-[#A64D4D] transition-transform active:scale-[0.98]"
-          >
-            <MemoryIcon name="phone" className="h-4 w-4 text-[#A64D4D]" />
-            Call Emergency Services
-          </button>
         </div>
+
+        <hr className="mx-5 h-px border-0 bg-gradient-to-r from-transparent via-[#E3DAC9] to-transparent" />
 
         {/* Footer */}
         <div className="flex flex-col gap-1.5 border-t border-[#E3DAC9]/40 px-5 pb-4 pt-3">
           <button
             type="button"
             onClick={onClose}
-            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#7C9B78] py-3 text-sm font-bold text-white transition-transform active:scale-[0.98]"
+            className="mx-auto flex w-1/2 items-center justify-center gap-2 rounded-2xl bg-[#7C9B78] py-3 text-sm font-bold text-white transition-transform active:scale-[0.98]"
           >
-            <MemoryIcon name="checkCircle" className="h-4 w-4 text-white" />
-            I&apos;m OK — Close this card
+            <div className="flex flex-col items-center gap-0">
+              <span className="text-base font-bold">I&apos;M OK</span>
+              <span className="text-xs font-normal opacity-80">close this card</span>
+            </div>
           </button>
-          <button
-            type="button"
-            onClick={onClose}
-            className="w-full py-1 text-center text-xs text-[#8B7D6B] underline underline-offset-2 active:opacity-70"
-          >
-            Close
-          </button>
+        </div>
+
+        <div className="mx-5 mt-2 h-[2px] rounded-full bg-[#E3DAC9]" />
+
+        {/* Emergency */}
+        <div className="mb-1 flex flex-col gap-2 px-5 py-3">
+          <div className="flex items-center gap-3 rounded-2xl border-2 border-[#E8B4B4] bg-[#E8B4B4]/20 px-4 py-1">
+            <div className="flex flex-1 flex-col gap-0.5">
+              <p className="text-[9px] font-bold uppercase tracking-wider text-[#A64D4D]/70">
+                If you feel that {profile.preferredName} is in danger
+              </p>
+              <p className="text-[13px] font-serif font-bold text-[#B27070]">Call emergency services</p>
+            </div>
+            <button type="button" onClick={onCallEmergency} aria-label="Call emergency services" className="shrink-0 rounded-xl border-2 border-[#EDDBDB] bg-[#A64D4D] px-3 py-1 text-xs font-bold text-white shadow-md transition-transform active:scale-95">Call 911</button>
+          </div>
         </div>
 
       </div>

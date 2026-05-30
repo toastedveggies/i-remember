@@ -446,7 +446,7 @@ export default function TodayWindowPage() {
   const dateString = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
 
   return (
-    <main className="mx-auto flex h-full w-full max-w-[375px] flex-col overflow-hidden bg-[#F6F3EE] font-sans">
+    <main className="mx-auto flex flex-1 w-full max-w-[375px] flex-col overflow-hidden bg-[#F6F3EE] font-sans">
 
       {/* Top region */}
       <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-hidden px-5 pt-6">

@@ -17,10 +17,10 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         {/* eslint-disable-next-line @next/next/no-page-custom-font */}
         <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
       </head>
-      <body className="flex h-svh flex-col">
+      <body className="flex flex-col">
         <DemoAccessGate>
           <SiteHeader />
-          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">{children}</div>
+          <div className="flex min-h-0 flex-1 flex-col">{children}</div>
         </DemoAccessGate>
       </body>
     </html>

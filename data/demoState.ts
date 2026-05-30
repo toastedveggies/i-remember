@@ -87,6 +87,7 @@ export type PronounSet = "he/him" | "she/her" | "they/them" | "custom";
 export type DemoProfile = {
   userId: string;
   preferredName: string;
+  fullName?: string;
   pronouns: PronounSet;
   customPronouns?: string;
   caregiverName: string;
@@ -112,6 +113,7 @@ export type TrustedLocation = {
 export const defaultDemoProfile: DemoProfile = {
   userId: "00000000-0000-0000-0000-000000000001",
   preferredName: "Alex",
+  fullName: "Alex Morrison",
   pronouns: "he/him",
   caregiverName: "Maria",
   caregiverRelationshipLabel: "daughter",
@@ -359,6 +361,7 @@ export function normalizeDemoState(raw: unknown): DemoState {
     profile: {
       userId: value.profile?.userId ?? defaultDemoProfile.userId,
       preferredName: value.profile?.preferredName ?? defaultDemoProfile.preferredName,
+      fullName: value.profile?.fullName ?? defaultDemoProfile.fullName ?? "",
       pronouns: (value.profile?.pronouns as PronounSet | undefined) ?? defaultDemoProfile.pronouns,
       customPronouns: value.profile?.customPronouns ?? defaultDemoProfile.customPronouns,
       caregiverName: value.profile?.caregiverName ?? defaultDemoProfile.caregiverName,

@@ -2,7 +2,9 @@
 
 ## Current Phase
 
-**Phase 9 - UI and Flow Polish (active)**
+**Phase 10 - Flow Polish and Demo Hardening (active)**
+
+Phase 9 - UI and Flow Polish: complete as of 2026-05-30 (UTC-7)
 
 Phase 8 - Lost Scenario and Demo Hardening: complete as of 2026-05-28 (UTC-7)
 Phase 7 - Location Additions and Demo Gap Closure: complete as of 2026-05-28 (UTC-7)
@@ -154,12 +156,29 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
   - [x] HelperModal fully rewritten to mockup design: top bar with logo + × button, scrollable 5-section content (identity, key info cards, how-to-help steps, caregiver card + call button, emergency section), fixed footer with close CTA. BrandLogo import removed.
   - [x] Layout flex chain: body gets h-svh flex-col; children wrapper becomes flex min-h-0 flex-1 overflow-hidden; /app main uses h-full. Row 3 button gets text-left; text div gets items-start. HelperModal emergency button wrapper div removed.
   - [x] HelperModal rewritten as compact no-scroll single-screen card: header, identity block, location + situational context row, caregiver/emergency action buttons, close footer. briefContext prop added (passed as activeScenario.guidance from /app).
-  - [ ] Review and tighten spacing and typography consistency across all screens
-  - [ ] Ensure all scenarios look correct on iPhone SE screen size
-  - [ ] Review caregiver dashboard layout on mobile
-  - [ ] Check all modal and overlay z-index layering
-  - [ ] Review color and contrast for accessibility
-  - [ ] Do a full end-to-end demo walkthrough and note any rough edges
+  - [x] HelperModal redesigned: identity block simplified to name + "I need a little help" (no avatar); key info gains "Can you tell {name}" label; caregiver section uses card row with initial-circle button; emergency section uses shield icon + solid red button; "Close" text link removed from footer.
+  - [x] HelperModal polish: caregiver card lightened (border/bg to C8E2C4 tints); solid 2px divider between caregiver and emergency; emergency redesigned as matching card row with shield circle button; "I'm OK" button narrowed to w-1/2 centered.
+  - [x] DemoProfile gains fullName field (default "Alex Morrison"); HelperModal uses fullName in identity heading; emergency card tweaked (py-2, updated label/value styles); footer mt-4; I'm OK button redesigned with stacked I'M OK / close this card spans. /demo fullName field added. layout.tsx overflow-hidden removed from children wrapper.
+  - [x] demoState fullName deserialization added. HelperModal: label classNames normalised to text-[11px]; emergency label/value classNames updated; sections reordered (caregiver → gradient hr → footer → thick divider → emergency at bottom); emergency card py-1.5, mb-1.
+  - [x] /app main h-full → flex-1. HelperModal: identity p text-sm → text-[17px]; SITUATION label → "What's happening"; caregiver value font-bold → font-semibold; emergency shield button replaced with "Call 911" pill; emergency card py-1.
+  - [x] HelperModal: caregiver value text matches location value style (font-serif text-sm font-semibold) with text-[#7C9B78] color; M button enlarged to h-12 w-12 with border-[#DFFFC4] border and "call" + initial stacked label.
+  - [x] Safari iOS fix: height:100% on html and body in globals.css; h-svh removed from body in layout.tsx; /app main already uses flex-1 (no change needed).
+  - [x] Review and tighten spacing and typography consistency across all screens
+  - [x] Ensure all scenarios look correct on iPhone SE screen size
+  - [x] Review caregiver dashboard layout on mobile
+  - [x] Check all modal and overlay z-index layering
+  - [x] Review color and contrast for accessibility
+  - [x] Do a full end-to-end demo walkthrough and note any rough edges
+
+- Phase 10 - Flow Polish and Demo Hardening (active as of 2026-05-30, UTC-7):
+  - [ ] User page: polish Get Help modal (question buttons, stream panel) to new color system and layout
+  - [ ] User page: polish stream panel response view (I'm okay / Call Maria / Show this screen buttons) to new design
+  - [ ] User page: style the lost location scenario state on the user page (unfamiliar location alert, lost flow)
+  - [ ] Caregiver dashboard: full UI polish pass to new color system and layout matching mockup
+  - [ ] Insights page: update chart colors, tab styles, and typography to new palette
+  - [ ] Demo page: revamp layout for easier scenario navigation and profile editing
+  - [ ] End-to-end demo walkthrough on physical iPhone across all 5 scenarios
+  - [ ] Final accessibility and contrast review
 
 - Phase 8 - Lost Scenario and Demo Hardening (complete as of 2026-05-28, UTC-7):
   - [x] Real-time location tracking for lost_unknown_location scenario
@@ -332,4 +351,4 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
 
 ## Last Updated
 
-2026-05-29 (UTC-7) — New modal check-in flow with packet pre-generation, branch streaming, history sheet; two-region layout; date removed from greeting. tsc and lint pass clean.
+2026-05-30 (UTC-7) — Phase 9 complete. Phase 10 (Flow Polish and Demo Hardening) opened. tsc and lint pass clean.

@@ -141,7 +141,7 @@ export default function DemoPage() {
     persist(next);
   };
 
-  const updateProfile = (field: "preferredName" | "caregiverName" | "caregiverRelationshipLabel" | "customPronouns", value: string) => {
+  const updateProfile = (field: "preferredName" | "fullName" | "caregiverName" | "caregiverRelationshipLabel" | "customPronouns", value: string) => {
     const newProfile = { ...state.profile, [field]: value };
     persist({ ...state, profile: newProfile });
     if (field === "caregiverName" || field === "caregiverRelationshipLabel") {
@@ -470,6 +470,15 @@ export default function DemoPage() {
                 onChange={(e) => updateProfile("preferredName", e.target.value)}
                 className="w-full rounded-xl border border-brand-border bg-brand-bg px-3 py-2 text-base text-brand-text"
               />
+            </label>
+            <label className="space-y-1 text-sm text-brand-muted">
+              <span>Full name</span>
+              <input
+                value={state.profile.fullName ?? ""}
+                onChange={(e) => updateProfile("fullName", e.target.value)}
+                className="w-full rounded-xl border border-brand-border bg-brand-bg px-3 py-2 text-base text-brand-text"
+              />
+              <p className="text-xs text-brand-muted">Used on the helper card shown to strangers.</p>
             </label>
             <label className="space-y-1 text-sm text-brand-muted">
               <span>Caregiver name</span>

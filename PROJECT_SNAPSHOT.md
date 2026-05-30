@@ -205,6 +205,14 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
   - [x] /app bottom region: viewport fixed to 100svh; saved box removed; action area restructured with left status column (saved indicator + history button) and smaller h-32 action buttons.
   - [x] HelperModal fully rewritten to mockup design: top bar with logo + × button, scrollable 5-section content (identity, key info cards, how-to-help steps, caregiver card + call button, emergency section), fixed footer with close CTA. BrandLogo import removed.
   - [x] Layout flex chain: body gets h-svh flex-col; children wrapper becomes flex min-h-0 flex-1 overflow-hidden; /app main uses h-full. Row 3 button gets text-left; text div gets items-start. HelperModal emergency button wrapper div removed.
+  - [x] HelperModal rewritten as compact no-scroll single-screen card: header, identity block, location + situational context row, caregiver/emergency action buttons, close footer. briefContext prop added (passed as activeScenario.guidance from /app).
+  - [x] HelperModal redesigned: identity block simplified to name + "I need a little help" (no avatar); key info gains "Can you tell {name}" label; caregiver section uses card row with initial-circle button; emergency section uses shield icon + solid red button; "Close" text link removed from footer.
+  - [x] HelperModal polish: caregiver card lightened (border/bg to C8E2C4 tints); solid 2px divider between caregiver and emergency; emergency redesigned as matching card row with shield circle button; "I'm OK" button narrowed to w-1/2 centered.
+  - [x] DemoProfile gains fullName field (default "Alex Morrison"); HelperModal uses fullName in identity heading; emergency card tweaked (py-2, updated label/value styles); footer mt-4; I'm OK button redesigned with stacked I'M OK / close this card spans. /demo fullName field added. layout.tsx overflow-hidden removed from children wrapper.
+  - [x] demoState fullName deserialization added. HelperModal: label classNames normalised to text-[11px]; emergency label/value classNames updated; sections reordered (caregiver → gradient hr → footer → thick divider → emergency at bottom); emergency card py-1.5, mb-1.
+  - [x] /app main h-full → flex-1. HelperModal: identity p text-sm → text-[17px]; SITUATION label → "What's happening"; caregiver value font-bold → font-semibold; emergency shield button replaced with "Call 911" pill; emergency card py-1.
+  - [x] HelperModal: caregiver value text matches location value style (font-serif text-sm font-semibold) with text-[#7C9B78] color; M button enlarged to h-12 w-12 with border-[#DFFFC4] border and "call" + initial stacked label.
+  - [x] Safari iOS fix: height:100% on html and body in globals.css; h-svh removed from body in layout.tsx; /app main already uses flex-1 (no change needed).
   - [ ] Review and tighten spacing and typography consistency across all screens
   - [ ] Ensure all scenarios look correct on iPhone SE screen size
   - [ ] Review caregiver dashboard layout on mobile
@@ -668,7 +676,12 @@ export default config;
 @tailwind components;
 @tailwind utilities;
 
+html {
+  height: 100%;
+}
+
 body {
+  height: 100%;
   background: #F6F3EE;
   color: #1F2529;
   font-family: 'Nunito', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -704,10 +717,10 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         {/* eslint-disable-next-line @next/next/no-page-custom-font */}
         <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
       </head>
-      <body className="flex h-svh flex-col">
+      <body className="flex flex-col">
         <DemoAccessGate>
           <SiteHeader />
-          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">{children}</div>
+          <div className="flex min-h-0 flex-1 flex-col">{children}</div>
         </DemoAccessGate>
       </body>
     </html>
@@ -1227,7 +1240,7 @@ export default function TodayWindowPage() {
   const dateString = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
 
   return (
-    <main className="mx-auto flex h-full w-full max-w-[375px] flex-col overflow-hidden bg-[#F6F3EE] font-sans">
+    <main className="mx-auto flex flex-1 w-full max-w-[375px] flex-col overflow-hidden bg-[#F6F3EE] font-sans">
 
       {/* Top region */}
       <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-hidden px-5 pt-6">
@@ -1484,6 +1497,7 @@ export default function TodayWindowPage() {
         onCallCaregiver={callCaregiver}
         onCallEmergency={callEmergency}
         resolvedAddress={state.resolvedAddress}
+        briefContext={activeScenario.guidance}
       />
 
       {helpMeNowOpen && !streamPanelOpen ? (
@@ -2523,7 +2537,7 @@ export default function DemoPage() {
     persist(next);
   };
 
-  const updateProfile = (field: "preferredName" | "caregiverName" | "caregiverRelationshipLabel" | "customPronouns", value: string) => {
+  const updateProfile = (field: "preferredName" | "fullName" | "caregiverName" | "caregiverRelationshipLabel" | "customPronouns", value: string) => {
     const newProfile = { ...state.profile, [field]: value };
     persist({ ...state, profile: newProfile });
     if (field === "caregiverName" || field === "caregiverRelationshipLabel") {
@@ -2852,6 +2866,15 @@ export default function DemoPage() {
                 onChange={(e) => updateProfile("preferredName", e.target.value)}
                 className="w-full rounded-xl border border-brand-border bg-brand-bg px-3 py-2 text-base text-brand-text"
               />
+            </label>
+            <label className="space-y-1 text-sm text-brand-muted">
+              <span>Full name</span>
+              <input
+                value={state.profile.fullName ?? ""}
+                onChange={(e) => updateProfile("fullName", e.target.value)}
+                className="w-full rounded-xl border border-brand-border bg-brand-bg px-3 py-2 text-base text-brand-text"
+              />
+              <p className="text-xs text-brand-muted">Used on the helper card shown to strangers.</p>
             </label>
             <label className="space-y-1 text-sm text-brand-muted">
               <span>Caregiver name</span>
@@ -4018,9 +4041,10 @@ type HelperModalProps = {
   onCallCaregiver?: () => void;
   onCallEmergency?: () => void;
   resolvedAddress?: string | null;
+  briefContext?: string;
 };
 
-export default function HelperModal({ open, onClose, profile, activeLocationSummary, contextPacket, onCallCaregiver, onCallEmergency, resolvedAddress }: HelperModalProps) {
+export default function HelperModal({ open, onClose, profile, activeLocationSummary, onCallCaregiver, onCallEmergency, resolvedAddress, briefContext }: HelperModalProps) {
   const words = pronounWords(profile.pronouns, profile.customPronouns);
 
   useEffect(() => {
@@ -4034,12 +4058,7 @@ export default function HelperModal({ open, onClose, profile, activeLocationSumm
 
   if (!open) return null;
 
-  const steps = [
-    "Speak slowly and calmly. Use a gentle, reassuring tone.",
-    `Do not leave ${profile.preferredName} alone. Stay nearby until help arrives.`,
-    `Call ${profile.preferredName}'s caregiver ${profile.caregiverName} using the button below.`,
-    `If ${profile.preferredName} is in immediate danger, call emergency services.`,
-  ];
+  const fullName = profile.fullName && profile.fullName.trim() !== "" ? profile.fullName : profile.preferredName;
 
   return (
     <div className="fixed inset-0 z-50 font-sans" role="dialog" aria-modal="true" aria-label="Helper card">
@@ -4047,210 +4066,133 @@ export default function HelperModal({ open, onClose, profile, activeLocationSumm
         type="button"
         onClick={onClose}
         className="absolute inset-0 bg-black/50"
-        aria-label="Close helper card"
+        aria-label="Close"
       />
 
-      <div className="absolute inset-x-3 top-[4%] flex max-h-[92svh] flex-col overflow-hidden rounded-[24px] bg-white shadow-2xl">
+      <div className="absolute inset-x-3 top-[6%] flex flex-col rounded-[24px] bg-white shadow-2xl">
 
-        {/* Top bar */}
-        <div className="flex shrink-0 items-center justify-between border-b border-[#E3DAC9]/40 px-5 py-4">
-          <div className="flex items-center gap-2">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/claira-logo.webp" alt="Claira" className="h-6 w-auto" />
-          </div>
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-[#E3DAC9]/40 px-5 py-3.5">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/claira-logo.webp" alt="Claira" className="h-6 w-auto" />
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close"
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-[#F6F3EE] text-lg font-medium text-[#8B7D6B] transition-transform active:scale-95"
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-[#F6F3EE] text-lg font-medium text-[#8B7D6B] transition-transform active:scale-95"
           >
             ×
           </button>
         </div>
 
-        {/* Scrollable content */}
-        <div className="flex flex-1 flex-col gap-5 overflow-y-auto px-5 pb-4 pt-4">
+        {/* Identity block */}
+        <div className="flex flex-col items-center gap-2 px-5 py-4 text-center">
+          <p className="text-[17px] font-medium text-[#8B7D6B]">Hi, my name is</p>
+          <h1 className="font-serif text-3xl font-bold tracking-tight text-[#5A4A3A]">{fullName}</h1>
+          <p className="mt-0.5 text-[17px] text-[#8B7D6B]">I need a little help right now.</p>
+        </div>
 
-          {/* Section 1: Person identity */}
-          <section className="flex flex-col items-center gap-3 pb-4 pt-2 text-center">
-            <div className="relative">
-              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[#7C9B78] text-4xl font-serif font-bold text-white shadow-md">
-                {profile.preferredName.charAt(0).toUpperCase()}
+        <hr className="mx-5 h-px border-0 bg-gradient-to-r from-transparent via-[#E3DAC9] to-transparent" />
+
+        {/* Key info */}
+        <div className="flex flex-col gap-2 px-5 py-3">
+          <div className="mb-2 flex items-center gap-1.5">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-[#8B7D6B]">Can you tell {profile.preferredName}</span>
+          </div>
+          {/* Location row */}
+          <div className="flex items-center gap-3 rounded-2xl border-2 border-[#E3DAC9]/60 bg-[#F6F3EE] px-4 py-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#C8E2C4]/20">
+              <MemoryIcon name="home" className="h-5 w-5 text-[#7C9B78]" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[#8B7D6B]">
+                Where {words.subject ?? "they"} {profile.pronouns === "they/them" ? "are" : "is"}
+              </span>
+              <span className="font-serif text-sm font-semibold text-[#5A4A3A]">
+                {activeLocationSummary.placeId
+                  ? activeLocationSummary.label
+                  : resolvedAddress ?? activeLocationSummary.label}
+              </span>
+              {activeLocationSummary.trustedPlaceAddress ? (
+                <span className="text-xs text-[#8B7D6B]">{activeLocationSummary.trustedPlaceAddress}</span>
+              ) : null}
+            </div>
+          </div>
+          {/* Context row (conditional) */}
+          {briefContext ? (
+            <div className="flex items-center gap-3 rounded-2xl border-2 border-[#E3DAC9]/60 bg-[#F6F3EE] px-4 py-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#C8E2C4]/20">
+                <MemoryIcon name="mapPin" className="h-5 w-5 text-[#7C9B78]" />
               </div>
-              <div className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full border-2 border-white bg-[#E4F6DD]">
-                <MemoryIcon name="checkCircle" className="h-3 w-3 text-[#7C9B78]" />
+              <div className="flex flex-col">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[#8B7D6B]">What&apos;s happening</span>
+                <span className="text-sm leading-snug text-[#5A4A3A]">{briefContext}</span>
               </div>
             </div>
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-[#8B7D6B]">This person&apos;s name is</p>
-              <h1 className="font-serif text-3xl font-bold tracking-tight text-[#5A4A3A]">{profile.preferredName}</h1>
-              <p className="mt-0.5 text-sm text-[#8B7D6B]">
-                {words.subject ? words.subject.charAt(0).toUpperCase() + words.subject.slice(1) : profile.preferredName}{" "}
-                {profile.pronouns === "they/them" ? "have" : "has"} a memory condition and may need your help.
+          ) : null}
+        </div>
+
+        <hr className="mx-5 h-px border-0 bg-gradient-to-r from-transparent via-[#E3DAC9] to-transparent" />
+
+        {/* Caregiver */}
+        <div className="flex flex-col gap-2 px-5 py-3">
+          <div className="flex items-center gap-3 rounded-2xl border-2 border-[#C8E2C4] bg-[#C8E2C4]/20 px-4 py-3.5">
+            <div className="flex flex-1 flex-col gap-0.5">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-[#5A4A3A]/60">
+                If {profile.preferredName} needs more assistance
               </p>
-            </div>
-          </section>
-
-          <hr className="h-px border-0 bg-gradient-to-r from-transparent via-[#E3DAC9] to-transparent" />
-
-          {/* Section 2: Key information */}
-          <section className="flex flex-col gap-3">
-            <div className="flex items-center gap-2">
-              <MemoryIcon name="mapPin" className="h-3 w-3 text-[#7C9B78]" />
-              <span className="text-[10px] font-bold uppercase tracking-widest text-[#719E6B]">Key information</span>
-            </div>
-            <div className="flex flex-col gap-2">
-              {/* Card 1: Location */}
-              <div className="flex items-center gap-3 rounded-2xl border-2 border-[#E3DAC9]/60 bg-[#F6F3EE] px-4 py-3.5">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#C8E2C4]/20">
-                  <MemoryIcon name="home" className="h-6 w-6 text-[#7C9B78]" />
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-[#8B7D6B]">
-                    Where {words.subject ?? "they"} {profile.pronouns === "they/them" ? "are" : "is"}
-                  </span>
-                  <span className="font-serif text-base font-medium text-[#5A4A3A]">
-                    {activeLocationSummary.placeId
-                      ? activeLocationSummary.label
-                      : resolvedAddress != null
-                        ? resolvedAddress
-                        : activeLocationSummary.detail}
-                  </span>
-                  {activeLocationSummary.trustedPlaceAddress ? (
-                    <span className="text-xs text-[#8B7D6B]">{activeLocationSummary.trustedPlaceAddress}</span>
-                  ) : null}
-                </div>
-              </div>
-              {/* Card 2: Date */}
-              <div className="flex items-center gap-3 rounded-2xl border-2 border-[#E3DAC9]/60 bg-[#F6F3EE] px-4 py-3.5">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#C8E2C4]/20">
-                  <MemoryIcon name="calendar" className="h-6 w-6 text-[#7C9B78]" />
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-[#8B7D6B]">Today is</span>
-                  <span className="font-serif text-base font-medium text-[#5A4A3A]">{contextPacket.time_of_day}</span>
-                </div>
-              </div>
-              {/* Card 3: Next event */}
-              <div className="flex items-center gap-3 rounded-2xl border-2 border-[#E3DAC9]/60 bg-[#F6F3EE] px-4 py-3.5">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#C8E2C4]/20">
-                  <MemoryIcon name="clock" className="h-6 w-6 text-[#7C9B78]" />
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-[#8B7D6B]">Coming up</span>
-                  <span className="font-serif text-base font-medium text-[#5A4A3A]">{contextPacket.next_event}</span>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <hr className="h-px border-0 bg-gradient-to-r from-transparent via-[#E3DAC9] to-transparent" />
-
-          {/* Section 3: How you can help */}
-          <section className="flex flex-col gap-3">
-            <div className="flex items-center gap-2">
-              <MemoryIcon name="checkCircle" className="h-3 w-3 text-[#8B7355]" />
-              <span className="text-[10px] font-bold uppercase tracking-widest text-[#8B7355]">How you can help</span>
-            </div>
-            <div className="flex flex-col gap-2">
-              {steps.map((step, i) => (
-                <div key={i} className="flex items-start gap-3 rounded-2xl border-2 border-[#E3DAC9]/60 bg-[#F6F3EE] px-4 py-3">
-                  <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#E4F6DD] text-[11px] font-bold text-[#7C9B78]">
-                    {i + 1}
-                  </div>
-                  <p className="flex-1 pt-0.5 text-sm leading-relaxed text-[#5A4A3A]">{step}</p>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <hr className="h-px border-0 bg-gradient-to-r from-transparent via-[#E3DAC9] to-transparent" />
-
-          {/* Section 4: Primary caregiver */}
-          <section className="flex flex-col gap-3">
-            <div className="flex items-center gap-2">
-              <MemoryIcon name="phone" className="h-3 w-3 text-[#7C9B78]" />
-              <span className="text-[10px] font-bold uppercase tracking-widest text-[#719E6B]">Primary caregiver</span>
-            </div>
-            <div className="flex items-center gap-4 rounded-2xl border-2 border-[#C8E2C4]/40 bg-[#E4F6DD] px-4 py-4">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#7C9B78] text-2xl font-serif font-bold text-white opacity-75">
-                {profile.caregiverName.charAt(0).toUpperCase()}
-              </div>
-              <div className="flex flex-1 flex-col gap-0.5">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-[#8B7D6B]">Caregiver</span>
-                <span className="font-serif text-base font-bold text-[#5A4A3A]">{profile.caregiverName}</span>
-                {profile.caregiverRelationshipLabel ? (
-                  <span className="text-xs text-[#8B7D6B]">{profile.caregiverRelationshipLabel}</span>
-                ) : null}
-              </div>
-              <button
-                type="button"
-                onClick={onCallCaregiver}
-                className="flex h-[50px] w-[50px] shrink-0 items-center justify-center rounded-full bg-[#7C9B78] text-white shadow-md transition-transform active:scale-95"
-              >
-                <MemoryIcon name="phone" className="h-5 w-5" />
-              </button>
+              <p className="font-serif text-sm font-semibold text-[#7C9B78]">
+                Call {profile.caregiverName}, {words.possessive} {profile.caregiverRelationshipLabel ?? "caregiver"}
+              </p>
             </div>
             <button
               type="button"
               onClick={onCallCaregiver}
-              className="flex w-full items-center justify-center gap-2.5 rounded-2xl bg-[#7C9B78] py-4 text-base font-bold text-white shadow-md transition-transform active:scale-[0.98]"
+              aria-label={`Call ${profile.caregiverName}`}
+              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-2 border-[#DFFFC4] bg-[#7C9B78] shadow-md transition-transform active:scale-95"
             >
-              <MemoryIcon name="phone" className="h-4 w-4 text-white" />
-              {`Call ${profile.caregiverName} — ${profile.preferredName}'s Caregiver`}
+              <div className="flex flex-col items-center leading-none gap-0">
+                <span className="text-[8px] font-bold uppercase tracking-wide text-white">call</span>
+                <span className="font-serif text-sm font-bold text-white">{profile.caregiverName.charAt(0).toUpperCase()}</span>
+              </div>
             </button>
-          </section>
-
-          <hr className="h-px border-0 bg-gradient-to-r from-transparent via-[#E3DAC9] to-transparent" />
-
-          {/* Section 5: Emergency */}
-          <section className="flex flex-col gap-3 pb-2">
-            <div className="flex items-center gap-2">
-              <MemoryIcon name="shield" className="h-3 w-3 text-[#A64D4D]" />
-              <span className="text-[10px] font-bold uppercase tracking-widest text-[#A64D4D]">Emergency</span>
-            </div>
-            <div className="flex items-start gap-2.5 rounded-2xl border-2 border-[#E8B4B4]/30 bg-[#E8B4B4]/10 px-4 py-3">
-              <MemoryIcon name="shield" className="mt-0.5 h-4 w-4 shrink-0 text-[#A64D4D]" />
-              <p className="text-xs leading-relaxed text-[#5A4A3A]">
-                Only use this if {profile.preferredName} is in immediate physical danger or medical emergency.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={onCallEmergency}
-              className="flex w-full items-center justify-center gap-3 rounded-2xl bg-[#A64D4D] py-5 text-base font-bold text-white shadow-lg transition-transform active:scale-[0.97]"
-            >
-              <MemoryIcon name="phone" className="h-5 w-5" />
-              Call Emergency Services
-            </button>
-          </section>
-
+          </div>
         </div>
 
+        <hr className="mx-5 h-px border-0 bg-gradient-to-r from-transparent via-[#E3DAC9] to-transparent" />
+
         {/* Footer */}
-        <div className="flex shrink-0 flex-col gap-2 border-t border-[#E3DAC9]/40 px-5 pb-5 pt-3">
+        <div className="flex flex-col gap-1.5 border-t border-[#E3DAC9]/40 px-5 pb-4 pt-3">
           <button
             type="button"
             onClick={onClose}
-            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#7C9B78] py-4 text-base font-bold text-white shadow-md transition-transform active:scale-[0.98]"
+            className="mx-auto flex w-1/2 items-center justify-center gap-2 rounded-2xl bg-[#7C9B78] py-3 text-sm font-bold text-white transition-transform active:scale-[0.98]"
           >
-            <MemoryIcon name="checkCircle" className="h-4 w-4 text-white" />
-            I&apos;m OK — Close this card
+            <div className="flex flex-col items-center gap-0">
+              <span className="text-base font-bold">I&apos;M OK</span>
+              <span className="text-xs font-normal opacity-80">close this card</span>
+            </div>
           </button>
-          <button
-            type="button"
-            onClick={onClose}
-            className="w-full py-2 text-center text-sm text-[#8B7D6B] underline underline-offset-2 active:opacity-70"
-          >
-            Close
-          </button>
+        </div>
+
+        <div className="mx-5 mt-2 h-[2px] rounded-full bg-[#E3DAC9]" />
+
+        {/* Emergency */}
+        <div className="mb-1 flex flex-col gap-2 px-5 py-3">
+          <div className="flex items-center gap-3 rounded-2xl border-2 border-[#E8B4B4] bg-[#E8B4B4]/20 px-4 py-1">
+            <div className="flex flex-1 flex-col gap-0.5">
+              <p className="text-[9px] font-bold uppercase tracking-wider text-[#A64D4D]/70">
+                If you feel that {profile.preferredName} is in danger
+              </p>
+              <p className="text-[13px] font-serif font-bold text-[#B27070]">Call emergency services</p>
+            </div>
+            <button type="button" onClick={onCallEmergency} aria-label="Call emergency services" className="shrink-0 rounded-xl border-2 border-[#EDDBDB] bg-[#A64D4D] px-3 py-1 text-xs font-bold text-white shadow-md transition-transform active:scale-95">Call 911</button>
+          </div>
         </div>
 
       </div>
     </div>
   );
 }
-
 
 
 // ---
@@ -4514,6 +4456,7 @@ export type PronounSet = "he/him" | "she/her" | "they/them" | "custom";
 export type DemoProfile = {
   userId: string;
   preferredName: string;
+  fullName?: string;
   pronouns: PronounSet;
   customPronouns?: string;
   caregiverName: string;
@@ -4539,6 +4482,7 @@ export type TrustedLocation = {
 export const defaultDemoProfile: DemoProfile = {
   userId: "00000000-0000-0000-0000-000000000001",
   preferredName: "Alex",
+  fullName: "Alex Morrison",
   pronouns: "he/him",
   caregiverName: "Maria",
   caregiverRelationshipLabel: "daughter",
@@ -4786,6 +4730,7 @@ export function normalizeDemoState(raw: unknown): DemoState {
     profile: {
       userId: value.profile?.userId ?? defaultDemoProfile.userId,
       preferredName: value.profile?.preferredName ?? defaultDemoProfile.preferredName,
+      fullName: value.profile?.fullName ?? defaultDemoProfile.fullName ?? "",
       pronouns: (value.profile?.pronouns as PronounSet | undefined) ?? defaultDemoProfile.pronouns,
       customPronouns: value.profile?.customPronouns ?? defaultDemoProfile.customPronouns,
       caregiverName: value.profile?.caregiverName ?? defaultDemoProfile.caregiverName,
