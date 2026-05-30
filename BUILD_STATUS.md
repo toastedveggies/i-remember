@@ -153,6 +153,7 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
   - [x] /app bottom region: viewport fixed to 100svh; saved box removed; action area restructured with left status column (saved indicator + history button) and smaller h-32 action buttons.
   - [x] HelperModal fully rewritten to mockup design: top bar with logo + × button, scrollable 5-section content (identity, key info cards, how-to-help steps, caregiver card + call button, emergency section), fixed footer with close CTA. BrandLogo import removed.
   - [x] Layout flex chain: body gets h-svh flex-col; children wrapper becomes flex min-h-0 flex-1 overflow-hidden; /app main uses h-full. Row 3 button gets text-left; text div gets items-start. HelperModal emergency button wrapper div removed.
+  - [x] HelperModal rewritten as compact no-scroll single-screen card: header, identity block, location + situational context row, caregiver/emergency action buttons, close footer. briefContext prop added (passed as activeScenario.guidance from /app).
   - [ ] Review and tighten spacing and typography consistency across all screens
   - [ ] Ensure all scenarios look correct on iPhone SE screen size
   - [ ] Review caregiver dashboard layout on mobile

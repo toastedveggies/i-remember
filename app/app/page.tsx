@@ -703,6 +703,7 @@ export default function TodayWindowPage() {
         onCallCaregiver={callCaregiver}
         onCallEmergency={callEmergency}
         resolvedAddress={state.resolvedAddress}
+        briefContext={activeScenario.guidance}
       />
 
       {helpMeNowOpen && !streamPanelOpen ? (
