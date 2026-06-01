@@ -11,7 +11,12 @@ export type MemoryIconName =
   | "bell"
   | "chevronRight"
   | "sun"
-  | "idCard";
+  | "idCard"
+  | "sunrise"
+  | "stethoscope"
+  | "rx"
+  | "moon"
+  | "alertTriangle";
 
 type MemoryIconProps = {
   name: MemoryIconName;
@@ -162,6 +167,55 @@ export default function MemoryIcon({ name, className, title }: MemoryIconProps) 
           <path d="M2 7a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7Z" fill="none" stroke="currentColor" strokeWidth="2" />
           <path d="M2 11h20" fill="none" stroke="currentColor" strokeWidth="2" />
           <path d="M6 15.5h3M13 15.5h5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        </svg>
+      );
+    case "sunrise":
+      return (
+        <svg {...common}>
+          <path d="M3 17h18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          <path d="M5 17a7 7 0 0 1 14 0" fill="none" stroke="currentColor" strokeWidth="2" />
+          <path d="M12 5v2.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          <path d="M6.4 8l1.6 1.6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          <path d="M17.6 8l-1.6 1.6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          <path d="M3.5 13.5l2.2 0.8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        </svg>
+      );
+    case "stethoscope":
+      return (
+        <svg {...common}>
+          <path d="M7 4v5a5 5 0 0 0 10 0V4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          <path d="M12 14v4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          <circle cx="12" cy="20" r="2" fill="none" stroke="currentColor" strokeWidth="2" />
+        </svg>
+      );
+    case "rx":
+      return (
+        <svg {...common}>
+          <path d="M6 6v12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          <path d="M6 6h4a3 3 0 0 1 0 6H6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+          <path d="M9.5 12l4 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          <path d="M16 14l4 4M20 14l-4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        </svg>
+      );
+    case "moon":
+      return (
+        <svg {...common}>
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" fill="currentColor" />
+        </svg>
+      );
+    case "alertTriangle":
+      return (
+        <svg {...common}>
+          <path
+            d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <path d="M12 9v4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          <circle cx="12" cy="17" r="1" fill="currentColor" />
         </svg>
       );
     default:

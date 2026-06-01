@@ -171,6 +171,25 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
   - [x] Do a full end-to-end demo walkthrough and note any rough edges
 
 - Phase 10 - Flow Polish and Demo Hardening (active as of 2026-05-30, UTC-7):
+  - [x] SiteHeader rebuilt as demo-control header: User/Caregiver view tabs + 5 scenario shortcut buttons writing to shared localStorage + dispatching claira-state-update CustomEvent. Tabs show first letter of preferredName / caregiverName, active state tied to pathname. Lost scenario button triggers geolocation and upgrades to browser_geolocation if accuracy ≤ MAX_DEMO_BROWSER_ACCURACY_METERS.
+  - [x] MemoryIcon: added 5 new names (sunrise, stethoscope, rx, moon, alertTriangle) with SVG cases.
+  - [x] /app page: removed Show Helper Card button from greeting row (kept phone button); bottom action area restructured — w-16 left column removed, History + Saved row added above three equal-width flex-1 buttons (Show Card, Check-In, Get Help); Show Card button now first action in row.
+  - [x] /app and /caregiver pages: claira-state-update custom event listener added on mount so both pages react to header scenario changes without full reload.
+  - [x] SiteHeader visual polish: logo h-8→h-10, container pl-3 pr-1, right-col pt-0 pb-1 gap-0.5, tab buttons w-10 h-9 text-sm rounded-t-none rounded-b-lg items-start gap-1, scenario buttons w-[26px] h-[22px] rounded-md gap-0.5 with h-3 w-3 icons.
+  - [x] /app visual polish: white border-[15px] frame on main; top region pt-3 gap-2; orientation card mt-2 removed; circular call button replaced with pill (Call {name} + circle icon); action buttons aspect-square p-2 gap-1 with h-10 w-10 tiles, h-5 w-5 icons, text-sm whitespace-nowrap labels.
+  - [x] Targeted visual fixes: /app white frame changed to shadow-[inset_0_0_0_8px_white] (no layout impact); Call pill py-1.5→py-0.5, pl-4→pl-2, gap-3→gap-1, label text-sm→text-xs; SiteHeader tabs w-10→w-12, h-9→h-7; User tab active bg/border softened (#F4F9F3/#E4F6DD); Caregiver tab active bg/border softened (#E3F6FB/#D4E8ED).
+  - [x] Layout/spacing fixes: body bg #F6F3EE→#FFFFFF (white outside frame); top region overflow-hidden→overflow-y-auto (prevents card clipping); bottom pb-6→pb-3; orientation card rows py-4→py-3; Call pill border→#C8E2C4; HelperModal top-[6%]→top-[2%] with max-h-[90dvh] overflow-y-auto; HelperModal padding tightened throughout (header py-3.5→py-2, identity py-4→py-2, key-info py-3→py-2 + inner rows py-3→py-2, caregiver py-3→py-2 + inner row py-3.5→py-2, footer pb-4 pt-3→pb-3 pt-2 + I'm OK py-3→py-2, divider mt-2→mt-1, emergency py-3→py-1.5).
+  - [x] White frame refactor: body bg reverted to #F6F3EE; inset shadow removed from main; pointer-events-none fixed inset-0 z-0 border-[8px] border-white overlay div added as first child of React fragment so frame sits at viewport edges below content stack; Call pill outer border→#A5BBA0, circle icon border→#E1FFC4.
+  - [x] White frame approach reverted to shadow-[inset_0_0_0_8px_white] on main element (frames content area below the header, not the full viewport); fixed overlay div and React fragment wrapper removed.
+  - [x] White frame moved to full-width wrapper div (flex flex-1 flex-col shadow-[inset_0_0_0_8px_white]) so the 8px frame spans edge-to-edge at any screen width; shadow removed from the inner max-w-[375px] main element.
+  - [x] White frame switched to foreground overlay: wrapper div is now relative flex flex-1 flex-col; last child inside wrapper is pointer-events-none absolute inset-0 z-[50] border-[8px] border-white, guaranteed above all child backgrounds.
+  - [x] /app polish: top region pt-3→pt-6; Coming Up Next row icon now dynamically resolved from scenarioNextEventIcon lookup (sunrise/stethoscope/rx/moon/alertTriangle per scenario, fallback utensils); all three action buttons gain shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)]; Call Maria pill also gains shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)].
+  - [x] SiteHeader header bg-brand-bg/90 → bg-[#F4E9D5].
+  - [x] White border overlay z-[50]→z-[49]; HelperModal card bg-white→bg-[#FEF1D8] + ring-[6px] ring-[#F5C842]; HelperModal buttons (×, call caregiver, I'm OK, Call 911) gain shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)]; lost alert card bg-brand-surface→bg-[#FEF1D8] + ring-[6px] ring-[#F5C842]; all modal/popup buttons in page.tsx gain shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)].
+  - [x] HelperModal card bg-[#FEF1D8]→bg-[#DDE9E8], ring-[#F5C842]→ring-white.
+  - [x] HelperModal card bg-[#DDE9E8]→bg-white, ring-white→ring-[#92BDBB]; header div gains bg-[#DDE9E8] rounded-t-[24px] for teal top-only background.
+  - [x] HelperModal: shadow added to location, context, caregiver, and emergency row divs; identity "Hi, my name is" and "I need a little help" text-[#8B7D6B]→text-[#5A4A3A] + font-bold.
+  - [x] HelperModal: outer dialog div gains flex items-center justify-center p-5 for vertical centering; card container changed from absolute inset-x-3 top-[2%] to relative w-full so it is a centered flex child; I'm OK shadow already present from prior pass.
   - [ ] User page: polish Get Help modal (question buttons, stream panel) to new color system and layout
   - [ ] User page: polish stream panel response view (I'm okay / Call Maria / Show this screen buttons) to new design
   - [ ] User page: style the lost location scenario state on the user page (unfamiliar location alert, lost flow)
@@ -351,4 +370,4 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
 
 ## Last Updated
 
-2026-05-30 (UTC-7) — Phase 9 complete. Phase 10 (Flow Polish and Demo Hardening) opened. tsc and lint pass clean.
+2026-05-31 (UTC-7) — Phase 10 in progress. SiteHeader and /app user page visual polish pass complete. tsc and lint pass clean.

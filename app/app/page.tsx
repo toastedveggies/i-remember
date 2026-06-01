@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import HelperModal from "@/components/HelperModal";
-import MemoryIcon from "@/components/MemoryIcon";
+import MemoryIcon, { type MemoryIconName } from "@/components/MemoryIcon";
 import {
   appendActivityEvent,
   createEvent,
@@ -130,6 +130,12 @@ export default function TodayWindowPage() {
   useEffect(() => {
     setState(loadState());
     setRecentGuidance(loadRecentGuidance());
+  }, []);
+
+  useEffect(() => {
+    const handler = () => setState(loadState());
+    window.addEventListener("claira-state-update", handler);
+    return () => window.removeEventListener("claira-state-update", handler);
   }, []);
 
   const activeScenario = useMemo(() => findScenario(state.activeScenarioId), [state.activeScenarioId]);
@@ -445,11 +451,21 @@ export default function TodayWindowPage() {
 
   const dateString = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
 
+  const scenarioNextEventIcon: Record<string, MemoryIconName> = {
+    home_reorientation: "sunrise",
+    doctor_appointment_prep: "stethoscope",
+    pharmacy_confusion: "rx",
+    evening_routine: "moon",
+    lost_unknown_location: "alertTriangle",
+  };
+  const nextEventIconName: MemoryIconName = scenarioNextEventIcon[activeScenario.id] ?? "utensils";
+
   return (
+    <div className="relative flex flex-1 flex-col">
     <main className="mx-auto flex flex-1 w-full max-w-[375px] flex-col overflow-hidden bg-[#F6F3EE] font-sans">
 
       {/* Top region */}
-      <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-hidden px-5 pt-6">
+      <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-5 pt-6">
 
         {/* Section A: Greeting and action icons */}
         <div className="flex items-start justify-between">
@@ -457,35 +473,30 @@ export default function TodayWindowPage() {
             <p className="text-xl text-[#8B7D6B]">{greetingPrefix(activeScenario.scenarioHour ?? null)}</p>
             <p className="font-serif text-4xl font-bold tracking-tight text-[#5A4A3A]">{state.profile.preferredName}</p>
           </div>
-          <div className="flex gap-3 pt-1">
-            <button
-              type="button"
-              onClick={() => { persist(appendActivityEvent(state, createLocationEvent("helper_card_shown"))); setHelperOpen(true); }}
-              aria-label="Show helper card"
-              className="flex h-[50px] w-20 items-center justify-center rounded-[15px] border-[3px] border-[#D3C3A7] bg-white shadow-[0px_1px_5px_-2px_rgba(0,0,0,0.35)] transition-transform active:scale-95"
-            >
-              <MemoryIcon name="idCard" className="h-6 w-6 text-[#8B7D6B]" />
-            </button>
-            <button
-              type="button"
-              onClick={callCaregiver}
-              aria-label="Call caregiver"
-              className="flex h-[50px] w-[50px] items-center justify-center rounded-full border-[3px] border-[#7CAC77] bg-[#95C18F] shadow-[0px_0px_5px_-2px_rgba(0,0,0,0.35)] transition-transform active:scale-95"
-            >
+          <button
+            type="button"
+            onClick={callCaregiver}
+            aria-label="Call caregiver"
+            className="flex items-center gap-1 rounded-full border-2 border-[#A5BBA0] bg-[#F4F9F3] pl-2 pr-1.5 py-0.5 shadow-sm shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] transition-transform active:scale-95"
+          >
+            <span className="text-xs font-semibold text-[#71A172] whitespace-nowrap">
+              Call {state.profile.caregiverName}
+            </span>
+            <div className="h-9 w-9 shrink-0 rounded-full bg-[#95C18F] border-2 border-[#E1FFC4] flex items-center justify-center">
               <MemoryIcon name="phone" className="h-5 w-5 text-white" />
-            </button>
-          </div>
+            </div>
+          </button>
         </div>
 
         {/* Section B: Orientation card */}
-        <section className="mt-2 overflow-hidden rounded-[20px] border-[3px] border-[#F6FFF5] bg-white shadow-[0px_0px_10px_-2px_rgba(0,0,0,0.35)]">
+        <section className="overflow-hidden rounded-[20px] border-[3px] border-[#F6FFF5] bg-white shadow-[0px_0px_10px_-2px_rgba(0,0,0,0.35)]">
           <div className="flex h-[37px] items-center gap-2 border-b border-[#E3DAC9] bg-[#E4F6DD] px-5 py-3">
             <MemoryIcon name="mapPin" className="h-4 w-4 text-[#7C9B78]" />
             <span className="text-sm font-medium uppercase tracking-[1px] text-[#719E6B]">Where you are now</span>
           </div>
           <div className="flex flex-col">
             {/* Row 1: Date */}
-            <div className="flex items-center gap-4 border-b border-[#E3DAC9] px-5 py-4">
+            <div className="flex items-center gap-4 border-b border-[#E3DAC9] px-5 py-3">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#C8E2C4]/20 text-[#7C9B78]">
                 <MemoryIcon name="calendar" className="h-6 w-6" />
               </div>
@@ -495,7 +506,7 @@ export default function TodayWindowPage() {
               </div>
             </div>
             {/* Row 2: Location */}
-            <div className="flex items-center gap-4 border-b border-[#E3DAC9] px-5 py-4">
+            <div className="flex items-center gap-4 border-b border-[#E3DAC9] px-5 py-3">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#C8E2C4]/20 text-[#7C9B78]">
                 <MemoryIcon name="home" className="h-6 w-6" />
               </div>
@@ -518,11 +529,11 @@ export default function TodayWindowPage() {
             <button
               type="button"
               onClick={() => setNextEventDetailOpen(true)}
-              className="flex w-full items-center justify-between border-b border-[#E3DAC9] px-5 py-4 text-left transition-colors active:bg-gray-50 focus:outline-none"
+              className="flex w-full items-center justify-between border-b border-[#E3DAC9] px-5 py-3 text-left transition-colors active:bg-gray-50 focus:outline-none"
             >
               <div className="flex items-center gap-4">
                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#EBE3D5]/60 text-[#8B7355]">
-                  <MemoryIcon name="utensils" className="h-6 w-6" />
+                  <MemoryIcon name={nextEventIconName} className="h-6 w-6" />
                 </div>
                 <div className="flex flex-col items-start pr-2">
                   <span className="text-[11px] font-bold uppercase tracking-wider text-[#8B7D6B]">Coming up next</span>
@@ -533,7 +544,7 @@ export default function TodayWindowPage() {
             </button>
             {/* Row 4: With you (conditional) */}
             {contextPacket.who_is_expected !== "No other people are required right now." ? (
-              <div className="flex items-center gap-4 px-5 py-4">
+              <div className="flex items-center gap-4 px-5 py-3">
                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#7C9B78] text-xl font-serif font-bold text-white opacity-75">
                   {state.profile.caregiverName.charAt(0).toUpperCase()}
                 </div>
@@ -550,51 +561,59 @@ export default function TodayWindowPage() {
       </div>
 
       {/* Bottom region */}
-      <div className="shrink-0 px-5 pb-6 pt-3">
-        {/* Section D: Action buttons */}
-        <div className="flex items-stretch gap-2">
-          {/* Left status column */}
-          <div className="flex w-16 shrink-0 flex-col gap-2">
-            {checkInDoneThisSession ? (
-              <div className="flex flex-1 flex-col items-center justify-center gap-1 rounded-2xl border-2 border-[#7C9B78]/40 bg-[#C8E2C4]/30 p-2">
-                <MemoryIcon name="checkCircle" className="h-5 w-5 text-[#7C9B78]" />
-                <span className="text-center text-[10px] font-bold leading-tight text-[#4B8B62]">Saved</span>
-              </div>
-            ) : (
-              <div className="flex-1" />
-            )}
-            <button
-              type="button"
-              onClick={() => setCheckInHistoryOpen(true)}
-              className="flex flex-1 flex-col items-center justify-center gap-1 rounded-2xl border-2 border-[#E3DAC9] bg-white p-2 focus:outline-none active:scale-95"
-            >
-              <MemoryIcon name="clock" className="h-5 w-5 text-[#8B7D6B]" />
-              <span className="text-center text-[10px] font-bold leading-tight text-[#8B7D6B]">History</span>
-            </button>
-          </div>
-          {/* Main action buttons */}
-          <div className="flex flex-1 gap-2">
-            <button
-              type="button"
-              onClick={() => setCheckInModalOpen(true)}
-              className="flex h-32 flex-1 flex-col items-center justify-center gap-2 rounded-2xl border-[3px] border-[#7C9B78]/60 bg-[#C8E2C4]/40 p-4 transition-transform focus:outline-none active:scale-95"
-            >
-              <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-[#7C9B78] shadow-sm">
-                <MemoryIcon name="checkCircle" className="h-6 w-6 text-white" />
-              </div>
-              <span className="font-serif text-base font-bold text-[#5A4A3A]">Check-In</span>
-            </button>
-            <button
-              type="button"
-              onClick={handleHelpMeNow}
-              className="flex h-32 flex-1 flex-col items-center justify-center gap-2 rounded-2xl border-[3px] border-[#8B7355]/50 bg-[#EBE3D5]/70 p-4 transition-transform focus:outline-none active:scale-95"
-            >
-              <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-[#9B776F] shadow-sm">
-                <MemoryIcon name="home" className="h-6 w-6 text-white" />
-              </div>
-              <span className="font-serif text-base font-bold text-[#5A4A3A]">Get Help</span>
-            </button>
-          </div>
+      <div className="shrink-0 px-5 pb-3 pt-3">
+        {/* History / Saved row above buttons */}
+        <div className="mb-2 flex items-center justify-between text-xs">
+          <button
+            type="button"
+            onClick={() => setCheckInHistoryOpen(true)}
+            className="flex items-center gap-1 focus:outline-none"
+          >
+            <MemoryIcon name="clock" className="h-4 w-4 text-[#8B7D6B]" />
+            <span className="text-[#8B7D6B]">History</span>
+          </button>
+          {checkInDoneThisSession ? (
+            <div className="flex items-center gap-1 rounded-full bg-[#C8E2C4]/40 px-2 py-0.5">
+              <MemoryIcon name="checkCircle" className="h-3 w-3 text-[#4B8B62]" />
+              <span className="text-[#4B8B62]">Saved</span>
+            </div>
+          ) : null}
+        </div>
+        {/* Three main action buttons */}
+        <div className="flex gap-2">
+          {/* Show Card */}
+          <button
+            type="button"
+            onClick={() => { persist(appendActivityEvent(state, createLocationEvent("helper_card_shown"))); setHelperOpen(true); }}
+            className="flex aspect-square flex-1 flex-col items-center justify-center gap-1 rounded-2xl border-[3px] border-[#8FB5C1] bg-[#DDE9E8] p-2 shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] transition-transform active:scale-95 focus:outline-none"
+          >
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#92BDBB]">
+              <MemoryIcon name="idCard" className="h-5 w-5 text-white" />
+            </div>
+            <span className="font-serif text-sm font-bold whitespace-nowrap text-[#465E6D]">Show Card</span>
+          </button>
+          {/* Check-In */}
+          <button
+            type="button"
+            onClick={() => setCheckInModalOpen(true)}
+            className="flex aspect-square flex-1 flex-col items-center justify-center gap-1 rounded-2xl border-[3px] border-[#7C9B78]/60 bg-[#C8E2C4]/40 p-2 shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] transition-transform focus:outline-none active:scale-95"
+          >
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#7C9B78] shadow-sm">
+              <MemoryIcon name="checkCircle" className="h-5 w-5 text-white" />
+            </div>
+            <span className="font-serif text-sm font-bold whitespace-nowrap text-[#5A4A3A]">Check-In</span>
+          </button>
+          {/* Get Help */}
+          <button
+            type="button"
+            onClick={handleHelpMeNow}
+            className="flex aspect-square flex-1 flex-col items-center justify-center gap-1 rounded-2xl border-[3px] border-[#8B7355]/50 bg-[#EBE3D5]/70 p-2 shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] transition-transform focus:outline-none active:scale-95"
+          >
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#9B776F] shadow-sm">
+              <MemoryIcon name="home" className="h-5 w-5 text-white" />
+            </div>
+            <span className="font-serif text-sm font-bold whitespace-nowrap text-[#5A4A3A]">Get Help</span>
+          </button>
         </div>
       </div>
 
@@ -613,15 +632,15 @@ export default function TodayWindowPage() {
                     </div>
                   ) : (
                     checkInPacket.map((q) => (
-                      <button key={q.id} type="button" onClick={() => setCheckInSelectedId(q.id)} className="min-h-12 w-full rounded-2xl border border-[#E3DAC9] bg-[#F6F3EE] px-4 py-3 text-left text-base font-medium text-[#5A4A3A] hover:bg-[#C8E2C4]/20 focus:outline-none focus:ring-2 focus:ring-[#7C9B78]/40">
+                      <button key={q.id} type="button" onClick={() => setCheckInSelectedId(q.id)} className="min-h-12 w-full rounded-2xl border border-[#E3DAC9] bg-[#F6F3EE] px-4 py-3 text-left text-base font-medium text-[#5A4A3A] shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] hover:bg-[#C8E2C4]/20 focus:outline-none focus:ring-2 focus:ring-[#7C9B78]/40">
                         {q.text}
                       </button>
                     ))
                   )}
                 </div>
                 <div className="flex items-center justify-between pt-1">
-                  <button type="button" onClick={() => setCheckInHistoryOpen(true)} className="text-xs text-[#8B7D6B] underline underline-offset-2">View past check-ins</button>
-                  <button type="button" onClick={() => { setCheckInModalOpen(false); setCheckInSelectedId(null); }} className="text-sm text-[#8B7D6B] underline underline-offset-2">Back</button>
+                  <button type="button" onClick={() => setCheckInHistoryOpen(true)} className="shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] text-xs text-[#8B7D6B] underline underline-offset-2">View past check-ins</button>
+                  <button type="button" onClick={() => { setCheckInModalOpen(false); setCheckInSelectedId(null); }} className="shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] text-sm text-[#8B7D6B] underline underline-offset-2">Back</button>
                 </div>
               </>
             ) : !checkInBranchOpen ? (
@@ -631,13 +650,13 @@ export default function TodayWindowPage() {
                   {(["positive", "uncertain", "confused"] as const).map((branch) => {
                     const label = checkInPacket?.find((q) => q.id === checkInSelectedId)?.responses[branch] ?? "";
                     return (
-                      <button key={branch} type="button" onClick={() => void handleCheckInBranch(checkInSelectedId!, branch)} className="min-h-12 w-full rounded-2xl border border-[#E3DAC9] bg-[#F6F3EE] px-4 py-3 text-left text-base font-medium text-[#5A4A3A] hover:bg-[#C8E2C4]/20 focus:outline-none focus:ring-2 focus:ring-[#7C9B78]/40">
+                      <button key={branch} type="button" onClick={() => void handleCheckInBranch(checkInSelectedId!, branch)} className="min-h-12 w-full rounded-2xl border border-[#E3DAC9] bg-[#F6F3EE] px-4 py-3 text-left text-base font-medium text-[#5A4A3A] shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] hover:bg-[#C8E2C4]/20 focus:outline-none focus:ring-2 focus:ring-[#7C9B78]/40">
                         {label}
                       </button>
                     );
                   })}
                 </div>
-                <button type="button" onClick={() => setCheckInSelectedId(null)} className="text-sm text-[#8B7D6B] underline underline-offset-2">Back</button>
+                <button type="button" onClick={() => setCheckInSelectedId(null)} className="shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] text-sm text-[#8B7D6B] underline underline-offset-2">Back</button>
               </>
             ) : (
               <>
@@ -649,10 +668,10 @@ export default function TodayWindowPage() {
                 </div>
                 {!checkInBranchLoading ? (
                   <div className="space-y-3">
-                    <button type="button" onClick={() => { setCheckInModalOpen(false); setCheckInSelectedId(null); setCheckInBranchOpen(false); setCheckInBranchType(null); setCheckInBranchText(""); setNextEventDetailOpen(true); }} className="min-h-12 w-full rounded-2xl bg-[#7C9B78] px-4 py-3 text-base font-semibold text-white focus:outline-none">
+                    <button type="button" onClick={() => { setCheckInModalOpen(false); setCheckInSelectedId(null); setCheckInBranchOpen(false); setCheckInBranchType(null); setCheckInBranchText(""); setNextEventDetailOpen(true); }} className="min-h-12 w-full rounded-2xl bg-[#7C9B78] px-4 py-3 text-base font-semibold text-white shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none">
                       Show me the details
                     </button>
-                    <button type="button" onClick={() => { setCheckInDoneThisSession(true); setCheckInModalOpen(false); setCheckInSelectedId(null); setCheckInBranchOpen(false); setCheckInBranchType(null); setCheckInBranchText(""); }} className="min-h-12 w-full rounded-2xl border border-[#E3DAC9] bg-[#F6F3EE] px-4 py-3 text-base font-semibold text-[#5A4A3A] focus:outline-none">
+                    <button type="button" onClick={() => { setCheckInDoneThisSession(true); setCheckInModalOpen(false); setCheckInSelectedId(null); setCheckInBranchOpen(false); setCheckInBranchType(null); setCheckInBranchText(""); }} className="min-h-12 w-full rounded-2xl border border-[#E3DAC9] bg-[#F6F3EE] px-4 py-3 text-base font-semibold text-[#5A4A3A] shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none">
                       I&apos;m okay, thanks
                     </button>
                   </div>
@@ -687,7 +706,7 @@ export default function TodayWindowPage() {
                   ))}
               </ul>
             )}
-            <button type="button" onClick={() => setCheckInHistoryOpen(false)} className="min-h-12 w-full rounded-2xl border border-[#E3DAC9] bg-[#F6F3EE] px-4 py-3 text-base font-semibold text-[#5A4A3A] focus:outline-none">
+            <button type="button" onClick={() => setCheckInHistoryOpen(false)} className="min-h-12 w-full rounded-2xl border border-[#E3DAC9] bg-[#F6F3EE] px-4 py-3 text-base font-semibold text-[#5A4A3A] shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none">
               Close
             </button>
           </div>
@@ -717,7 +736,7 @@ export default function TodayWindowPage() {
                   type="button"
                   onClick={() => askQuestion(key)}
                   disabled={streamingLoading}
-                  className="min-h-12 w-full rounded-2xl border border-brand-border bg-brand-bg px-4 py-3 text-left text-base font-medium text-brand-text hover:bg-brand-surface focus:outline-none focus:ring-2 focus:ring-brand-compass/40 disabled:opacity-50"
+                  className="min-h-12 w-full rounded-2xl border border-brand-border bg-brand-bg px-4 py-3 text-left text-base font-medium text-brand-text shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] hover:bg-brand-surface focus:outline-none focus:ring-2 focus:ring-brand-compass/40 disabled:opacity-50"
                 >
                   {questionLabels[key]}
                 </button>
@@ -727,7 +746,7 @@ export default function TodayWindowPage() {
               <button
                 type="button"
                 onClick={() => { setHelpMeNowOpen(false); setRecentGuidanceOpen(true); }}
-                className="text-xs text-brand-muted underline underline-offset-2"
+                className="shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] text-xs text-brand-muted underline underline-offset-2"
               >
                 Recent guidance
               </button>
@@ -735,7 +754,7 @@ export default function TodayWindowPage() {
             <button
               type="button"
               onClick={() => setHelpMeNowOpen(false)}
-              className="text-sm text-brand-muted underline underline-offset-2"
+              className="shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] text-sm text-brand-muted underline underline-offset-2"
             >
               Back
             </button>
@@ -766,21 +785,21 @@ export default function TodayWindowPage() {
                     setHelpMeNowOpen(false);
                     dismissStreamPanel();
                   }}
-                  className="min-h-12 w-full rounded-2xl bg-green-700 px-4 py-3 text-base font-semibold text-white focus:outline-none focus:ring-2 focus:ring-green-400"
+                  className="min-h-12 w-full rounded-2xl bg-green-700 px-4 py-3 text-base font-semibold text-white shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none focus:ring-2 focus:ring-green-400"
                 >
                   I&apos;m okay
                 </button>
                 <button
                   type="button"
                   onClick={() => { callCaregiver(); setHelpMeNowOpen(false); dismissStreamPanel(); }}
-                  className="min-h-12 w-full rounded-2xl bg-brand-primary px-4 py-3 text-base font-semibold text-white focus:outline-none focus:ring-2 focus:ring-brand-compass"
+                  className="min-h-12 w-full rounded-2xl bg-brand-primary px-4 py-3 text-base font-semibold text-white shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none focus:ring-2 focus:ring-brand-compass"
                 >
                   {`Call ${state.profile.caregiverName}`}
                 </button>
                 <button
                   type="button"
                   onClick={() => { setHelperOpen(true); setHelpMeNowOpen(false); dismissStreamPanel(); }}
-                  className="min-h-12 w-full rounded-2xl border border-brand-border bg-brand-bg px-4 py-3 text-base font-semibold text-brand-text focus:outline-none focus:ring-2 focus:ring-brand-compass/40"
+                  className="min-h-12 w-full rounded-2xl border border-brand-border bg-brand-bg px-4 py-3 text-base font-semibold text-brand-text shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none focus:ring-2 focus:ring-brand-compass/40"
                 >
                   Show this screen
                 </button>
@@ -797,7 +816,7 @@ export default function TodayWindowPage() {
                           key={key}
                           type="button"
                           onClick={() => askQuestion(key)}
-                          className="min-h-12 w-full rounded-2xl border border-brand-border bg-brand-bg px-4 py-3 text-left text-base font-medium text-brand-text hover:bg-brand-surface focus:outline-none focus:ring-2 focus:ring-brand-compass/40 disabled:opacity-50"
+                          className="min-h-12 w-full rounded-2xl border border-brand-border bg-brand-bg px-4 py-3 text-left text-base font-medium text-brand-text shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] hover:bg-brand-surface focus:outline-none focus:ring-2 focus:ring-brand-compass/40 disabled:opacity-50"
                         >
                           {questionLabels[key]}
                         </button>
@@ -832,7 +851,7 @@ export default function TodayWindowPage() {
             <button
               type="button"
               onClick={() => setRecentGuidanceOpen(false)}
-              className="mt-5 min-h-12 w-full rounded-2xl border border-brand-border bg-brand-bg px-4 py-3 text-base font-semibold text-brand-text focus:outline-none focus:ring-2 focus:ring-brand-compass/40"
+              className="mt-5 min-h-12 w-full rounded-2xl border border-brand-border bg-brand-bg px-4 py-3 text-base font-semibold text-brand-text shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none focus:ring-2 focus:ring-brand-compass/40"
             >
               Close
             </button>
@@ -865,14 +884,14 @@ export default function TodayWindowPage() {
             <button
               type="button"
               onClick={() => { setNextEventDetailOpen(false); void askQuestion("what_should_i_do_next"); }}
-              className="min-h-12 w-full rounded-2xl bg-brand-sageDark px-4 py-3 text-base font-semibold text-white focus:outline-none focus:ring-2 focus:ring-brand-sageDark/50"
+              className="min-h-12 w-full rounded-2xl bg-brand-sageDark px-4 py-3 text-base font-semibold text-white shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none focus:ring-2 focus:ring-brand-sageDark/50"
             >
               Get help with this
             </button>
             <button
               type="button"
               onClick={() => setNextEventDetailOpen(false)}
-              className="block w-full text-center text-sm text-brand-muted underline underline-offset-2 focus:outline-none"
+              className="block w-full text-center text-sm text-brand-muted shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] underline underline-offset-2 focus:outline-none"
             >
               Close
             </button>
@@ -888,7 +907,7 @@ export default function TodayWindowPage() {
             <button
               type="button"
               onClick={() => setCallingEmergency(false)}
-              className="mt-4 min-h-12 w-full rounded-2xl border border-brand-border bg-brand-bg px-4 py-3 text-base font-semibold text-brand-text focus:outline-none focus:ring-2 focus:ring-brand-compass/40"
+              className="mt-4 min-h-12 w-full rounded-2xl border border-brand-border bg-brand-bg px-4 py-3 text-base font-semibold text-brand-text shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none focus:ring-2 focus:ring-brand-compass/40"
             >
               Cancel
             </button>
@@ -898,21 +917,21 @@ export default function TodayWindowPage() {
 
       {showLostAlert ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-sm rounded-3xl border border-brand-border bg-brand-surface p-6 shadow-lg space-y-4">
+          <div className="w-full max-w-sm rounded-3xl border border-brand-border bg-[#FEF1D8] ring-[6px] ring-[#F5C842] p-6 shadow-lg space-y-4">
             <h2 className="text-xl font-semibold text-brand-text">You are in an unfamiliar location</h2>
             <p className="text-sm text-brand-muted">This does not look like one of your saved places. Would you like some help?</p>
             <div className="space-y-3">
               <button
                 type="button"
                 onClick={() => { setLostAlertDismissed(true); handleHelpMeNow(); }}
-                className="min-h-12 w-full rounded-2xl bg-brand-compass px-4 py-3 text-base font-semibold text-white focus:outline-none focus:ring-2 focus:ring-brand-compass/60"
+                className="min-h-12 w-full rounded-2xl bg-brand-compass px-4 py-3 text-base font-semibold text-white shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none focus:ring-2 focus:ring-brand-compass/60"
               >
                 Help me
               </button>
               <button
                 type="button"
                 onClick={() => setLostAlertDismissed(true)}
-                className="min-h-12 w-full rounded-2xl border border-brand-border bg-brand-bg px-4 py-3 text-base font-semibold text-brand-text focus:outline-none focus:ring-2 focus:ring-brand-compass/40"
+                className="min-h-12 w-full rounded-2xl border border-brand-border bg-brand-bg px-4 py-3 text-base font-semibold text-brand-text shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none focus:ring-2 focus:ring-brand-compass/40"
               >
                 I&apos;m OK
               </button>
@@ -929,7 +948,7 @@ export default function TodayWindowPage() {
             <button
               type="button"
               onClick={() => setCallingCaregiver(false)}
-              className="mt-4 min-h-12 w-full rounded-2xl border border-brand-border bg-brand-bg px-4 py-3 text-base font-semibold text-brand-text focus:outline-none focus:ring-2 focus:ring-brand-compass/40"
+              className="mt-4 min-h-12 w-full rounded-2xl border border-brand-border bg-brand-bg px-4 py-3 text-base font-semibold text-brand-text shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none focus:ring-2 focus:ring-brand-compass/40"
             >
               Cancel
             </button>
@@ -937,5 +956,7 @@ export default function TodayWindowPage() {
         </div>
       ) : null}
     </main>
+      <div className="pointer-events-none absolute inset-0 z-[49] border-[8px] border-white" />
+    </div>
   );
 }

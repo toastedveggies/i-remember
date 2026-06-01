@@ -81,6 +81,12 @@ export default function CaregiverPage() {
   const [activityFeedShowAll, setActivityFeedShowAll] = useState(false);
 
   useEffect(() => {
+    const handler = () => setState(loadState());
+    window.addEventListener("claira-state-update", handler);
+    return () => window.removeEventListener("claira-state-update", handler);
+  }, []);
+
+  useEffect(() => {
     const loaded = loadState();
     const next = appendSystemEvent(
       loaded,

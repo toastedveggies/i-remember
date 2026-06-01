@@ -54,7 +54,9 @@ When finishing a task:
 
 ## Current Phase
 
-**Phase 9 - UI and Flow Polish (active)**
+**Phase 10 - Flow Polish and Demo Hardening (active)**
+
+Phase 9 - UI and Flow Polish: complete as of 2026-05-30 (UTC-7)
 
 Phase 8 - Lost Scenario and Demo Hardening: complete as of 2026-05-28 (UTC-7)
 Phase 7 - Location Additions and Demo Gap Closure: complete as of 2026-05-28 (UTC-7)
@@ -213,12 +215,41 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
   - [x] /app main h-full → flex-1. HelperModal: identity p text-sm → text-[17px]; SITUATION label → "What's happening"; caregiver value font-bold → font-semibold; emergency shield button replaced with "Call 911" pill; emergency card py-1.
   - [x] HelperModal: caregiver value text matches location value style (font-serif text-sm font-semibold) with text-[#7C9B78] color; M button enlarged to h-12 w-12 with border-[#DFFFC4] border and "call" + initial stacked label.
   - [x] Safari iOS fix: height:100% on html and body in globals.css; h-svh removed from body in layout.tsx; /app main already uses flex-1 (no change needed).
-  - [ ] Review and tighten spacing and typography consistency across all screens
-  - [ ] Ensure all scenarios look correct on iPhone SE screen size
-  - [ ] Review caregiver dashboard layout on mobile
-  - [ ] Check all modal and overlay z-index layering
-  - [ ] Review color and contrast for accessibility
-  - [ ] Do a full end-to-end demo walkthrough and note any rough edges
+  - [x] Review and tighten spacing and typography consistency across all screens
+  - [x] Ensure all scenarios look correct on iPhone SE screen size
+  - [x] Review caregiver dashboard layout on mobile
+  - [x] Check all modal and overlay z-index layering
+  - [x] Review color and contrast for accessibility
+  - [x] Do a full end-to-end demo walkthrough and note any rough edges
+
+- Phase 10 - Flow Polish and Demo Hardening (active as of 2026-05-30, UTC-7):
+  - [x] SiteHeader rebuilt as demo-control header: User/Caregiver view tabs + 5 scenario shortcut buttons writing to shared localStorage + dispatching claira-state-update CustomEvent. Tabs show first letter of preferredName / caregiverName, active state tied to pathname. Lost scenario button triggers geolocation and upgrades to browser_geolocation if accuracy ≤ MAX_DEMO_BROWSER_ACCURACY_METERS.
+  - [x] MemoryIcon: added 5 new names (sunrise, stethoscope, rx, moon, alertTriangle) with SVG cases.
+  - [x] /app page: removed Show Helper Card button from greeting row (kept phone button); bottom action area restructured — w-16 left column removed, History + Saved row added above three equal-width flex-1 buttons (Show Card, Check-In, Get Help); Show Card button now first action in row.
+  - [x] /app and /caregiver pages: claira-state-update custom event listener added on mount so both pages react to header scenario changes without full reload.
+  - [x] SiteHeader visual polish: logo h-8→h-10, container pl-3 pr-1, right-col pt-0 pb-1 gap-0.5, tab buttons w-10 h-9 text-sm rounded-t-none rounded-b-lg items-start gap-1, scenario buttons w-[26px] h-[22px] rounded-md gap-0.5 with h-3 w-3 icons.
+  - [x] /app visual polish: white border-[15px] frame on main; top region pt-3 gap-2; orientation card mt-2 removed; circular call button replaced with pill (Call {name} + circle icon); action buttons aspect-square p-2 gap-1 with h-10 w-10 tiles, h-5 w-5 icons, text-sm whitespace-nowrap labels.
+  - [x] Targeted visual fixes: /app white frame changed to shadow-[inset_0_0_0_8px_white] (no layout impact); Call pill py-1.5→py-0.5, pl-4→pl-2, gap-3→gap-1, label text-sm→text-xs; SiteHeader tabs w-10→w-12, h-9→h-7; User tab active bg/border softened (#F4F9F3/#E4F6DD); Caregiver tab active bg/border softened (#E3F6FB/#D4E8ED).
+  - [x] Layout/spacing fixes: body bg #F6F3EE→#FFFFFF (white outside frame); top region overflow-hidden→overflow-y-auto (prevents card clipping); bottom pb-6→pb-3; orientation card rows py-4→py-3; Call pill border→#C8E2C4; HelperModal top-[6%]→top-[2%] with max-h-[90dvh] overflow-y-auto; HelperModal padding tightened throughout (header py-3.5→py-2, identity py-4→py-2, key-info py-3→py-2 + inner rows py-3→py-2, caregiver py-3→py-2 + inner row py-3.5→py-2, footer pb-4 pt-3→pb-3 pt-2 + I'm OK py-3→py-2, divider mt-2→mt-1, emergency py-3→py-1.5).
+  - [x] White frame refactor: body bg reverted to #F6F3EE; inset shadow removed from main; pointer-events-none fixed inset-0 z-0 border-[8px] border-white overlay div added as first child of React fragment so frame sits at viewport edges below content stack; Call pill outer border→#A5BBA0, circle icon border→#E1FFC4.
+  - [x] White frame approach reverted to shadow-[inset_0_0_0_8px_white] on main element (frames content area below the header, not the full viewport); fixed overlay div and React fragment wrapper removed.
+  - [x] White frame moved to full-width wrapper div (flex flex-1 flex-col shadow-[inset_0_0_0_8px_white]) so the 8px frame spans edge-to-edge at any screen width; shadow removed from the inner max-w-[375px] main element.
+  - [x] White frame switched to foreground overlay: wrapper div is now relative flex flex-1 flex-col; last child inside wrapper is pointer-events-none absolute inset-0 z-[50] border-[8px] border-white, guaranteed above all child backgrounds.
+  - [x] /app polish: top region pt-3→pt-6; Coming Up Next row icon now dynamically resolved from scenarioNextEventIcon lookup (sunrise/stethoscope/rx/moon/alertTriangle per scenario, fallback utensils); all three action buttons gain shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)]; Call Maria pill also gains shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)].
+  - [x] SiteHeader header bg-brand-bg/90 → bg-[#F4E9D5].
+  - [x] White border overlay z-[50]→z-[49]; HelperModal card bg-white→bg-[#FEF1D8] + ring-[6px] ring-[#F5C842]; HelperModal buttons (×, call caregiver, I'm OK, Call 911) gain shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)]; lost alert card bg-brand-surface→bg-[#FEF1D8] + ring-[6px] ring-[#F5C842]; all modal/popup buttons in page.tsx gain shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)].
+  - [x] HelperModal card bg-[#FEF1D8]→bg-[#DDE9E8], ring-[#F5C842]→ring-white.
+  - [x] HelperModal card bg-[#DDE9E8]→bg-white, ring-white→ring-[#92BDBB]; header div gains bg-[#DDE9E8] rounded-t-[24px] for teal top-only background.
+  - [x] HelperModal: shadow added to location, context, caregiver, and emergency row divs; identity "Hi, my name is" and "I need a little help" text-[#8B7D6B]→text-[#5A4A3A] + font-bold.
+  - [x] HelperModal: outer dialog div gains flex items-center justify-center p-5 for vertical centering; card container changed from absolute inset-x-3 top-[2%] to relative w-full so it is a centered flex child; I'm OK shadow already present from prior pass.
+  - [ ] User page: polish Get Help modal (question buttons, stream panel) to new color system and layout
+  - [ ] User page: polish stream panel response view (I'm okay / Call Maria / Show this screen buttons) to new design
+  - [ ] User page: style the lost location scenario state on the user page (unfamiliar location alert, lost flow)
+  - [ ] Caregiver dashboard: full UI polish pass to new color system and layout matching mockup
+  - [ ] Insights page: update chart colors, tab styles, and typography to new palette
+  - [ ] Demo page: revamp layout for easier scenario navigation and profile editing
+  - [ ] End-to-end demo walkthrough on physical iPhone across all 5 scenarios
+  - [ ] Final accessibility and contrast review
 
 - Phase 8 - Lost Scenario and Demo Hardening (complete as of 2026-05-28, UTC-7):
   - [x] Real-time location tracking for lost_unknown_location scenario
@@ -391,7 +422,7 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
 
 ## Last Updated
 
-2026-05-29 (UTC-7) — New modal check-in flow with packet pre-generation, branch streaming, history sheet; two-region layout; date removed from greeting. tsc and lint pass clean.
+2026-05-31 (UTC-7) — Phase 10 in progress. SiteHeader and /app user page visual polish pass complete. tsc and lint pass clean.
 
 
 // ---
@@ -796,7 +827,7 @@ export default function LandingPage() {
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import HelperModal from "@/components/HelperModal";
-import MemoryIcon from "@/components/MemoryIcon";
+import MemoryIcon, { type MemoryIconName } from "@/components/MemoryIcon";
 import {
   appendActivityEvent,
   createEvent,
@@ -924,6 +955,12 @@ export default function TodayWindowPage() {
   useEffect(() => {
     setState(loadState());
     setRecentGuidance(loadRecentGuidance());
+  }, []);
+
+  useEffect(() => {
+    const handler = () => setState(loadState());
+    window.addEventListener("claira-state-update", handler);
+    return () => window.removeEventListener("claira-state-update", handler);
   }, []);
 
   const activeScenario = useMemo(() => findScenario(state.activeScenarioId), [state.activeScenarioId]);
@@ -1239,11 +1276,21 @@ export default function TodayWindowPage() {
 
   const dateString = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
 
+  const scenarioNextEventIcon: Record<string, MemoryIconName> = {
+    home_reorientation: "sunrise",
+    doctor_appointment_prep: "stethoscope",
+    pharmacy_confusion: "rx",
+    evening_routine: "moon",
+    lost_unknown_location: "alertTriangle",
+  };
+  const nextEventIconName: MemoryIconName = scenarioNextEventIcon[activeScenario.id] ?? "utensils";
+
   return (
+    <div className="relative flex flex-1 flex-col">
     <main className="mx-auto flex flex-1 w-full max-w-[375px] flex-col overflow-hidden bg-[#F6F3EE] font-sans">
 
       {/* Top region */}
-      <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-hidden px-5 pt-6">
+      <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-5 pt-6">
 
         {/* Section A: Greeting and action icons */}
         <div className="flex items-start justify-between">
@@ -1251,35 +1298,30 @@ export default function TodayWindowPage() {
             <p className="text-xl text-[#8B7D6B]">{greetingPrefix(activeScenario.scenarioHour ?? null)}</p>
             <p className="font-serif text-4xl font-bold tracking-tight text-[#5A4A3A]">{state.profile.preferredName}</p>
           </div>
-          <div className="flex gap-3 pt-1">
-            <button
-              type="button"
-              onClick={() => { persist(appendActivityEvent(state, createLocationEvent("helper_card_shown"))); setHelperOpen(true); }}
-              aria-label="Show helper card"
-              className="flex h-[50px] w-20 items-center justify-center rounded-[15px] border-[3px] border-[#D3C3A7] bg-white shadow-[0px_1px_5px_-2px_rgba(0,0,0,0.35)] transition-transform active:scale-95"
-            >
-              <MemoryIcon name="idCard" className="h-6 w-6 text-[#8B7D6B]" />
-            </button>
-            <button
-              type="button"
-              onClick={callCaregiver}
-              aria-label="Call caregiver"
-              className="flex h-[50px] w-[50px] items-center justify-center rounded-full border-[3px] border-[#7CAC77] bg-[#95C18F] shadow-[0px_0px_5px_-2px_rgba(0,0,0,0.35)] transition-transform active:scale-95"
-            >
+          <button
+            type="button"
+            onClick={callCaregiver}
+            aria-label="Call caregiver"
+            className="flex items-center gap-1 rounded-full border-2 border-[#A5BBA0] bg-[#F4F9F3] pl-2 pr-1.5 py-0.5 shadow-sm shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] transition-transform active:scale-95"
+          >
+            <span className="text-xs font-semibold text-[#71A172] whitespace-nowrap">
+              Call {state.profile.caregiverName}
+            </span>
+            <div className="h-9 w-9 shrink-0 rounded-full bg-[#95C18F] border-2 border-[#E1FFC4] flex items-center justify-center">
               <MemoryIcon name="phone" className="h-5 w-5 text-white" />
-            </button>
-          </div>
+            </div>
+          </button>
         </div>
 
         {/* Section B: Orientation card */}
-        <section className="mt-2 overflow-hidden rounded-[20px] border-[3px] border-[#F6FFF5] bg-white shadow-[0px_0px_10px_-2px_rgba(0,0,0,0.35)]">
+        <section className="overflow-hidden rounded-[20px] border-[3px] border-[#F6FFF5] bg-white shadow-[0px_0px_10px_-2px_rgba(0,0,0,0.35)]">
           <div className="flex h-[37px] items-center gap-2 border-b border-[#E3DAC9] bg-[#E4F6DD] px-5 py-3">
             <MemoryIcon name="mapPin" className="h-4 w-4 text-[#7C9B78]" />
             <span className="text-sm font-medium uppercase tracking-[1px] text-[#719E6B]">Where you are now</span>
           </div>
           <div className="flex flex-col">
             {/* Row 1: Date */}
-            <div className="flex items-center gap-4 border-b border-[#E3DAC9] px-5 py-4">
+            <div className="flex items-center gap-4 border-b border-[#E3DAC9] px-5 py-3">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#C8E2C4]/20 text-[#7C9B78]">
                 <MemoryIcon name="calendar" className="h-6 w-6" />
               </div>
@@ -1289,7 +1331,7 @@ export default function TodayWindowPage() {
               </div>
             </div>
             {/* Row 2: Location */}
-            <div className="flex items-center gap-4 border-b border-[#E3DAC9] px-5 py-4">
+            <div className="flex items-center gap-4 border-b border-[#E3DAC9] px-5 py-3">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#C8E2C4]/20 text-[#7C9B78]">
                 <MemoryIcon name="home" className="h-6 w-6" />
               </div>
@@ -1312,11 +1354,11 @@ export default function TodayWindowPage() {
             <button
               type="button"
               onClick={() => setNextEventDetailOpen(true)}
-              className="flex w-full items-center justify-between border-b border-[#E3DAC9] px-5 py-4 text-left transition-colors active:bg-gray-50 focus:outline-none"
+              className="flex w-full items-center justify-between border-b border-[#E3DAC9] px-5 py-3 text-left transition-colors active:bg-gray-50 focus:outline-none"
             >
               <div className="flex items-center gap-4">
                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#EBE3D5]/60 text-[#8B7355]">
-                  <MemoryIcon name="utensils" className="h-6 w-6" />
+                  <MemoryIcon name={nextEventIconName} className="h-6 w-6" />
                 </div>
                 <div className="flex flex-col items-start pr-2">
                   <span className="text-[11px] font-bold uppercase tracking-wider text-[#8B7D6B]">Coming up next</span>
@@ -1327,7 +1369,7 @@ export default function TodayWindowPage() {
             </button>
             {/* Row 4: With you (conditional) */}
             {contextPacket.who_is_expected !== "No other people are required right now." ? (
-              <div className="flex items-center gap-4 px-5 py-4">
+              <div className="flex items-center gap-4 px-5 py-3">
                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#7C9B78] text-xl font-serif font-bold text-white opacity-75">
                   {state.profile.caregiverName.charAt(0).toUpperCase()}
                 </div>
@@ -1344,51 +1386,59 @@ export default function TodayWindowPage() {
       </div>
 
       {/* Bottom region */}
-      <div className="shrink-0 px-5 pb-6 pt-3">
-        {/* Section D: Action buttons */}
-        <div className="flex items-stretch gap-2">
-          {/* Left status column */}
-          <div className="flex w-16 shrink-0 flex-col gap-2">
-            {checkInDoneThisSession ? (
-              <div className="flex flex-1 flex-col items-center justify-center gap-1 rounded-2xl border-2 border-[#7C9B78]/40 bg-[#C8E2C4]/30 p-2">
-                <MemoryIcon name="checkCircle" className="h-5 w-5 text-[#7C9B78]" />
-                <span className="text-center text-[10px] font-bold leading-tight text-[#4B8B62]">Saved</span>
-              </div>
-            ) : (
-              <div className="flex-1" />
-            )}
-            <button
-              type="button"
-              onClick={() => setCheckInHistoryOpen(true)}
-              className="flex flex-1 flex-col items-center justify-center gap-1 rounded-2xl border-2 border-[#E3DAC9] bg-white p-2 focus:outline-none active:scale-95"
-            >
-              <MemoryIcon name="clock" className="h-5 w-5 text-[#8B7D6B]" />
-              <span className="text-center text-[10px] font-bold leading-tight text-[#8B7D6B]">History</span>
-            </button>
-          </div>
-          {/* Main action buttons */}
-          <div className="flex flex-1 gap-2">
-            <button
-              type="button"
-              onClick={() => setCheckInModalOpen(true)}
-              className="flex h-32 flex-1 flex-col items-center justify-center gap-2 rounded-2xl border-[3px] border-[#7C9B78]/60 bg-[#C8E2C4]/40 p-4 transition-transform focus:outline-none active:scale-95"
-            >
-              <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-[#7C9B78] shadow-sm">
-                <MemoryIcon name="checkCircle" className="h-6 w-6 text-white" />
-              </div>
-              <span className="font-serif text-base font-bold text-[#5A4A3A]">Check-In</span>
-            </button>
-            <button
-              type="button"
-              onClick={handleHelpMeNow}
-              className="flex h-32 flex-1 flex-col items-center justify-center gap-2 rounded-2xl border-[3px] border-[#8B7355]/50 bg-[#EBE3D5]/70 p-4 transition-transform focus:outline-none active:scale-95"
-            >
-              <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-[#9B776F] shadow-sm">
-                <MemoryIcon name="home" className="h-6 w-6 text-white" />
-              </div>
-              <span className="font-serif text-base font-bold text-[#5A4A3A]">Get Help</span>
-            </button>
-          </div>
+      <div className="shrink-0 px-5 pb-3 pt-3">
+        {/* History / Saved row above buttons */}
+        <div className="mb-2 flex items-center justify-between text-xs">
+          <button
+            type="button"
+            onClick={() => setCheckInHistoryOpen(true)}
+            className="flex items-center gap-1 focus:outline-none"
+          >
+            <MemoryIcon name="clock" className="h-4 w-4 text-[#8B7D6B]" />
+            <span className="text-[#8B7D6B]">History</span>
+          </button>
+          {checkInDoneThisSession ? (
+            <div className="flex items-center gap-1 rounded-full bg-[#C8E2C4]/40 px-2 py-0.5">
+              <MemoryIcon name="checkCircle" className="h-3 w-3 text-[#4B8B62]" />
+              <span className="text-[#4B8B62]">Saved</span>
+            </div>
+          ) : null}
+        </div>
+        {/* Three main action buttons */}
+        <div className="flex gap-2">
+          {/* Show Card */}
+          <button
+            type="button"
+            onClick={() => { persist(appendActivityEvent(state, createLocationEvent("helper_card_shown"))); setHelperOpen(true); }}
+            className="flex aspect-square flex-1 flex-col items-center justify-center gap-1 rounded-2xl border-[3px] border-[#8FB5C1] bg-[#DDE9E8] p-2 shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] transition-transform active:scale-95 focus:outline-none"
+          >
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#92BDBB]">
+              <MemoryIcon name="idCard" className="h-5 w-5 text-white" />
+            </div>
+            <span className="font-serif text-sm font-bold whitespace-nowrap text-[#465E6D]">Show Card</span>
+          </button>
+          {/* Check-In */}
+          <button
+            type="button"
+            onClick={() => setCheckInModalOpen(true)}
+            className="flex aspect-square flex-1 flex-col items-center justify-center gap-1 rounded-2xl border-[3px] border-[#7C9B78]/60 bg-[#C8E2C4]/40 p-2 shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] transition-transform focus:outline-none active:scale-95"
+          >
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#7C9B78] shadow-sm">
+              <MemoryIcon name="checkCircle" className="h-5 w-5 text-white" />
+            </div>
+            <span className="font-serif text-sm font-bold whitespace-nowrap text-[#5A4A3A]">Check-In</span>
+          </button>
+          {/* Get Help */}
+          <button
+            type="button"
+            onClick={handleHelpMeNow}
+            className="flex aspect-square flex-1 flex-col items-center justify-center gap-1 rounded-2xl border-[3px] border-[#8B7355]/50 bg-[#EBE3D5]/70 p-2 shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] transition-transform focus:outline-none active:scale-95"
+          >
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#9B776F] shadow-sm">
+              <MemoryIcon name="home" className="h-5 w-5 text-white" />
+            </div>
+            <span className="font-serif text-sm font-bold whitespace-nowrap text-[#5A4A3A]">Get Help</span>
+          </button>
         </div>
       </div>
 
@@ -1407,15 +1457,15 @@ export default function TodayWindowPage() {
                     </div>
                   ) : (
                     checkInPacket.map((q) => (
-                      <button key={q.id} type="button" onClick={() => setCheckInSelectedId(q.id)} className="min-h-12 w-full rounded-2xl border border-[#E3DAC9] bg-[#F6F3EE] px-4 py-3 text-left text-base font-medium text-[#5A4A3A] hover:bg-[#C8E2C4]/20 focus:outline-none focus:ring-2 focus:ring-[#7C9B78]/40">
+                      <button key={q.id} type="button" onClick={() => setCheckInSelectedId(q.id)} className="min-h-12 w-full rounded-2xl border border-[#E3DAC9] bg-[#F6F3EE] px-4 py-3 text-left text-base font-medium text-[#5A4A3A] shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] hover:bg-[#C8E2C4]/20 focus:outline-none focus:ring-2 focus:ring-[#7C9B78]/40">
                         {q.text}
                       </button>
                     ))
                   )}
                 </div>
                 <div className="flex items-center justify-between pt-1">
-                  <button type="button" onClick={() => setCheckInHistoryOpen(true)} className="text-xs text-[#8B7D6B] underline underline-offset-2">View past check-ins</button>
-                  <button type="button" onClick={() => { setCheckInModalOpen(false); setCheckInSelectedId(null); }} className="text-sm text-[#8B7D6B] underline underline-offset-2">Back</button>
+                  <button type="button" onClick={() => setCheckInHistoryOpen(true)} className="shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] text-xs text-[#8B7D6B] underline underline-offset-2">View past check-ins</button>
+                  <button type="button" onClick={() => { setCheckInModalOpen(false); setCheckInSelectedId(null); }} className="shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] text-sm text-[#8B7D6B] underline underline-offset-2">Back</button>
                 </div>
               </>
             ) : !checkInBranchOpen ? (
@@ -1425,13 +1475,13 @@ export default function TodayWindowPage() {
                   {(["positive", "uncertain", "confused"] as const).map((branch) => {
                     const label = checkInPacket?.find((q) => q.id === checkInSelectedId)?.responses[branch] ?? "";
                     return (
-                      <button key={branch} type="button" onClick={() => void handleCheckInBranch(checkInSelectedId!, branch)} className="min-h-12 w-full rounded-2xl border border-[#E3DAC9] bg-[#F6F3EE] px-4 py-3 text-left text-base font-medium text-[#5A4A3A] hover:bg-[#C8E2C4]/20 focus:outline-none focus:ring-2 focus:ring-[#7C9B78]/40">
+                      <button key={branch} type="button" onClick={() => void handleCheckInBranch(checkInSelectedId!, branch)} className="min-h-12 w-full rounded-2xl border border-[#E3DAC9] bg-[#F6F3EE] px-4 py-3 text-left text-base font-medium text-[#5A4A3A] shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] hover:bg-[#C8E2C4]/20 focus:outline-none focus:ring-2 focus:ring-[#7C9B78]/40">
                         {label}
                       </button>
                     );
                   })}
                 </div>
-                <button type="button" onClick={() => setCheckInSelectedId(null)} className="text-sm text-[#8B7D6B] underline underline-offset-2">Back</button>
+                <button type="button" onClick={() => setCheckInSelectedId(null)} className="shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] text-sm text-[#8B7D6B] underline underline-offset-2">Back</button>
               </>
             ) : (
               <>
@@ -1443,10 +1493,10 @@ export default function TodayWindowPage() {
                 </div>
                 {!checkInBranchLoading ? (
                   <div className="space-y-3">
-                    <button type="button" onClick={() => { setCheckInModalOpen(false); setCheckInSelectedId(null); setCheckInBranchOpen(false); setCheckInBranchType(null); setCheckInBranchText(""); setNextEventDetailOpen(true); }} className="min-h-12 w-full rounded-2xl bg-[#7C9B78] px-4 py-3 text-base font-semibold text-white focus:outline-none">
+                    <button type="button" onClick={() => { setCheckInModalOpen(false); setCheckInSelectedId(null); setCheckInBranchOpen(false); setCheckInBranchType(null); setCheckInBranchText(""); setNextEventDetailOpen(true); }} className="min-h-12 w-full rounded-2xl bg-[#7C9B78] px-4 py-3 text-base font-semibold text-white shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none">
                       Show me the details
                     </button>
-                    <button type="button" onClick={() => { setCheckInDoneThisSession(true); setCheckInModalOpen(false); setCheckInSelectedId(null); setCheckInBranchOpen(false); setCheckInBranchType(null); setCheckInBranchText(""); }} className="min-h-12 w-full rounded-2xl border border-[#E3DAC9] bg-[#F6F3EE] px-4 py-3 text-base font-semibold text-[#5A4A3A] focus:outline-none">
+                    <button type="button" onClick={() => { setCheckInDoneThisSession(true); setCheckInModalOpen(false); setCheckInSelectedId(null); setCheckInBranchOpen(false); setCheckInBranchType(null); setCheckInBranchText(""); }} className="min-h-12 w-full rounded-2xl border border-[#E3DAC9] bg-[#F6F3EE] px-4 py-3 text-base font-semibold text-[#5A4A3A] shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none">
                       I&apos;m okay, thanks
                     </button>
                   </div>
@@ -1481,7 +1531,7 @@ export default function TodayWindowPage() {
                   ))}
               </ul>
             )}
-            <button type="button" onClick={() => setCheckInHistoryOpen(false)} className="min-h-12 w-full rounded-2xl border border-[#E3DAC9] bg-[#F6F3EE] px-4 py-3 text-base font-semibold text-[#5A4A3A] focus:outline-none">
+            <button type="button" onClick={() => setCheckInHistoryOpen(false)} className="min-h-12 w-full rounded-2xl border border-[#E3DAC9] bg-[#F6F3EE] px-4 py-3 text-base font-semibold text-[#5A4A3A] shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none">
               Close
             </button>
           </div>
@@ -1511,7 +1561,7 @@ export default function TodayWindowPage() {
                   type="button"
                   onClick={() => askQuestion(key)}
                   disabled={streamingLoading}
-                  className="min-h-12 w-full rounded-2xl border border-brand-border bg-brand-bg px-4 py-3 text-left text-base font-medium text-brand-text hover:bg-brand-surface focus:outline-none focus:ring-2 focus:ring-brand-compass/40 disabled:opacity-50"
+                  className="min-h-12 w-full rounded-2xl border border-brand-border bg-brand-bg px-4 py-3 text-left text-base font-medium text-brand-text shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] hover:bg-brand-surface focus:outline-none focus:ring-2 focus:ring-brand-compass/40 disabled:opacity-50"
                 >
                   {questionLabels[key]}
                 </button>
@@ -1521,7 +1571,7 @@ export default function TodayWindowPage() {
               <button
                 type="button"
                 onClick={() => { setHelpMeNowOpen(false); setRecentGuidanceOpen(true); }}
-                className="text-xs text-brand-muted underline underline-offset-2"
+                className="shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] text-xs text-brand-muted underline underline-offset-2"
               >
                 Recent guidance
               </button>
@@ -1529,7 +1579,7 @@ export default function TodayWindowPage() {
             <button
               type="button"
               onClick={() => setHelpMeNowOpen(false)}
-              className="text-sm text-brand-muted underline underline-offset-2"
+              className="shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] text-sm text-brand-muted underline underline-offset-2"
             >
               Back
             </button>
@@ -1560,21 +1610,21 @@ export default function TodayWindowPage() {
                     setHelpMeNowOpen(false);
                     dismissStreamPanel();
                   }}
-                  className="min-h-12 w-full rounded-2xl bg-green-700 px-4 py-3 text-base font-semibold text-white focus:outline-none focus:ring-2 focus:ring-green-400"
+                  className="min-h-12 w-full rounded-2xl bg-green-700 px-4 py-3 text-base font-semibold text-white shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none focus:ring-2 focus:ring-green-400"
                 >
                   I&apos;m okay
                 </button>
                 <button
                   type="button"
                   onClick={() => { callCaregiver(); setHelpMeNowOpen(false); dismissStreamPanel(); }}
-                  className="min-h-12 w-full rounded-2xl bg-brand-primary px-4 py-3 text-base font-semibold text-white focus:outline-none focus:ring-2 focus:ring-brand-compass"
+                  className="min-h-12 w-full rounded-2xl bg-brand-primary px-4 py-3 text-base font-semibold text-white shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none focus:ring-2 focus:ring-brand-compass"
                 >
                   {`Call ${state.profile.caregiverName}`}
                 </button>
                 <button
                   type="button"
                   onClick={() => { setHelperOpen(true); setHelpMeNowOpen(false); dismissStreamPanel(); }}
-                  className="min-h-12 w-full rounded-2xl border border-brand-border bg-brand-bg px-4 py-3 text-base font-semibold text-brand-text focus:outline-none focus:ring-2 focus:ring-brand-compass/40"
+                  className="min-h-12 w-full rounded-2xl border border-brand-border bg-brand-bg px-4 py-3 text-base font-semibold text-brand-text shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none focus:ring-2 focus:ring-brand-compass/40"
                 >
                   Show this screen
                 </button>
@@ -1591,7 +1641,7 @@ export default function TodayWindowPage() {
                           key={key}
                           type="button"
                           onClick={() => askQuestion(key)}
-                          className="min-h-12 w-full rounded-2xl border border-brand-border bg-brand-bg px-4 py-3 text-left text-base font-medium text-brand-text hover:bg-brand-surface focus:outline-none focus:ring-2 focus:ring-brand-compass/40 disabled:opacity-50"
+                          className="min-h-12 w-full rounded-2xl border border-brand-border bg-brand-bg px-4 py-3 text-left text-base font-medium text-brand-text shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] hover:bg-brand-surface focus:outline-none focus:ring-2 focus:ring-brand-compass/40 disabled:opacity-50"
                         >
                           {questionLabels[key]}
                         </button>
@@ -1626,7 +1676,7 @@ export default function TodayWindowPage() {
             <button
               type="button"
               onClick={() => setRecentGuidanceOpen(false)}
-              className="mt-5 min-h-12 w-full rounded-2xl border border-brand-border bg-brand-bg px-4 py-3 text-base font-semibold text-brand-text focus:outline-none focus:ring-2 focus:ring-brand-compass/40"
+              className="mt-5 min-h-12 w-full rounded-2xl border border-brand-border bg-brand-bg px-4 py-3 text-base font-semibold text-brand-text shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none focus:ring-2 focus:ring-brand-compass/40"
             >
               Close
             </button>
@@ -1659,14 +1709,14 @@ export default function TodayWindowPage() {
             <button
               type="button"
               onClick={() => { setNextEventDetailOpen(false); void askQuestion("what_should_i_do_next"); }}
-              className="min-h-12 w-full rounded-2xl bg-brand-sageDark px-4 py-3 text-base font-semibold text-white focus:outline-none focus:ring-2 focus:ring-brand-sageDark/50"
+              className="min-h-12 w-full rounded-2xl bg-brand-sageDark px-4 py-3 text-base font-semibold text-white shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none focus:ring-2 focus:ring-brand-sageDark/50"
             >
               Get help with this
             </button>
             <button
               type="button"
               onClick={() => setNextEventDetailOpen(false)}
-              className="block w-full text-center text-sm text-brand-muted underline underline-offset-2 focus:outline-none"
+              className="block w-full text-center text-sm text-brand-muted shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] underline underline-offset-2 focus:outline-none"
             >
               Close
             </button>
@@ -1682,7 +1732,7 @@ export default function TodayWindowPage() {
             <button
               type="button"
               onClick={() => setCallingEmergency(false)}
-              className="mt-4 min-h-12 w-full rounded-2xl border border-brand-border bg-brand-bg px-4 py-3 text-base font-semibold text-brand-text focus:outline-none focus:ring-2 focus:ring-brand-compass/40"
+              className="mt-4 min-h-12 w-full rounded-2xl border border-brand-border bg-brand-bg px-4 py-3 text-base font-semibold text-brand-text shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none focus:ring-2 focus:ring-brand-compass/40"
             >
               Cancel
             </button>
@@ -1692,21 +1742,21 @@ export default function TodayWindowPage() {
 
       {showLostAlert ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-sm rounded-3xl border border-brand-border bg-brand-surface p-6 shadow-lg space-y-4">
+          <div className="w-full max-w-sm rounded-3xl border border-brand-border bg-[#FEF1D8] ring-[6px] ring-[#F5C842] p-6 shadow-lg space-y-4">
             <h2 className="text-xl font-semibold text-brand-text">You are in an unfamiliar location</h2>
             <p className="text-sm text-brand-muted">This does not look like one of your saved places. Would you like some help?</p>
             <div className="space-y-3">
               <button
                 type="button"
                 onClick={() => { setLostAlertDismissed(true); handleHelpMeNow(); }}
-                className="min-h-12 w-full rounded-2xl bg-brand-compass px-4 py-3 text-base font-semibold text-white focus:outline-none focus:ring-2 focus:ring-brand-compass/60"
+                className="min-h-12 w-full rounded-2xl bg-brand-compass px-4 py-3 text-base font-semibold text-white shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none focus:ring-2 focus:ring-brand-compass/60"
               >
                 Help me
               </button>
               <button
                 type="button"
                 onClick={() => setLostAlertDismissed(true)}
-                className="min-h-12 w-full rounded-2xl border border-brand-border bg-brand-bg px-4 py-3 text-base font-semibold text-brand-text focus:outline-none focus:ring-2 focus:ring-brand-compass/40"
+                className="min-h-12 w-full rounded-2xl border border-brand-border bg-brand-bg px-4 py-3 text-base font-semibold text-brand-text shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none focus:ring-2 focus:ring-brand-compass/40"
               >
                 I&apos;m OK
               </button>
@@ -1723,7 +1773,7 @@ export default function TodayWindowPage() {
             <button
               type="button"
               onClick={() => setCallingCaregiver(false)}
-              className="mt-4 min-h-12 w-full rounded-2xl border border-brand-border bg-brand-bg px-4 py-3 text-base font-semibold text-brand-text focus:outline-none focus:ring-2 focus:ring-brand-compass/40"
+              className="mt-4 min-h-12 w-full rounded-2xl border border-brand-border bg-brand-bg px-4 py-3 text-base font-semibold text-brand-text shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none focus:ring-2 focus:ring-brand-compass/40"
             >
               Cancel
             </button>
@@ -1731,6 +1781,8 @@ export default function TodayWindowPage() {
         </div>
       ) : null}
     </main>
+      <div className="pointer-events-none absolute inset-0 z-[49] border-[8px] border-white" />
+    </div>
   );
 }
 
@@ -1820,6 +1872,12 @@ export default function CaregiverPage() {
   const [callingUser, setCallingUser] = useState(false);
   const [activityFeedCollapsed, setActivityFeedCollapsed] = useState(false);
   const [activityFeedShowAll, setActivityFeedShowAll] = useState(false);
+
+  useEffect(() => {
+    const handler = () => setState(loadState());
+    window.addEventListener("claira-state-update", handler);
+    return () => window.removeEventListener("claira-state-update", handler);
+  }, []);
 
   useEffect(() => {
     const loaded = loadState();
@@ -3682,42 +3740,175 @@ export async function POST(req: NextRequest) {
 
 // FILE: components/SiteHeader.tsx
 
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import {
+  storageKey,
+  normalizeDemoState,
+  initialDemoState,
+  type DemoState,
+  type BrowserLocation,
+} from "@/data/demoState";
+import { MAX_DEMO_BROWSER_ACCURACY_METERS } from "@/lib/places";
+import MemoryIcon from "@/components/MemoryIcon";
+
+const scenarioButtons: { id: string; icon: "sunrise" | "stethoscope" | "rx" | "moon" | "alertTriangle" }[] = [
+  { id: "home_reorientation", icon: "sunrise" },
+  { id: "doctor_appointment_prep", icon: "stethoscope" },
+  { id: "pharmacy_confusion", icon: "rx" },
+  { id: "evening_routine", icon: "moon" },
+  { id: "lost_unknown_location", icon: "alertTriangle" },
+];
 
 export default function SiteHeader() {
+  const pathname = usePathname();
+  const router = useRouter();
+  const [state, setState] = useState<DemoState>(initialDemoState);
+
+  useEffect(() => {
+    const raw = window.localStorage.getItem(storageKey);
+    if (raw) {
+      try { setState(normalizeDemoState(JSON.parse(raw))); } catch { /* use initialDemoState */ }
+    }
+    const handler = () => {
+      const r = window.localStorage.getItem(storageKey);
+      if (r) {
+        try { setState(normalizeDemoState(JSON.parse(r))); } catch { /* ignore */ }
+      }
+    };
+    window.addEventListener("claira-state-update", handler);
+    return () => window.removeEventListener("claira-state-update", handler);
+  }, []);
+
+  const headerPersist = (nextState: DemoState) => {
+    window.localStorage.setItem(storageKey, JSON.stringify(nextState));
+    window.dispatchEvent(new CustomEvent("claira-state-update"));
+  };
+
+  const handleScenarioClick = (id: string) => {
+    if (id === "lost_unknown_location") {
+      const raw = window.localStorage.getItem(storageKey);
+      let current = initialDemoState;
+      if (raw) {
+        try { current = normalizeDemoState(JSON.parse(raw)); } catch { /* use initial */ }
+      }
+      headerPersist({
+        ...current,
+        activeScenarioId: "lost_unknown_location",
+        demoClassroomMode: true,
+        activeLocationSource: "scenario_seed",
+      });
+
+      if (typeof navigator !== "undefined" && navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            if (position.coords.accuracy <= MAX_DEMO_BROWSER_ACCURACY_METERS) {
+              const latest = window.localStorage.getItem(storageKey);
+              let latestState = initialDemoState;
+              if (latest) {
+                try { latestState = normalizeDemoState(JSON.parse(latest)); } catch { /* use initial */ }
+              }
+              const browserLocation: BrowserLocation = {
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude,
+                accuracyMeters: position.coords.accuracy,
+                timestamp: new Date().toISOString(),
+              };
+              headerPersist({
+                ...latestState,
+                activeLocationSource: "browser_geolocation",
+                browserLocation,
+              });
+            }
+          },
+          () => { /* accuracy too broad or error — keep scenario_seed */ },
+          { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
+        );
+      }
+    } else {
+      const raw = window.localStorage.getItem(storageKey);
+      let current = initialDemoState;
+      if (raw) {
+        try { current = normalizeDemoState(JSON.parse(raw)); } catch { /* use initial */ }
+      }
+      headerPersist({
+        ...current,
+        activeScenarioId: id,
+        activeLocationSource: "scenario_seed",
+        demoClassroomMode: false,
+      });
+    }
+  };
+
+  const activeScenarioId = state.activeScenarioId;
+  const userInitial = state.profile.preferredName.charAt(0).toUpperCase();
+  const caregiverInitial = state.profile.caregiverName.charAt(0).toUpperCase();
+
   return (
-    <header className="sticky top-0 z-10 border-b border-brand-border bg-brand-bg/90 backdrop-blur">
-      <div className="mx-auto flex w-full max-w-3xl items-center gap-3 px-4 py-3">
-        <Link href="/" className="flex items-center gap-3" aria-label="Claira home">
+    <header className="sticky top-0 z-10 border-b border-brand-border bg-[#F4E9D5] backdrop-blur">
+      <div className="flex items-stretch w-full max-w-3xl mx-auto pl-3 pr-1">
+        {/* Left: Logo tap-to-home */}
+        <Link href="/" className="flex items-center shrink-0 pr-3 py-2" aria-label="Claira home">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/claira-logo.webp" alt="Claira" className="h-8 w-auto" />
+          <img src="/claira-logo.webp" alt="Claira" className="h-10 w-auto" />
         </Link>
 
-        <nav className="ml-auto hidden items-center gap-2 md:flex" aria-label="Primary">
-          <Link
-            href="/app"
-            className="rounded-full border border-brand-border bg-brand-surface px-4 py-2 text-sm font-semibold text-brand-primary"
-          >
-            Today
-          </Link>
-          <Link
-            href="/caregiver"
-            className="rounded-full border border-brand-border bg-brand-surface px-4 py-2 text-sm font-semibold text-brand-primary"
-          >
-            Caregiver
-          </Link>
-          <Link
-            href="/demo"
-            className="rounded-full border border-brand-border bg-brand-surface px-4 py-2 text-sm font-semibold text-brand-primary"
-          >
-            Demo
-          </Link>
-        </nav>
+        {/* Right: View tabs (row 1) + scenario buttons (row 2) */}
+        <div className="flex flex-col items-end justify-between flex-1 pt-0 pb-1 gap-0.5">
+          {/* Row 1: User / Caregiver tabs */}
+          <div className="flex flex-row items-start gap-1">
+            <button
+              type="button"
+              onClick={() => router.push("/app")}
+              className={`rounded-t-none rounded-b-lg border-2 w-12 h-7 flex items-center justify-center text-sm font-bold transition-colors active:scale-95 focus:outline-none ${
+                pathname === "/app"
+                  ? "bg-[#F4F9F3] border-[#E4F6DD] text-[#9DB49A]"
+                  : "bg-white border-[#E4F6DD] text-[#D1DBD0]"
+              }`}
+            >
+              {userInitial}
+            </button>
+            <button
+              type="button"
+              onClick={() => router.push("/caregiver")}
+              className={`rounded-t-none rounded-b-lg border-2 w-12 h-7 flex items-center justify-center text-sm font-bold transition-colors active:scale-95 focus:outline-none ${
+                pathname === "/caregiver"
+                  ? "bg-[#E3F6FB] border-[#D4E8ED] text-[#88AEB7]"
+                  : "bg-white border-[#D4E8ED] text-[#C9D9DD]"
+              }`}
+            >
+              {caregiverInitial}
+            </button>
+          </div>
+
+          {/* Row 2: Scenario shortcut buttons */}
+          <div className="flex flex-row items-center gap-0.5">
+            {scenarioButtons.map(({ id, icon }) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => handleScenarioClick(id)}
+                className={`rounded-md border-2 w-[26px] h-[22px] flex items-center justify-center transition-colors active:scale-95 focus:outline-none ${
+                  activeScenarioId === id
+                    ? "bg-[#FAE4B0] border-[#F5C842]"
+                    : "bg-white border-[#FAE4B0]"
+                }`}
+              >
+                <MemoryIcon
+                  name={icon}
+                  className={`h-3 w-3 ${activeScenarioId === id ? "text-[#BD8B35]" : "text-[#F0DBB7]"}`}
+                />
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
     </header>
   );
 }
-
 
 
 // ---
@@ -3787,7 +3978,12 @@ export type MemoryIconName =
   | "bell"
   | "chevronRight"
   | "sun"
-  | "idCard";
+  | "idCard"
+  | "sunrise"
+  | "stethoscope"
+  | "rx"
+  | "moon"
+  | "alertTriangle";
 
 type MemoryIconProps = {
   name: MemoryIconName;
@@ -3940,6 +4136,55 @@ export default function MemoryIcon({ name, className, title }: MemoryIconProps) 
           <path d="M6 15.5h3M13 15.5h5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
         </svg>
       );
+    case "sunrise":
+      return (
+        <svg {...common}>
+          <path d="M3 17h18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          <path d="M5 17a7 7 0 0 1 14 0" fill="none" stroke="currentColor" strokeWidth="2" />
+          <path d="M12 5v2.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          <path d="M6.4 8l1.6 1.6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          <path d="M17.6 8l-1.6 1.6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          <path d="M3.5 13.5l2.2 0.8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        </svg>
+      );
+    case "stethoscope":
+      return (
+        <svg {...common}>
+          <path d="M7 4v5a5 5 0 0 0 10 0V4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          <path d="M12 14v4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          <circle cx="12" cy="20" r="2" fill="none" stroke="currentColor" strokeWidth="2" />
+        </svg>
+      );
+    case "rx":
+      return (
+        <svg {...common}>
+          <path d="M6 6v12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          <path d="M6 6h4a3 3 0 0 1 0 6H6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+          <path d="M9.5 12l4 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          <path d="M16 14l4 4M20 14l-4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+        </svg>
+      );
+    case "moon":
+      return (
+        <svg {...common}>
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" fill="currentColor" />
+        </svg>
+      );
+    case "alertTriangle":
+      return (
+        <svg {...common}>
+          <path
+            d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <path d="M12 9v4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          <circle cx="12" cy="17" r="1" fill="currentColor" />
+        </svg>
+      );
     default:
       return null;
   }
@@ -4061,7 +4306,7 @@ export default function HelperModal({ open, onClose, profile, activeLocationSumm
   const fullName = profile.fullName && profile.fullName.trim() !== "" ? profile.fullName : profile.preferredName;
 
   return (
-    <div className="fixed inset-0 z-50 font-sans" role="dialog" aria-modal="true" aria-label="Helper card">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-5 font-sans" role="dialog" aria-modal="true" aria-label="Helper card">
       <button
         type="button"
         onClick={onClose}
@@ -4069,37 +4314,37 @@ export default function HelperModal({ open, onClose, profile, activeLocationSumm
         aria-label="Close"
       />
 
-      <div className="absolute inset-x-3 top-[6%] flex flex-col rounded-[24px] bg-white shadow-2xl">
+      <div className="relative w-full max-h-[90dvh] overflow-y-auto flex flex-col rounded-[24px] bg-white ring-[6px] ring-[#92BDBB] shadow-2xl">
 
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-[#E3DAC9]/40 px-5 py-3.5">
+        <div className="flex items-center justify-between border-b border-[#E3DAC9]/40 bg-[#DDE9E8] rounded-t-[24px] px-5 py-2">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/claira-logo.webp" alt="Claira" className="h-6 w-auto" />
           <button
             type="button"
             onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-[#F6F3EE] text-lg font-medium text-[#8B7D6B] transition-transform active:scale-95"
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-[#F6F3EE] text-lg font-medium text-[#8B7D6B] shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] transition-transform active:scale-95"
           >
             ×
           </button>
         </div>
 
         {/* Identity block */}
-        <div className="flex flex-col items-center gap-2 px-5 py-4 text-center">
-          <p className="text-[17px] font-medium text-[#8B7D6B]">Hi, my name is</p>
+        <div className="flex flex-col items-center gap-2 px-5 py-2 text-center">
+          <p className="text-[17px] font-bold text-[#5A4A3A]">Hi, my name is</p>
           <h1 className="font-serif text-3xl font-bold tracking-tight text-[#5A4A3A]">{fullName}</h1>
-          <p className="mt-0.5 text-[17px] text-[#8B7D6B]">I need a little help right now.</p>
+          <p className="mt-0.5 text-[17px] font-bold text-[#5A4A3A]">I need a little help right now.</p>
         </div>
 
         <hr className="mx-5 h-px border-0 bg-gradient-to-r from-transparent via-[#E3DAC9] to-transparent" />
 
         {/* Key info */}
-        <div className="flex flex-col gap-2 px-5 py-3">
+        <div className="flex flex-col gap-2 px-5 py-2">
           <div className="mb-2 flex items-center gap-1.5">
             <span className="text-[11px] font-bold uppercase tracking-wider text-[#8B7D6B]">Can you tell {profile.preferredName}</span>
           </div>
           {/* Location row */}
-          <div className="flex items-center gap-3 rounded-2xl border-2 border-[#E3DAC9]/60 bg-[#F6F3EE] px-4 py-3">
+          <div className="flex items-center gap-3 rounded-2xl border-2 border-[#E3DAC9]/60 bg-[#F6F3EE] px-4 py-3 shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)]">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#C8E2C4]/20">
               <MemoryIcon name="home" className="h-5 w-5 text-[#7C9B78]" />
             </div>
@@ -4119,7 +4364,7 @@ export default function HelperModal({ open, onClose, profile, activeLocationSumm
           </div>
           {/* Context row (conditional) */}
           {briefContext ? (
-            <div className="flex items-center gap-3 rounded-2xl border-2 border-[#E3DAC9]/60 bg-[#F6F3EE] px-4 py-3">
+            <div className="flex items-center gap-3 rounded-2xl border-2 border-[#E3DAC9]/60 bg-[#F6F3EE] px-4 py-2 shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)]">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#C8E2C4]/20">
                 <MemoryIcon name="mapPin" className="h-5 w-5 text-[#7C9B78]" />
               </div>
@@ -4134,8 +4379,8 @@ export default function HelperModal({ open, onClose, profile, activeLocationSumm
         <hr className="mx-5 h-px border-0 bg-gradient-to-r from-transparent via-[#E3DAC9] to-transparent" />
 
         {/* Caregiver */}
-        <div className="flex flex-col gap-2 px-5 py-3">
-          <div className="flex items-center gap-3 rounded-2xl border-2 border-[#C8E2C4] bg-[#C8E2C4]/20 px-4 py-3.5">
+        <div className="flex flex-col gap-2 px-5 py-2">
+          <div className="flex items-center gap-3 rounded-2xl border-2 border-[#C8E2C4] bg-[#C8E2C4]/20 px-4 py-2 shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)]">
             <div className="flex flex-1 flex-col gap-0.5">
               <p className="text-[11px] font-bold uppercase tracking-wider text-[#5A4A3A]/60">
                 If {profile.preferredName} needs more assistance
@@ -4148,7 +4393,7 @@ export default function HelperModal({ open, onClose, profile, activeLocationSumm
               type="button"
               onClick={onCallCaregiver}
               aria-label={`Call ${profile.caregiverName}`}
-              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-2 border-[#DFFFC4] bg-[#7C9B78] shadow-md transition-transform active:scale-95"
+              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-2 border-[#DFFFC4] bg-[#7C9B78] shadow-md shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] transition-transform active:scale-95"
             >
               <div className="flex flex-col items-center leading-none gap-0">
                 <span className="text-[8px] font-bold uppercase tracking-wide text-white">call</span>
@@ -4161,11 +4406,11 @@ export default function HelperModal({ open, onClose, profile, activeLocationSumm
         <hr className="mx-5 h-px border-0 bg-gradient-to-r from-transparent via-[#E3DAC9] to-transparent" />
 
         {/* Footer */}
-        <div className="flex flex-col gap-1.5 border-t border-[#E3DAC9]/40 px-5 pb-4 pt-3">
+        <div className="flex flex-col gap-1.5 border-t border-[#E3DAC9]/40 px-5 pb-3 pt-2">
           <button
             type="button"
             onClick={onClose}
-            className="mx-auto flex w-1/2 items-center justify-center gap-2 rounded-2xl bg-[#7C9B78] py-3 text-sm font-bold text-white transition-transform active:scale-[0.98]"
+            className="mx-auto flex w-1/2 items-center justify-center gap-2 rounded-2xl bg-[#7C9B78] py-2 text-sm font-bold text-white shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] transition-transform active:scale-[0.98]"
           >
             <div className="flex flex-col items-center gap-0">
               <span className="text-base font-bold">I&apos;M OK</span>
@@ -4174,18 +4419,18 @@ export default function HelperModal({ open, onClose, profile, activeLocationSumm
           </button>
         </div>
 
-        <div className="mx-5 mt-2 h-[2px] rounded-full bg-[#E3DAC9]" />
+        <div className="mx-5 mt-1 h-[2px] rounded-full bg-[#E3DAC9]" />
 
         {/* Emergency */}
-        <div className="mb-1 flex flex-col gap-2 px-5 py-3">
-          <div className="flex items-center gap-3 rounded-2xl border-2 border-[#E8B4B4] bg-[#E8B4B4]/20 px-4 py-1">
+        <div className="mb-1 flex flex-col gap-2 px-5 py-1.5">
+          <div className="flex items-center gap-3 rounded-2xl border-2 border-[#E8B4B4] bg-[#E8B4B4]/20 px-4 py-1 shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)]">
             <div className="flex flex-1 flex-col gap-0.5">
               <p className="text-[9px] font-bold uppercase tracking-wider text-[#A64D4D]/70">
                 If you feel that {profile.preferredName} is in danger
               </p>
               <p className="text-[13px] font-serif font-bold text-[#B27070]">Call emergency services</p>
             </div>
-            <button type="button" onClick={onCallEmergency} aria-label="Call emergency services" className="shrink-0 rounded-xl border-2 border-[#EDDBDB] bg-[#A64D4D] px-3 py-1 text-xs font-bold text-white shadow-md transition-transform active:scale-95">Call 911</button>
+            <button type="button" onClick={onCallEmergency} aria-label="Call emergency services" className="shrink-0 rounded-xl border-2 border-[#EDDBDB] bg-[#A64D4D] px-3 py-1 text-xs font-bold text-white shadow-md shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] transition-transform active:scale-95">Call 911</button>
           </div>
         </div>
 
