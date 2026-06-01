@@ -126,6 +126,7 @@ export default function TodayWindowPage() {
   const [checkInBranchText, setCheckInBranchText] = useState("");
   const [checkInBranchLoading, setCheckInBranchLoading] = useState(false);
   const [checkInHistoryOpen, setCheckInHistoryOpen] = useState(false);
+  const [checkedItems, setCheckedItems] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     setState(loadState());
@@ -137,6 +138,10 @@ export default function TodayWindowPage() {
     window.addEventListener("claira-state-update", handler);
     return () => window.removeEventListener("claira-state-update", handler);
   }, []);
+
+  useEffect(() => {
+    if (!nextEventDetailOpen) setCheckedItems(new Set());
+  }, [nextEventDetailOpen]);
 
   const activeScenario = useMemo(() => findScenario(state.activeScenarioId), [state.activeScenarioId]);
 
@@ -390,6 +395,14 @@ export default function TodayWindowPage() {
     setCallingEmergency(true);
   };
 
+  const dismissCheckInModal = () => {
+    setCheckInModalOpen(false);
+    setCheckInSelectedId(null);
+    setCheckInBranchOpen(false);
+    setCheckInBranchType(null);
+    setCheckInBranchText("");
+  };
+
   const handleCheckInBranch = async (questionId: string, branch: "positive" | "uncertain" | "confused"): Promise<void> => {
     const question = checkInPacket?.find((q) => q.id === questionId) ?? null;
     persist(appendActivityEvent(state, createLocationEvent("checkin_submitted", {
@@ -459,6 +472,17 @@ export default function TodayWindowPage() {
     lost_unknown_location: "alertTriangle",
   };
   const nextEventIconName: MemoryIconName = scenarioNextEventIcon[activeScenario.id] ?? "utensils";
+
+  const splitTrailingEmoji = (str: string): { text: string; emoji: string } => {
+    const lastSpace = str.lastIndexOf(" ");
+    if (lastSpace !== -1) {
+      const trailing = str.slice(lastSpace + 1);
+      if (/\p{Emoji}/u.test(trailing)) {
+        return { text: str.slice(0, lastSpace), emoji: trailing };
+      }
+    }
+    return { text: str, emoji: "" };
+  };
 
   return (
     <div className="relative flex flex-1 flex-col">
@@ -562,22 +586,16 @@ export default function TodayWindowPage() {
 
       {/* Bottom region */}
       <div className="shrink-0 px-5 pb-3 pt-3">
-        {/* History / Saved row above buttons */}
-        <div className="mb-2 flex items-center justify-between text-xs">
+        {/* History row above buttons */}
+        <div className="mb-2 flex items-center justify-end">
           <button
             type="button"
             onClick={() => setCheckInHistoryOpen(true)}
-            className="flex items-center gap-1 focus:outline-none"
+            className="flex items-center gap-1 rounded-full bg-[#C8E2C4]/40 px-2 py-0.5 text-[11px] font-semibold text-[#4B8B62] focus:outline-none"
           >
-            <MemoryIcon name="clock" className="h-4 w-4 text-[#8B7D6B]" />
-            <span className="text-[#8B7D6B]">History</span>
+            <MemoryIcon name="clock" className="h-3 w-3 text-[#4B8B62]" />
+            History
           </button>
-          {checkInDoneThisSession ? (
-            <div className="flex items-center gap-1 rounded-full bg-[#C8E2C4]/40 px-2 py-0.5">
-              <MemoryIcon name="checkCircle" className="h-3 w-3 text-[#4B8B62]" />
-              <span className="text-[#4B8B62]">Saved</span>
-            </div>
-          ) : null}
         </div>
         {/* Three main action buttons */}
         <div className="flex gap-2">
@@ -596,12 +614,15 @@ export default function TodayWindowPage() {
           <button
             type="button"
             onClick={() => setCheckInModalOpen(true)}
-            className="flex aspect-square flex-1 flex-col items-center justify-center gap-1 rounded-2xl border-[3px] border-[#7C9B78]/60 bg-[#C8E2C4]/40 p-2 shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] transition-transform focus:outline-none active:scale-95"
+            className="relative flex aspect-square flex-1 flex-col items-center justify-center gap-1 rounded-2xl border-[3px] border-[#7C9B78]/60 bg-[#C8E2C4]/40 p-2 shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] transition-transform focus:outline-none active:scale-95"
           >
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#7C9B78] shadow-sm">
               <MemoryIcon name="checkCircle" className="h-5 w-5 text-white" />
             </div>
             <span className="font-serif text-sm font-bold whitespace-nowrap text-[#5A4A3A]">Check-In</span>
+            {checkInDoneThisSession ? (
+              <span className="absolute bottom-1 left-0 right-0 text-center text-[9px] font-semibold text-[#4B8B62] leading-none">✓ Saved</span>
+            ) : null}
           </button>
           {/* Get Help */}
           <button
@@ -618,11 +639,12 @@ export default function TodayWindowPage() {
       </div>
 
       {checkInModalOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-xl space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => dismissCheckInModal()}>
+          <div className={`relative w-full max-w-sm rounded-3xl p-6 shadow-xl space-y-4 ${!checkInBranchOpen ? "bg-[#E4F6DD] ring-[6px] ring-[#F6FFF5]" : "bg-white"}`} onClick={(e) => e.stopPropagation()}>
+            <button type="button" onClick={dismissCheckInModal} className="absolute top-3 right-3 flex h-8 w-8 items-center justify-center rounded-full bg-[#F6F3EE] text-[#8B7D6B] shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none">×</button>
             {!checkInSelectedId ? (
               <>
-                <h2 className="font-serif text-xl font-bold text-[#5A4A3A]">How are you doing?</h2>
+                <p className="text-sm font-semibold text-[#719E6B]">Tap a question to answer</p>
                 <div className="space-y-3">
                   {checkInPacketLoading || !checkInPacket ? (
                     <div className="flex items-center justify-center gap-1 py-8">
@@ -632,46 +654,55 @@ export default function TodayWindowPage() {
                     </div>
                   ) : (
                     checkInPacket.map((q) => (
-                      <button key={q.id} type="button" onClick={() => setCheckInSelectedId(q.id)} className="min-h-12 w-full rounded-2xl border border-[#E3DAC9] bg-[#F6F3EE] px-4 py-3 text-left text-base font-medium text-[#5A4A3A] shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] hover:bg-[#C8E2C4]/20 focus:outline-none focus:ring-2 focus:ring-[#7C9B78]/40">
-                        {q.text}
+                      <button key={q.id} type="button" onClick={() => setCheckInSelectedId(q.id)} className="min-h-12 w-full rounded-2xl border border-[#F3EEE6] bg-white px-4 py-3 flex items-center justify-between shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none">
+                        <span className="text-left text-base font-medium text-[#5A4A3A] flex-1 pr-2">{q.text}</span>
+                        <MemoryIcon name="chevronRight" className="h-8 w-8 shrink-0 text-[#5A8C5A]" />
                       </button>
                     ))
                   )}
                 </div>
                 <div className="flex items-center justify-between pt-1">
-                  <button type="button" onClick={() => setCheckInHistoryOpen(true)} className="shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] text-xs text-[#8B7D6B] underline underline-offset-2">View past check-ins</button>
-                  <button type="button" onClick={() => { setCheckInModalOpen(false); setCheckInSelectedId(null); }} className="shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] text-sm text-[#8B7D6B] underline underline-offset-2">Back</button>
+                  <button type="button" onClick={() => { setCheckInModalOpen(false); setCheckInSelectedId(null); }} className="rounded-full border border-[#F3EEE6] bg-[#F6F3EE] px-5 py-2 text-sm font-semibold text-[#5A4A3A] shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none">Back</button>
+                  <button type="button" onClick={() => setCheckInHistoryOpen(true)} className="rounded-full border border-[#F3EEE6] bg-[#F6F3EE] px-5 py-2 text-sm font-semibold text-[#5A4A3A] shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none">View past check-ins</button>
                 </div>
               </>
             ) : !checkInBranchOpen ? (
               <>
-                <p className="text-xs font-semibold uppercase tracking-wide text-[#8B7D6B]">{checkInPacket?.find((q) => q.id === checkInSelectedId)?.text}</p>
+                <p className="font-serif text-base font-semibold text-[#5A4A3A]">{checkInPacket?.find((q) => q.id === checkInSelectedId)?.text}</p>
                 <div className="space-y-3">
                   {(["positive", "uncertain", "confused"] as const).map((branch) => {
                     const label = checkInPacket?.find((q) => q.id === checkInSelectedId)?.responses[branch] ?? "";
+                    const { text: labelText, emoji: labelEmoji } = splitTrailingEmoji(label);
                     return (
-                      <button key={branch} type="button" onClick={() => void handleCheckInBranch(checkInSelectedId!, branch)} className="min-h-12 w-full rounded-2xl border border-[#E3DAC9] bg-[#F6F3EE] px-4 py-3 text-left text-base font-medium text-[#5A4A3A] shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] hover:bg-[#C8E2C4]/20 focus:outline-none focus:ring-2 focus:ring-[#7C9B78]/40">
-                        {label}
+                      <button key={branch} type="button" onClick={() => void handleCheckInBranch(checkInSelectedId!, branch)} className="min-h-12 w-full rounded-2xl border border-[#F3EEE6] bg-white px-4 py-3 flex items-center gap-2 shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none">
+                        <span className="flex-1 text-left text-base font-medium text-[#5A4A3A]">{labelText}</span>
+                        <span className="text-xl w-8 text-center shrink-0">{labelEmoji}</span>
+                        <MemoryIcon name="chevronRight" className="h-8 w-8 shrink-0 text-[#5A8C5A]" />
                       </button>
                     );
                   })}
                 </div>
-                <button type="button" onClick={() => setCheckInSelectedId(null)} className="shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] text-sm text-[#8B7D6B] underline underline-offset-2">Back</button>
+                <button type="button" onClick={() => setCheckInSelectedId(null)} className="rounded-full border border-[#F3EEE6] bg-[#F6F3EE] px-5 py-2 text-sm font-semibold text-[#5A4A3A] shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none">Back</button>
               </>
             ) : (
               <>
                 <div className="min-h-20 text-base leading-relaxed text-[#5A4A3A]">
-                  {checkInBranchLoading && !checkInBranchText ? (
-                    <span className="text-[#8B7D6B]">One moment...</span>
+                  {checkInBranchLoading && checkInBranchText.trim().length < 30 ? (
+                    <div className="flex items-center justify-center gap-1 py-8">
+                      <div className="h-2 w-2 animate-pulse rounded-full bg-[#7C9B78]" />
+                      <div className="h-2 w-2 animate-pulse rounded-full bg-[#7C9B78] [animation-delay:0.2s]" />
+                      <div className="h-2 w-2 animate-pulse rounded-full bg-[#7C9B78] [animation-delay:0.4s]" />
+                    </div>
                   ) : checkInBranchText}
                   {checkInBranchLoading ? <span className="ml-1 inline-block h-3 w-0.5 animate-pulse bg-[#7C9B78]" /> : null}
                 </div>
                 {!checkInBranchLoading ? (
                   <div className="space-y-3">
-                    <button type="button" onClick={() => { setCheckInModalOpen(false); setCheckInSelectedId(null); setCheckInBranchOpen(false); setCheckInBranchType(null); setCheckInBranchText(""); setNextEventDetailOpen(true); }} className="min-h-12 w-full rounded-2xl bg-[#7C9B78] px-4 py-3 text-base font-semibold text-white shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none">
-                      Show me the details
+                    <button type="button" onClick={() => { setCheckInModalOpen(false); setCheckInSelectedId(null); setCheckInBranchOpen(false); setCheckInBranchType(null); setCheckInBranchText(""); setNextEventDetailOpen(true); }} className="min-h-12 w-4/5 mx-auto rounded-2xl bg-[#FEF3E2] border-2 border-[#FAE4B0] px-4 py-3 text-base font-semibold text-[#5A4A3A] flex items-center justify-center gap-2 shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none">
+                      <span>Show me the details</span>
+                      <MemoryIcon name="chevronRight" className="h-6 w-6 shrink-0 text-[#8B7355]" />
                     </button>
-                    <button type="button" onClick={() => { setCheckInDoneThisSession(true); setCheckInModalOpen(false); setCheckInSelectedId(null); setCheckInBranchOpen(false); setCheckInBranchType(null); setCheckInBranchText(""); }} className="min-h-12 w-full rounded-2xl border border-[#E3DAC9] bg-[#F6F3EE] px-4 py-3 text-base font-semibold text-[#5A4A3A] shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none">
+                    <button type="button" onClick={() => { setCheckInDoneThisSession(true); setCheckInModalOpen(false); setCheckInSelectedId(null); setCheckInBranchOpen(false); setCheckInBranchType(null); setCheckInBranchText(""); }} className="bg-[#E4F6DD] border border-[#F6FFF5] text-[#51694E] font-semibold rounded-2xl min-h-12 px-4 py-3 shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none w-4/5 mx-auto block">
                       I&apos;m okay, thanks
                     </button>
                   </div>
@@ -683,8 +714,9 @@ export default function TodayWindowPage() {
       ) : null}
 
       {checkInHistoryOpen ? (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4">
-          <div className="max-h-[80vh] w-full max-w-lg overflow-y-auto rounded-t-3xl border border-[#E3DAC9] bg-white p-6 shadow-xl sm:rounded-3xl space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setCheckInHistoryOpen(false)}>
+          <div className="relative max-h-[80vh] w-full max-w-sm overflow-y-auto rounded-3xl border border-[#E3DAC9] bg-white p-6 shadow-xl space-y-4" onClick={(e) => e.stopPropagation()}>
+            <button type="button" onClick={() => setCheckInHistoryOpen(false)} className="absolute top-3 right-3 flex h-8 w-8 items-center justify-center rounded-full bg-[#F6F3EE] text-[#8B7D6B] shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none">×</button>
             <h2 className="font-serif text-lg font-bold text-[#5A4A3A]">Past check-ins</h2>
             {state.activityEvents.filter((e) => e.eventType === "checkin_submitted").length === 0 ? (
               <p className="text-sm text-[#8B7D6B]">No check-ins yet this session.</p>
@@ -706,7 +738,7 @@ export default function TodayWindowPage() {
                   ))}
               </ul>
             )}
-            <button type="button" onClick={() => setCheckInHistoryOpen(false)} className="min-h-12 w-full rounded-2xl border border-[#E3DAC9] bg-[#F6F3EE] px-4 py-3 text-base font-semibold text-[#5A4A3A] shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none">
+            <button type="button" onClick={() => setCheckInHistoryOpen(false)} className="rounded-full border border-[#F3EEE6] bg-[#F6F3EE] px-5 py-2 text-sm font-semibold text-[#5A4A3A] shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none">
               Close
             </button>
           </div>
@@ -726,9 +758,10 @@ export default function TodayWindowPage() {
       />
 
       {helpMeNowOpen && !streamPanelOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-sm rounded-3xl border border-brand-border bg-brand-surface p-6 shadow-xl space-y-4">
-            <h2 className="text-xl font-semibold text-brand-text">What would you like to know?</h2>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setHelpMeNowOpen(false)}>
+          <div className="relative w-full max-w-sm rounded-3xl bg-[#EEE7DD] ring-[6px] ring-[#BEAE9A] p-6 shadow-xl space-y-4" onClick={(e) => e.stopPropagation()}>
+            <button type="button" onClick={() => setHelpMeNowOpen(false)} className="absolute top-3 right-3 flex h-8 w-8 items-center justify-center rounded-full bg-[#F6F3EE] text-[#8B7D6B] shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none">×</button>
+            <p className="text-xs font-semibold uppercase tracking-wide text-[#5A4A3A] mb-2">What would you like to know?</p>
             <div className="space-y-3">
               {(["where_am_i", "what_is_happening", "what_should_i_do_next"] as QuestionKey[]).map((key) => (
                 <button
@@ -736,7 +769,7 @@ export default function TodayWindowPage() {
                   type="button"
                   onClick={() => askQuestion(key)}
                   disabled={streamingLoading}
-                  className="min-h-12 w-full rounded-2xl border border-brand-border bg-brand-bg px-4 py-3 text-left text-base font-medium text-brand-text shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] hover:bg-brand-surface focus:outline-none focus:ring-2 focus:ring-brand-compass/40 disabled:opacity-50"
+                  className="min-h-12 w-full rounded-2xl border border-[#FAE4B0] bg-white px-4 py-3 text-left text-base font-medium text-brand-text shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none focus:ring-2 focus:ring-brand-compass/40 disabled:opacity-50"
                 >
                   {questionLabels[key]}
                 </button>
@@ -751,58 +784,51 @@ export default function TodayWindowPage() {
                 Recent guidance
               </button>
             </div>
-            <button
-              type="button"
-              onClick={() => setHelpMeNowOpen(false)}
-              className="shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] text-sm text-brand-muted underline underline-offset-2"
-            >
-              Back
-            </button>
+            <div className="flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => setHelpMeNowOpen(false)}
+                className="rounded-full border border-[#F3EEE6] bg-[#F6F3EE] px-5 py-2 text-sm font-semibold text-[#5A4A3A] shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none"
+              >
+                Back
+              </button>
+              <button
+                type="button"
+                onClick={() => { setCallingEmergency(true); setHelpMeNowOpen(false); }}
+                className="rounded-full border border-[#E8B4B4] bg-[#FAF0F0] flex items-center gap-2 px-3 py-2 shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none"
+              >
+                <span className="text-sm font-semibold text-[#A64D4D]">Emergency</span>
+                <span className="rounded-full bg-[#8C3939] px-2 py-0.5 text-xs font-bold text-white">911</span>
+              </button>
+            </div>
           </div>
         </div>
       ) : null}
 
       {streamPanelOpen ? (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4">
-          <div className="w-full max-w-lg rounded-t-3xl border border-brand-border bg-brand-surface p-6 shadow-xl sm:rounded-3xl">
-            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-brand-muted">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => dismissStreamPanel()}>
+          <div className="relative w-full max-w-sm rounded-3xl bg-[#EEE7DD] ring-[6px] ring-[#BEAE9A] p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <button type="button" onClick={dismissStreamPanel} className="absolute top-3 right-3 flex h-8 w-8 items-center justify-center rounded-full bg-[#F6F3EE] text-[#8B7D6B] shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none">×</button>
+            <p className="mb-3 text-sm font-semibold uppercase tracking-wide text-[#5A4A3A]">
               {streamingQuestion ? questionLabels[streamingQuestion] : ""}
             </p>
-            <div className="min-h-24 text-base leading-relaxed text-brand-text">
-              {streamingLoading && !streamedText ? (
-                <span className="text-brand-muted">One moment...</span>
-              ) : (
-                streamedText
-              )}
-              {streamingLoading ? <span className="ml-1 inline-block h-3 w-0.5 animate-pulse bg-brand-primary" /> : null}
+            <div className="rounded-2xl bg-white p-4">
+              <div className="min-h-24 text-base leading-relaxed text-brand-text">
+                {streamingLoading && streamedText.trim().length < 30 ? (
+                  <div className="flex items-center justify-center gap-1 py-8">
+                    <div className="h-2 w-2 animate-pulse rounded-full bg-[#7C9B78]" />
+                    <div className="h-2 w-2 animate-pulse rounded-full bg-[#7C9B78] [animation-delay:0.2s]" />
+                    <div className="h-2 w-2 animate-pulse rounded-full bg-[#7C9B78] [animation-delay:0.4s]" />
+                  </div>
+                ) : (
+                  streamedText
+                )}
+                {streamingLoading ? <span className="ml-1 inline-block h-3 w-0.5 animate-pulse bg-brand-primary" /> : null}
+              </div>
             </div>
             {!streamingLoading ? (
-              <div className="mt-5 space-y-3">
-                <button
-                  type="button"
-                  onClick={() => {
-                    persist(appendActivityEvent(state, createLocationEvent("okay_confirmed", { question: streamingQuestion })));
-                    setHelpMeNowOpen(false);
-                    dismissStreamPanel();
-                  }}
-                  className="min-h-12 w-full rounded-2xl bg-green-700 px-4 py-3 text-base font-semibold text-white shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none focus:ring-2 focus:ring-green-400"
-                >
-                  I&apos;m okay
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { callCaregiver(); setHelpMeNowOpen(false); dismissStreamPanel(); }}
-                  className="min-h-12 w-full rounded-2xl bg-brand-primary px-4 py-3 text-base font-semibold text-white shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none focus:ring-2 focus:ring-brand-compass"
-                >
-                  {`Call ${state.profile.caregiverName}`}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setHelperOpen(true); setHelpMeNowOpen(false); dismissStreamPanel(); }}
-                  className="min-h-12 w-full rounded-2xl border border-brand-border bg-brand-bg px-4 py-3 text-base font-semibold text-brand-text shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none focus:ring-2 focus:ring-brand-compass/40"
-                >
-                  Show this screen
-                </button>
+              <div className="mt-5 space-y-4">
+                <div className="h-px w-full bg-gradient-to-r from-transparent via-[#C8E2C4] to-transparent" />
                 {(() => {
                   const remainingQuestions = (["where_am_i", "what_is_happening", "what_should_i_do_next"] as QuestionKey[]).filter(
                     (key) => !askedQuestions.includes(key)
@@ -810,13 +836,13 @@ export default function TodayWindowPage() {
                   if (remainingQuestions.length === 0) return null;
                   return (
                     <>
-                      <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-brand-muted">Ask another question</p>
+                      <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-[#5A4A3A]">Ask another question</p>
                       {remainingQuestions.map((key) => (
                         <button
                           key={key}
                           type="button"
                           onClick={() => askQuestion(key)}
-                          className="min-h-12 w-full rounded-2xl border border-brand-border bg-brand-bg px-4 py-3 text-left text-base font-medium text-brand-text shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] hover:bg-brand-surface focus:outline-none focus:ring-2 focus:ring-brand-compass/40 disabled:opacity-50"
+                          className="min-h-12 w-full rounded-2xl border border-[#FAE4B0] bg-white px-4 py-3 text-left text-base font-medium text-brand-text shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none focus:ring-2 focus:ring-brand-compass/40 disabled:opacity-50"
                         >
                           {questionLabels[key]}
                         </button>
@@ -824,6 +850,37 @@ export default function TodayWindowPage() {
                     </>
                   );
                 })()}
+                <div className="h-px w-full bg-gradient-to-r from-transparent via-[#C8E2C4] to-transparent" />
+                <button
+                  type="button"
+                  onClick={() => {
+                    persist(appendActivityEvent(state, createLocationEvent("okay_confirmed", { question: streamingQuestion })));
+                    setHelpMeNowOpen(false);
+                    dismissStreamPanel();
+                  }}
+                  className="min-h-12 px-6 py-3 rounded-2xl text-base font-semibold whitespace-nowrap bg-[#E4F6DD] border border-[#F6FFF5] text-[#51694E] shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none w-4/5 mx-auto flex items-center justify-center"
+                >
+                  Got it, I&apos;m good
+                </button>
+                <div className="flex items-center justify-between pt-1">
+                  <button
+                    type="button"
+                    onClick={() => { setHelpMeNowOpen(false); dismissStreamPanel(); }}
+                    className="rounded-full border border-[#F3EEE6] bg-[#F6F3EE] px-5 py-2 text-sm font-semibold text-[#5A4A3A] shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none"
+                  >
+                    Back
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { callCaregiver(); setHelpMeNowOpen(false); dismissStreamPanel(); }}
+                    className="flex items-center gap-1 rounded-full border-2 border-[#A5BBA0] bg-[#F4F9F3] pl-2 pr-1 py-1 shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none"
+                  >
+                    <span className="text-xs font-semibold text-[#71A172] whitespace-nowrap">Call {state.profile.caregiverName}</span>
+                    <div className="h-8 w-8 rounded-full bg-[#95C18F] border-2 border-[#E1FFC4] flex items-center justify-center">
+                      <MemoryIcon name="phone" className="h-4 w-4 text-white" />
+                    </div>
+                  </button>
+                </div>
               </div>
             ) : null}
           </div>
@@ -831,8 +888,9 @@ export default function TodayWindowPage() {
       ) : null}
 
       {recentGuidanceOpen ? (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4">
-          <div className="max-h-[80vh] w-full max-w-lg overflow-y-auto rounded-t-3xl border border-brand-border bg-brand-surface p-6 shadow-xl sm:rounded-3xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setRecentGuidanceOpen(false)}>
+          <div className="relative max-h-[80vh] w-full max-w-sm overflow-y-auto rounded-3xl border border-brand-border bg-brand-surface p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <button type="button" onClick={() => setRecentGuidanceOpen(false)} className="absolute top-3 right-3 flex h-8 w-8 items-center justify-center rounded-full bg-[#F6F3EE] text-[#8B7D6B] shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none">×</button>
             <h2 className="mb-4 text-lg font-semibold text-brand-text">Recent guidance</h2>
             {recentGuidance.length === 0 ? (
               <p className="text-sm text-brand-muted">No guidance yet. Tap Help Me Now to get started.</p>
@@ -851,7 +909,7 @@ export default function TodayWindowPage() {
             <button
               type="button"
               onClick={() => setRecentGuidanceOpen(false)}
-              className="mt-5 min-h-12 w-full rounded-2xl border border-brand-border bg-brand-bg px-4 py-3 text-base font-semibold text-brand-text shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none focus:ring-2 focus:ring-brand-compass/40"
+              className="mt-5 rounded-full border border-[#F3EEE6] bg-[#F6F3EE] px-5 py-2 text-sm font-semibold text-[#5A4A3A] shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none"
             >
               Close
             </button>
@@ -860,11 +918,9 @@ export default function TodayWindowPage() {
       ) : null}
 
       {nextEventDetailOpen ? (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4">
-          <div className="w-full max-w-lg rounded-t-3xl border border-brand-border bg-brand-surface p-6 shadow-xl sm:rounded-3xl space-y-5">
-            <div className="flex justify-center">
-              <div className="h-1 w-10 rounded-full bg-brand-border" />
-            </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setNextEventDetailOpen(false)}>
+          <div className="relative w-full max-w-sm rounded-3xl border border-brand-border bg-brand-surface p-6 shadow-xl space-y-5" onClick={(e) => e.stopPropagation()}>
+            <button type="button" onClick={() => setNextEventDetailOpen(false)} className="absolute top-3 right-3 flex h-8 w-8 items-center justify-center rounded-full bg-[#F6F3EE] text-[#8B7D6B] shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none">×</button>
             <div>
               <p className="font-serif text-xl font-bold text-brand-text">{parsedNextEvent.shortLabel}</p>
               {parsedNextEvent.details.length > 0 ? (
@@ -875,7 +931,23 @@ export default function TodayWindowPage() {
               <ul className="space-y-3">
                 {parsedNextEvent.details.map((item, i) => (
                   <li key={i} className="flex items-start gap-3">
-                    <div className="mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 border-brand-sageDark" />
+                    <button
+                      type="button"
+                      onClick={() => setCheckedItems((prev) => {
+                        const next = new Set(prev);
+                        if (next.has(i)) { next.delete(i); } else { next.add(i); }
+                        return next;
+                      })}
+                      className="mt-1 shrink-0 focus:outline-none"
+                    >
+                      {checkedItems.has(i) ? (
+                        <div className="h-5 w-5 rounded-full bg-[#7C9B78] flex items-center justify-center">
+                          <span className="text-white text-xs">✓</span>
+                        </div>
+                      ) : (
+                        <div className="h-5 w-5 rounded-full border-2 border-[#7C9B78]" />
+                      )}
+                    </button>
                     <span className="text-base text-brand-text">{item}</span>
                   </li>
                 ))}
@@ -884,14 +956,15 @@ export default function TodayWindowPage() {
             <button
               type="button"
               onClick={() => { setNextEventDetailOpen(false); void askQuestion("what_should_i_do_next"); }}
-              className="min-h-12 w-full rounded-2xl bg-brand-sageDark px-4 py-3 text-base font-semibold text-white shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none focus:ring-2 focus:ring-brand-sageDark/50"
+              className="min-h-12 w-4/5 mx-auto rounded-2xl bg-[#FEF3E2] border-2 border-[#FAE4B0] px-4 py-3 text-base font-semibold text-[#5A4A3A] flex items-center justify-center gap-2 shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none"
             >
               Get help with this
+              <MemoryIcon name="chevronRight" className="h-6 w-6 shrink-0 text-[#8B7355]" />
             </button>
             <button
               type="button"
               onClick={() => setNextEventDetailOpen(false)}
-              className="block w-full text-center text-sm text-brand-muted shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] underline underline-offset-2 focus:outline-none"
+              className="rounded-full border border-[#F3EEE6] bg-[#F6F3EE] px-5 py-2 text-sm font-semibold text-[#5A4A3A] shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none"
             >
               Close
             </button>
@@ -900,8 +973,9 @@ export default function TodayWindowPage() {
       ) : null}
 
       {callingEmergency ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-sm rounded-3xl border border-brand-border bg-brand-surface p-6 shadow-lg">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setCallingEmergency(false)}>
+          <div className="relative w-full max-w-sm rounded-3xl border border-brand-border bg-brand-surface p-6 shadow-lg" onClick={(e) => e.stopPropagation()}>
+            <button type="button" onClick={() => setCallingEmergency(false)} className="absolute top-3 right-3 flex h-8 w-8 items-center justify-center rounded-full bg-[#F6F3EE] text-[#8B7D6B] shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none">×</button>
             <p className="text-xl font-semibold text-brand-text">Calling 911...</p>
             <p className="mt-2 text-sm text-brand-muted">This is a demo. No real call is placed.</p>
             <button
@@ -916,8 +990,9 @@ export default function TodayWindowPage() {
       ) : null}
 
       {showLostAlert ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-sm rounded-3xl border border-brand-border bg-[#FEF1D8] ring-[6px] ring-[#F5C842] p-6 shadow-lg space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setLostAlertDismissed(true)}>
+          <div className="relative w-full max-w-sm rounded-3xl border border-brand-border bg-[#FEF1D8] ring-[6px] ring-[#F5C842] p-6 shadow-lg space-y-4" onClick={(e) => e.stopPropagation()}>
+            <button type="button" onClick={() => setLostAlertDismissed(true)} className="absolute top-3 right-3 flex h-8 w-8 items-center justify-center rounded-full bg-[#F6F3EE] text-[#8B7D6B] shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none">×</button>
             <h2 className="text-xl font-semibold text-brand-text">You are in an unfamiliar location</h2>
             <p className="text-sm text-brand-muted">This does not look like one of your saved places. Would you like some help?</p>
             <div className="space-y-3">
@@ -931,7 +1006,7 @@ export default function TodayWindowPage() {
               <button
                 type="button"
                 onClick={() => setLostAlertDismissed(true)}
-                className="min-h-12 w-full rounded-2xl border border-brand-border bg-brand-bg px-4 py-3 text-base font-semibold text-brand-text shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none focus:ring-2 focus:ring-brand-compass/40"
+                className="bg-[#E4F6DD] border border-[#F6FFF5] text-[#51694E] font-semibold rounded-2xl min-h-12 px-4 py-3 shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none w-4/5 mx-auto block"
               >
                 I&apos;m OK
               </button>
@@ -941,8 +1016,9 @@ export default function TodayWindowPage() {
       ) : null}
 
       {callingCaregiver ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-sm rounded-3xl border border-brand-border bg-brand-surface p-6 shadow-lg">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setCallingCaregiver(false)}>
+          <div className="relative w-full max-w-sm rounded-3xl border border-brand-border bg-brand-surface p-6 shadow-lg" onClick={(e) => e.stopPropagation()}>
+            <button type="button" onClick={() => setCallingCaregiver(false)} className="absolute top-3 right-3 flex h-8 w-8 items-center justify-center rounded-full bg-[#F6F3EE] text-[#8B7D6B] shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none">×</button>
             <p className="text-xl font-semibold text-brand-text">Calling {state.profile.caregiverName}...</p>
             <p className="mt-2 text-sm text-brand-muted">This is a demo. No real call is placed.</p>
             <button
