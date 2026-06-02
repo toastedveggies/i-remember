@@ -7,6 +7,7 @@ import {
   storageKey,
   normalizeDemoState,
   initialDemoState,
+  defaultDemoProfile,
   type DemoState,
   type BrowserLocation,
 } from "@/data/demoState";
@@ -58,6 +59,7 @@ export default function SiteHeader() {
         activeScenarioId: "lost_unknown_location",
         demoClassroomMode: true,
         activeLocationSource: "scenario_seed",
+        profile: { ...current.profile, activeCaregiverId: current.profile.activeCaregiverId ?? defaultDemoProfile.activeCaregiverId },
       });
 
       if (typeof navigator !== "undefined" && navigator.geolocation) {
@@ -97,6 +99,7 @@ export default function SiteHeader() {
         activeScenarioId: id,
         activeLocationSource: "scenario_seed",
         demoClassroomMode: false,
+        profile: { ...current.profile, activeCaregiverId: current.profile.activeCaregiverId ?? defaultDemoProfile.activeCaregiverId },
       });
     }
   };
@@ -112,6 +115,7 @@ export default function SiteHeader() {
       activeScenarioId: "lost_unknown_location",
       demoClassroomMode: false,
       activeLocationSource: "scenario_seed",
+      profile: { ...current.profile, activeCaregiverId: current.profile.activeCaregiverId ?? defaultDemoProfile.activeCaregiverId },
     });
 
     if (typeof navigator !== "undefined" && navigator.geolocation) {

@@ -231,6 +231,7 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
   - [x] White frame overlay z-[49]→z-[9] so SiteHeader (z-10) always wins overlap during iOS scroll bounce.
 
 - Phase 11 - Caregiver and Insights Polish (active as of 2026-06-01, UTC-7):
+  - [x] Hotfix: SiteHeader scenario buttons now preserve activeCaregiverId — defaultDemoProfile imported, profile override added to all three headerPersist calls (handleScenarioClick lost branch, handleScenarioClick else branch, handleLostNoClassroomClick); demoState normalizeDemoState already had correct defaultDemoProfile fallback.
   - [ ] Caregiver dashboard: full UI polish pass to new color system and layout
   - [ ] Insights page: update chart colors, tab styles, and typography to new palette
   - [ ] Caregiver activity feed improvements (richer event display, better filtering)
