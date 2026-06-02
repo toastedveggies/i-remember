@@ -200,12 +200,16 @@ export default function TodayWindowPage() {
       `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`,
       { headers: { "User-Agent": "memory-assistant-prototype/1.0" } }
     )
-      .then((r) => r.json() as Promise<{ display_name?: string; address?: { road?: string; city?: string } }>)
+      .then((r) => r.json() as Promise<{ display_name?: string; address?: { house_number?: string; road?: string; suburb?: string; neighbourhood?: string; city?: string; town?: string; county?: string; state?: string } }>)
       .then((data) => {
         if (cancelled) return;
-        const road = data.address?.road;
-        const city = data.address?.city;
-        const addr = road && city ? `${road}, ${city}` : (data.display_name ?? "").slice(0, 60);
+        const streetLine = [data.address?.house_number, data.address?.road].filter(Boolean).join(" ");
+        const addr = [
+          streetLine,
+          data.address?.suburb ?? data.address?.neighbourhood,
+          data.address?.city ?? data.address?.town ?? data.address?.county,
+          data.address?.state,
+        ].filter(Boolean).join(", ") || (data.display_name ?? "");
         persist({ ...stateRef.current, resolvedAddress: addr });
       })
       .catch(() => {
@@ -221,12 +225,14 @@ export default function TodayWindowPage() {
   }, [activeScenario.id, resolvedLocation.source, lostAlertDismissed]);
 
   useEffect(() => {
+    const controller = new AbortController();
     const packetFallback: CheckInQuestion[] = [
       { id: "q1", text: "How are you feeling right now?", responses: { positive: "Feeling good 😊", uncertain: "A bit unsure 🤔", confused: "Not sure 😳" } },
       { id: "q2", text: "Do you know what is coming up next?", responses: { positive: "Yes I do 😊", uncertain: "Kind of, not sure 🤔", confused: "No idea 😳" } },
       { id: "q3", text: "Is there anything on your mind?", responses: { positive: "All good 😊", uncertain: "A little worried 🤔", confused: "Feeling confused 😳" } },
     ];
     const generateCheckInPacket = async () => {
+      if (!checkInModalOpen) return;
       setCheckInPacketLoading(true);
       setCheckInPacket(null);
       setCheckInSelectedId(null);
@@ -236,6 +242,7 @@ export default function TodayWindowPage() {
         const response = await fetch("/api/checkin", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          signal: controller.signal,
           body: JSON.stringify({
             mode: "packet",
             context: {
@@ -254,14 +261,15 @@ export default function TodayWindowPage() {
           setCheckInPacket(packetFallback);
         }
       } catch {
-        setCheckInPacket(packetFallback);
+        if (!controller.signal.aborted) setCheckInPacket(packetFallback);
       } finally {
-        setCheckInPacketLoading(false);
+        if (!controller.signal.aborted) setCheckInPacketLoading(false);
       }
     };
     void generateCheckInPacket();
+    return () => controller.abort();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeScenario.id]);
+  }, [activeScenario.id, checkInModalOpen]);
 
   const eventLocationDetails = useMemo(
     () => ({
@@ -536,11 +544,20 @@ export default function TodayWindowPage() {
               </div>
               <div className="flex flex-col">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-[#8B7D6B]">You are at</span>
-                <span className="font-serif text-xl font-medium text-[#5A4A3A]">
-                  {activeScenario.id === "lost_unknown_location" && state.resolvedAddress !== null
-                    ? state.resolvedAddress
-                    : activeLocationSummary.label}
-                </span>
+                {activeLocationSummary.placeId ? (
+                  <span className="font-serif text-xl font-medium text-[#5A4A3A]">{activeLocationSummary.label}</span>
+                ) : (() => {
+                  const fullAddr = state.resolvedAddress ?? activeLocationSummary.label;
+                  const commaIdx = fullAddr.indexOf(",");
+                  const street = commaIdx !== -1 ? fullAddr.slice(0, commaIdx) : fullAddr;
+                  const rest = commaIdx !== -1 ? fullAddr.slice(commaIdx + 1).trim() : "";
+                  return (
+                    <>
+                      <span className="font-serif text-lg font-medium leading-tight text-[#5A4A3A]">{street}</span>
+                      {rest ? <span className="font-serif text-sm font-medium leading-snug text-[#8B7D6B]">{rest}</span> : null}
+                    </>
+                  );
+                })()}
                 {activeLocationSummary.trustedPlaceAddress ? (
                   <span className="text-xs font-medium text-[#8B7D6B]">{activeLocationSummary.trustedPlaceAddress}</span>
                 ) : null}
@@ -585,7 +602,7 @@ export default function TodayWindowPage() {
       </div>
 
       {/* Bottom region */}
-      <div className="shrink-0 px-5 pb-3 pt-3">
+      <div className="shrink-0 px-5 pb-6 pt-3">
         {/* History row above buttons */}
         <div className="mb-2 flex items-center justify-end">
           <button
@@ -775,15 +792,6 @@ export default function TodayWindowPage() {
                 </button>
               ))}
             </div>
-            <div className="flex justify-end">
-              <button
-                type="button"
-                onClick={() => { setHelpMeNowOpen(false); setRecentGuidanceOpen(true); }}
-                className="shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] text-xs text-brand-muted underline underline-offset-2"
-              >
-                Recent guidance
-              </button>
-            </div>
             <div className="flex items-center justify-between">
               <button
                 type="button"
@@ -794,11 +802,10 @@ export default function TodayWindowPage() {
               </button>
               <button
                 type="button"
-                onClick={() => { setCallingEmergency(true); setHelpMeNowOpen(false); }}
-                className="rounded-full border border-[#E8B4B4] bg-[#FAF0F0] flex items-center gap-2 px-3 py-2 shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none"
+                onClick={() => { setRecentGuidanceOpen(true); setHelpMeNowOpen(false); }}
+                className="rounded-full border border-[#F3EEE6] bg-[#F6F3EE] px-5 py-2 text-sm font-semibold text-[#5A4A3A] shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none"
               >
-                <span className="text-sm font-semibold text-[#A64D4D]">Emergency</span>
-                <span className="rounded-full bg-[#8C3939] px-2 py-0.5 text-xs font-bold text-white">911</span>
+                Recent guidance
               </button>
             </div>
           </div>
@@ -833,7 +840,16 @@ export default function TodayWindowPage() {
                   const remainingQuestions = (["where_am_i", "what_is_happening", "what_should_i_do_next"] as QuestionKey[]).filter(
                     (key) => !askedQuestions.includes(key)
                   );
-                  if (remainingQuestions.length === 0) return null;
+                  if (remainingQuestions.length === 0) return (
+                    <button
+                      type="button"
+                      onClick={() => { setRecentGuidanceOpen(true); dismissStreamPanel(); setHelpMeNowOpen(false); }}
+                      className="w-full rounded-2xl bg-white border border-[#FAE4B0] px-4 py-3 text-left text-base font-medium text-[#5A4A3A] shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none flex items-center justify-between"
+                    >
+                      <span>Show previous guidance</span>
+                      <MemoryIcon name="clock" className="h-5 w-5 shrink-0 text-[#8B7D6B]" />
+                    </button>
+                  );
                   return (
                     <>
                       <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-[#5A4A3A]">Ask another question</p>
@@ -991,25 +1007,63 @@ export default function TodayWindowPage() {
 
       {showLostAlert ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setLostAlertDismissed(true)}>
-          <div className="relative w-full max-w-sm rounded-3xl border border-brand-border bg-[#FEF1D8] ring-[6px] ring-[#F5C842] p-6 shadow-lg space-y-4" onClick={(e) => e.stopPropagation()}>
+          <div className="relative w-full max-w-sm mx-4 rounded-3xl bg-white ring-[6px] ring-[#F5C842] shadow-xl overflow-y-auto max-h-[90dvh]" onClick={(e) => e.stopPropagation()}>
             <button type="button" onClick={() => setLostAlertDismissed(true)} className="absolute top-3 right-3 flex h-8 w-8 items-center justify-center rounded-full bg-[#F6F3EE] text-[#8B7D6B] shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none">×</button>
-            <h2 className="text-xl font-semibold text-brand-text">You are in an unfamiliar location</h2>
-            <p className="text-sm text-brand-muted">This does not look like one of your saved places. Would you like some help?</p>
-            <div className="space-y-3">
-              <button
-                type="button"
-                onClick={() => { setLostAlertDismissed(true); handleHelpMeNow(); }}
-                className="min-h-12 w-full rounded-2xl bg-brand-compass px-4 py-3 text-base font-semibold text-white shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none focus:ring-2 focus:ring-brand-compass/60"
-              >
-                Help me
-              </button>
-              <button
-                type="button"
-                onClick={() => setLostAlertDismissed(true)}
-                className="bg-[#E4F6DD] border border-[#F6FFF5] text-[#51694E] font-semibold rounded-2xl min-h-12 px-4 py-3 shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none w-4/5 mx-auto block"
-              >
-                I&apos;m OK
-              </button>
+            {/* Sections A–C: warm top strip */}
+            <div className="bg-[#FEF1D8] rounded-t-3xl px-5 pt-4 pb-3 space-y-2 text-center">
+              {/* Section A: badge only */}
+              <div className="flex flex-col items-center gap-2">
+                <span className="flex items-center gap-1.5 rounded-full bg-[#FAE4B0] border border-[#F5C842] px-3 py-0.5 text-xs font-bold uppercase tracking-wide text-[#BD8B35]">
+                  <MemoryIcon name="alertTriangle" className="h-3.5 w-3.5" />
+                  Location Alert
+                </span>
+              </div>
+              {/* Section B: heading */}
+              <h2 className="font-serif text-base font-bold text-[#5A4A3A]">This place looks unfamiliar</h2>
+              {/* Section C: description */}
+              <p className="text-xs text-[#8B7D6B]">You appear to be somewhere that is not one of your usual places. {state.profile.caregiverName} can see where you are.</p>
+            </div>
+            {/* Sections D–H: white lower area */}
+            <div className="px-5 pb-4 pt-3 space-y-2">
+              {/* Section D: detected location */}
+              <div className="rounded-2xl bg-white/70 border border-[#FAE4B0] p-2.5 shadow-sm">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-[#8B7D6B]">Detected Location</p>
+                <p className="font-semibold text-[#5A4A3A] text-sm">
+                  {state.resolvedAddress ? state.resolvedAddress : activeLocationSummary.label}
+                </p>
+              </div>
+              {/* Section E: gradient divider */}
+              <div className="h-px w-full bg-gradient-to-r from-transparent via-[#F5C842]/50 to-transparent" />
+              {/* Section F: action buttons */}
+              <div className="space-y-2">
+                <button type="button" onClick={() => setLostAlertDismissed(true)} className="relative min-h-12 px-6 py-3 rounded-2xl bg-[#E4F6DD] border border-[#F6FFF5] text-[#51694E] font-semibold shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none w-4/5 mx-auto flex items-center justify-center">
+                  <span>I&apos;m OK</span>
+                  <MemoryIcon name="checkCircle" className="absolute right-4 h-5 w-5 text-[#51694E]" />
+                </button>
+                <button type="button" onClick={() => { setLostAlertDismissed(true); handleHelpMeNow(); }} className="relative min-h-12 px-6 py-3 rounded-2xl bg-[#FEF1D8] border-2 border-[#FAE4B0] text-[#5A4A3A] font-semibold shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none w-4/5 mx-auto flex items-center justify-center">
+                  <span>Get Help</span>
+                  <MemoryIcon name="chevronRight" className="absolute right-4 h-5 w-5 text-[#8B7355]" />
+                </button>
+                <button type="button" onClick={() => { setLostAlertDismissed(true); persist(appendActivityEvent(state, createLocationEvent("helper_card_shown"))); setHelperOpen(true); }} className="relative min-h-12 px-6 py-3 rounded-2xl bg-[#DDE9E8] border-2 border-[#92BDBB] text-[#465E6D] font-semibold shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none w-4/5 mx-auto flex items-center justify-center">
+                  <span>Show Card</span>
+                  <MemoryIcon name="idCard" className="absolute right-4 h-5 w-5 text-[#465E6D]" />
+                </button>
+              </div>
+              {/* Section G: divider */}
+              <div className="border-t border-[#E3DAC9]" />
+              {/* Section H: emergency + call caregiver row */}
+              <div className="flex items-center justify-between">
+                <button type="button" onClick={() => setCallingEmergency(true)} className="rounded-full border border-[#E8B4B4] bg-[#FAF0F0] flex items-center gap-2 px-3 py-2 shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none">
+                  <span className="text-sm font-semibold text-[#A64D4D]">Emergency</span>
+                  <span className="rounded-full bg-[#8C3939] px-2 py-0.5 text-xs font-bold text-white">911</span>
+                </button>
+                <button type="button" onClick={callCaregiver} className="flex items-center gap-1 rounded-full border-2 border-[#A5BBA0] bg-[#F4F9F3] pl-2 pr-1 py-1.5 shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none">
+                  <span className="text-xs font-semibold text-[#71A172] whitespace-nowrap">Call {state.profile.caregiverName}</span>
+                  <div className="h-5 w-5 rounded-full bg-[#95C18F] border-2 border-[#E1FFC4] flex items-center justify-center">
+                    <MemoryIcon name="phone" className="h-3 w-3 text-white" />
+                  </div>
+                </button>
+              </div>
             </div>
           </div>
         </div>
