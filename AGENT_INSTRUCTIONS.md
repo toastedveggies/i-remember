@@ -36,6 +36,11 @@ Read all of the following first:
 - The app now supports multiple caregivers via the `caregiver_user_relationships` table (columns: `user_id`, `caregiver_id`, `role`). The `/demo` page controls both the caregiver roster and the active "view as" role for the caregiver dashboard.
 - The Anthropic model string is centralized in `lib/aiConfig.ts` as `CLAUDE_MODEL`. Always import from there when making Anthropic API calls. Never hardcode a model string in any route file. When updating the model, change only `lib/aiConfig.ts`.
 
+## Current Branch and Phase
+
+- **Active branch:** `dasha/phase-11-caregiver-insights-polish`
+- **Current phase:** Phase 11 — Caregiver and Insights Polish (caregiver dashboard full UI polish, insights page polish, activity feed improvements, bug fixes from Phase 10 demo testing, end-to-end iPhone walkthrough)
+
 ## Handoff Expectations
 
 When finishing a task:

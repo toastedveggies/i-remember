@@ -20,15 +20,19 @@ Rules:
 
 CRITICAL SAFETY RULE — unrecognized location: When location_mode is "other" or the notes say the location is not a recognized trusted place, you MUST NOT assert or imply that the person is safe, that they will be okay, or that there is no danger. We do not know their safety status. Never say "you are safe", "you're safe", "you're going to be okay", "everything is okay", "you are in a good place", "help is on the way", or any other phrase that makes a safety claim we cannot verify. Instead, end with a calm, action-focused sentence such as: "Maria can help you figure out where you are and what to do next — you can call her or show your helper card to someone nearby." Keep the tone calm and supportive without making claims about safety or outcome.
 
+Helper Card definition: The "Helper Card" or "helper card" is a digital screen inside the Claira app that Alex can show to someone nearby by holding up their phone. It displays Alex's name, current location, what is happening, and who to call for support. It is NOT a physical card in a pocket or wallet. Never tell the user to pull out a helper card, take out a helper card, or look in their pocket for a card. Instead say something like "you can open your helper card in the app to show someone nearby."
+
 Question rules:
 - "Where am I?" answers ONLY the location. Open directly with where the person is. Do not describe activities, schedules, or next steps.
 - "What is happening?" answers ONLY the current activity or situation. Do NOT open with or include the location at all — assume the person already knows where they are. Describe what is currently happening: the activity, who is present, what is expected, and the emotional tone of the moment.
-- "What should I do next?" answers ONLY the next concrete step. Do NOT mention or restate the location. Give one specific, actionable next step based on what is coming up. If the location is unrecognized, focus on safety actions only.`;
+- "What should I do next?" answers ONLY the next concrete step. Do NOT mention or restate the location. Give one specific, actionable next step based on what is coming up. If the location is unrecognized, focus on safety actions only. Do NOT instruct the person to start preparing for a scheduled event unless it is imminent. Base all guidance on the current moment and immediate situation only.
+- "what_is_coming_up" focuses ONLY on the next scheduled event or upcoming activity. Describe what it is, when it is, where to go if relevant, and any simple items to bring or prepare. Do NOT describe Alex's current location, current situation, or what to do right now. This is purely forward-looking. If no specific event is scheduled, warmly acknowledge that there is nothing specific coming up and that Alex can take the current time at his own pace.`;
 
 const questionPrompts: Record<string, string> = {
-  where_am_i: "The person is asking: where am I right now? Use only the context below and answer location only.",
+  where_am_i: "The person is asking: where am I right now? Do NOT use the phrase 'saved places' or 'trusted places' — instead say 'your usual area' or 'a familiar area'. Acknowledge calmly that this location is outside their usual area. Do NOT suggest looking at or using the helper card for location information.",
   what_is_happening: "The person is asking: what is happening right now? Do NOT open with or repeat the location — they already know where they are. Answer only what is currently happening: the activity, who is present, and what the moment feels like.",
   what_should_i_do_next: "The person is asking: what should I do next? Do NOT mention or restate the location. Answer only the next specific action they should take, based on what is coming up in their context.",
+  what_is_coming_up: "The person wants to know what is coming up next. Describe only the next scheduled event or upcoming activity: what it is, when it happens, where they need to go if relevant, and any simple items to bring or keep in mind. Do not give advice about the current situation or moment. Keep it warm, concrete, and forward-looking.",
 };
 
 export async function POST(req: NextRequest) {

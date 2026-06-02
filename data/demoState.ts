@@ -187,7 +187,7 @@ export const demoScenarios: DemoScenario[] = [
   {
     id: "pharmacy_confusion",
     label: "Pharmacy confusion",
-    guidance: "Alex is at the Pharmacy and needs help remembering that he came to pick up a prescription.",
+    guidance: "Alex is here to pick up a prescription at the counter. A pharmacy staff member can help him find it.",
     where: "You are at the Pharmacy.",
     happening: "You planned to stop by the pharmacy to pick up a prescription.",
     nextStep: "Go to the pharmacy counter, ask about prescription pickup, show the helper card if needed, or call Maria if you are still unsure.",
@@ -229,7 +229,7 @@ export const demoScenarios: DemoScenario[] = [
   {
     id: "lost_unknown_location",
     label: "Lost / unknown location",
-    guidance: "Alex is not at a recognized trusted place and needs safe fallback guidance without overclaiming.",
+    guidance: "Alex appears to be in an unfamiliar area and may be uncertain about where he is. Please help him stay calm. His caregiver can be contacted using the button below.",
     where: "I do not recognize this as one of your saved trusted places.",
     happening: "The app does not have enough information to know why you are here.",
     nextStep: "Stay where you are if it feels safe, call Maria, show the helper card if needed, and call emergency services if this feels unsafe or urgent.",

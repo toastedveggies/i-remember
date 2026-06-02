@@ -2,8 +2,9 @@
 
 ## Current Phase
 
-**Phase 10 - Flow Polish and Demo Hardening (active)**
+**Phase 11 - Caregiver and Insights Polish (active)**
 
+Phase 10 - Flow Polish and Demo Hardening: complete as of 2026-06-01 (UTC-7)
 Phase 9 - UI and Flow Polish: complete as of 2026-05-30 (UTC-7)
 
 Phase 8 - Lost Scenario and Demo Hardening: complete as of 2026-05-28 (UTC-7)
@@ -170,7 +171,8 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
   - [x] Review color and contrast for accessibility
   - [x] Do a full end-to-end demo walkthrough and note any rough edges
 
-- Phase 10 - Flow Polish and Demo Hardening (active as of 2026-05-30, UTC-7):
+- Phase 10 - Flow Polish and Demo Hardening (complete as of 2026-06-01, UTC-7):
+  - Summary: demo header controls with scenario shortcuts (6 buttons) and A/M view tabs; user page full visual polish pass; helper card modal redesign with teal header, shadow rows, and emergency section; white frame border overlay; check-in modal redesign with AI-generated questions (3-step modal, splitTrailingEmoji, AbortController race-condition fix); Get Help flow (helpMeNow + stream panel) full layout restructure with warm card background, response white card, Ask Another Question, Got it I'm good, Back + Call Maria pill row; lost scenario contact section in stream panel; lost alert popup full redesign; caregiver dashboard polish (sticky sub-header, emoji activity bullets, Wellness Insights card); scenario guidance cleanup (pharmacy staff-facing text, lost stranger-facing text); Coming Up Next AI generation for non-scheduled scenarios; safety prompt tuning (CRITICAL SAFETY RULE, Helper Card definition, where_am_i no trusted-places language); landing page rebrand; multiple layout/z-index/scroll fixes.
   - [x] SiteHeader rebuilt as demo-control header: User/Caregiver view tabs + 5 scenario shortcut buttons writing to shared localStorage + dispatching claira-state-update CustomEvent. Tabs show first letter of preferredName / caregiverName, active state tied to pathname. Lost scenario button triggers geolocation and upgrades to browser_geolocation if accuracy ≤ MAX_DEMO_BROWSER_ACCURACY_METERS.
   - [x] MemoryIcon: added 5 new names (sunrise, stethoscope, rx, moon, alertTriangle) with SVG cases.
   - [x] /app page: removed Show Helper Card button from greeting row (kept phone button); bottom action area restructured — w-16 left column removed, History + Saved row added above three equal-width flex-1 buttons (Show Card, Check-In, Get Help); Show Card button now first action in row.
@@ -212,14 +214,28 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
   - [x] Landing page (app/page.tsx): legacy hero card replaced with Claira logo + subtitle + team credit hero section; START DEMO button added (check-in style, links to /app); gradient divider added; nav links renamed to "User Dashboard", "Caregiver Dashboard", "Demo Settings".
   - [x] reorient/route.ts: CRITICAL SAFETY RULE added to system prompt — forbids asserting safety or positive outcome when location is unrecognized; lists specific banned phrases; requires calm action-focused closing referencing the caregiver instead.
   - [x] Caregiver view: header un-stickied (scrolls with page), "Viewing as" line removed; extractTrailingEmoji helper added; activity feed uses trailing emoji as bullet for checkin_submitted, colored dot for all others; Wellness Insights card moved before Today's Snapshot, renamed, icon h-6 w-6, h3 text-base, View text-base; old Insights card removed.
-  - [ ] User page: polish Get Help modal (question buttons, stream panel) to new color system and layout
-  - [ ] User page: polish stream panel response view (I'm okay / Call Maria / Show this screen buttons) to new design
-  - [ ] User page: style the lost location scenario state on the user page (unfamiliar location alert, lost flow)
-  - [ ] Caregiver dashboard: full UI polish pass to new color system and layout matching mockup
+  - [x] reorient prompt: Helper Card definition section added (digital screen in app, not physical card); where_am_i prompt updated (no 'saved/trusted places' language, no helper card for location); stream panel lost scenario replaces Got it I'm good with contact section (Call Maria + Call Emergency 911 + No I'm OK) when not in classroom mode.
+  - [x] demoState pharmacy_confusion guidance updated: now staff-facing text explaining Alex is there for a prescription pickup, directs staff to the counter, and provides Maria's contact role.
+  - [x] Stream panel lost contact section reworked: contactDeclined state added (resets on scenario change); isLostNonClassroom + showContactSection derived booleans; contact section (Call Maria, Call Emergency, No I'm OK) renders first when showContactSection; No I'm OK sets contactDeclined only (panel stays open); Got it I'm good always rendered after ask-another-question; Call Maria removed from bottom row when contact section visible.
+  - [x] SiteHeader: handleLostNoClassroomClick added (same geolocation logic as lost classroom but demoClassroomMode false); 5th scenario button active condition updated to exclude lost when not classroom; 6th button added (gray inactive, amber active) for non-classroom lost scenario.
+  - [x] demoState guidance cleanup: pharmacy_confusion shortened to concise staff-facing text; lost_unknown_location guidance replaced with user/stranger-facing text (unfamiliar area, stay calm, caregiver button below).
+  - [x] Stream panel: Ask Another Question IIFE + gradient divider + Got it I'm good wrapped in !showContactSection block; contact section renders exclusively when showContactSection true; bottom row always visible.
+  - [x] Caregiver inner header: sticky top-[66px] z-[9] added so it sticks below the global SiteHeader.
+  - [x] Lost alert fixes: showLostAlert condition simplified (no browserLocation/source requirements) on both user and caregiver pages; lostAlertDismissed reset useEffect added on both pages (keyed to activeScenarioId); caregiver Where Is detail text truncate→line-clamp-2.
+  - [x] Caregiver primary main: min-h-screen→h-full overflow-y-auto (own scroll container); inner header sticky top-[66px]→top-0; Where Is detail text line-clamp-2 removed, wraps naturally.
+  - [x] reorient route: what_is_coming_up question type added (system prompt rule + questionPrompts entry); what_should_i_do_next rule updated (no premature event prep instruction); nextEventPreviewText/Loading state + AbortController useEffect added; Coming Up Next popup: non-scheduled branch shows streamed AI preview (white card, pulsing dots/cursor); scheduled branch (doctor) keeps checklist + Get help button unchanged.
+  - [x] demoData: scenarioNextEvent added explicit cases for home_reorientation and evening_routine (warm, forward-looking text); lost scenario next event updated to unfamiliar-area phrasing; scenarioExpectedVisitor lost case now returns empty signal (hides With You); With You row: lost classroom shows team names, lost non-classroom hidden, all others unchanged.
+  - [x] Coming Up Next strings shortened (home, evening, lost); orientation card YOU ARE AT amber "Unfamiliar location" sublabel removed.
+  - [x] checkedItems reset: nextEventDetailOpen-based useEffect removed; replaced with state.activeScenarioId-based reset so checklist clears on scenario change rather than on modal close.
+  - [x] Lost scenario next event shortened to "Unfamiliar place — contact Maria if needed."; outer wrapper div gains min-h-0 to prevent body-level scroll breaking the white frame.
+  - [x] White frame overlay z-[49]→z-[9] so SiteHeader (z-10) always wins overlap during iOS scroll bounce.
+
+- Phase 11 - Caregiver and Insights Polish (active as of 2026-06-01, UTC-7):
+  - [ ] Caregiver dashboard: full UI polish pass to new color system and layout
   - [ ] Insights page: update chart colors, tab styles, and typography to new palette
-  - [ ] Demo page: revamp layout for easier scenario navigation and profile editing
+  - [ ] Caregiver activity feed improvements (richer event display, better filtering)
+  - [ ] Bug fixes identified during Phase 10 demo testing
   - [ ] End-to-end demo walkthrough on physical iPhone across all 5 scenarios
-  - [ ] Final accessibility and contrast review
 
 - Phase 8 - Lost Scenario and Demo Hardening (complete as of 2026-05-28, UTC-7):
   - [x] Real-time location tracking for lost_unknown_location scenario
@@ -392,4 +408,4 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
 
 ## Last Updated
 
-2026-05-31 (UTC-7) — Phase 10 in progress. SiteHeader and /app user page visual polish pass complete. tsc and lint pass clean.
+2026-06-01 (UTC-7) — Phase 10 complete. Phase 11 (Caregiver and Insights Polish) opened. Branch: dasha/phase-11-caregiver-insights-polish.

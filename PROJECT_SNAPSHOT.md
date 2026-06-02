@@ -38,6 +38,11 @@ Read all of the following first:
 - The app now supports multiple caregivers via the `caregiver_user_relationships` table (columns: `user_id`, `caregiver_id`, `role`). The `/demo` page controls both the caregiver roster and the active "view as" role for the caregiver dashboard.
 - The Anthropic model string is centralized in `lib/aiConfig.ts` as `CLAUDE_MODEL`. Always import from there when making Anthropic API calls. Never hardcode a model string in any route file. When updating the model, change only `lib/aiConfig.ts`.
 
+## Current Branch and Phase
+
+- **Active branch:** `dasha/phase-11-caregiver-insights-polish`
+- **Current phase:** Phase 11 — Caregiver and Insights Polish (caregiver dashboard full UI polish, insights page polish, activity feed improvements, bug fixes from Phase 10 demo testing, end-to-end iPhone walkthrough)
+
 ## Handoff Expectations
 
 When finishing a task:
@@ -54,8 +59,9 @@ When finishing a task:
 
 ## Current Phase
 
-**Phase 10 - Flow Polish and Demo Hardening (active)**
+**Phase 11 - Caregiver and Insights Polish (active)**
 
+Phase 10 - Flow Polish and Demo Hardening: complete as of 2026-06-01 (UTC-7)
 Phase 9 - UI and Flow Polish: complete as of 2026-05-30 (UTC-7)
 
 Phase 8 - Lost Scenario and Demo Hardening: complete as of 2026-05-28 (UTC-7)
@@ -222,7 +228,8 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
   - [x] Review color and contrast for accessibility
   - [x] Do a full end-to-end demo walkthrough and note any rough edges
 
-- Phase 10 - Flow Polish and Demo Hardening (active as of 2026-05-30, UTC-7):
+- Phase 10 - Flow Polish and Demo Hardening (complete as of 2026-06-01, UTC-7):
+  - Summary: demo header controls with scenario shortcuts (6 buttons) and A/M view tabs; user page full visual polish pass; helper card modal redesign with teal header, shadow rows, and emergency section; white frame border overlay; check-in modal redesign with AI-generated questions (3-step modal, splitTrailingEmoji, AbortController race-condition fix); Get Help flow (helpMeNow + stream panel) full layout restructure with warm card background, response white card, Ask Another Question, Got it I'm good, Back + Call Maria pill row; lost scenario contact section in stream panel; lost alert popup full redesign; caregiver dashboard polish (sticky sub-header, emoji activity bullets, Wellness Insights card); scenario guidance cleanup (pharmacy staff-facing text, lost stranger-facing text); Coming Up Next AI generation for non-scheduled scenarios; safety prompt tuning (CRITICAL SAFETY RULE, Helper Card definition, where_am_i no trusted-places language); landing page rebrand; multiple layout/z-index/scroll fixes.
   - [x] SiteHeader rebuilt as demo-control header: User/Caregiver view tabs + 5 scenario shortcut buttons writing to shared localStorage + dispatching claira-state-update CustomEvent. Tabs show first letter of preferredName / caregiverName, active state tied to pathname. Lost scenario button triggers geolocation and upgrades to browser_geolocation if accuracy ≤ MAX_DEMO_BROWSER_ACCURACY_METERS.
   - [x] MemoryIcon: added 5 new names (sunrise, stethoscope, rx, moon, alertTriangle) with SVG cases.
   - [x] /app page: removed Show Helper Card button from greeting row (kept phone button); bottom action area restructured — w-16 left column removed, History + Saved row added above three equal-width flex-1 buttons (Show Card, Check-In, Get Help); Show Card button now first action in row.
@@ -242,14 +249,50 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
   - [x] HelperModal card bg-[#DDE9E8]→bg-white, ring-white→ring-[#92BDBB]; header div gains bg-[#DDE9E8] rounded-t-[24px] for teal top-only background.
   - [x] HelperModal: shadow added to location, context, caregiver, and emergency row divs; identity "Hi, my name is" and "I need a little help" text-[#8B7D6B]→text-[#5A4A3A] + font-bold.
   - [x] HelperModal: outer dialog div gains flex items-center justify-center p-5 for vertical centering; card container changed from absolute inset-x-3 top-[2%] to relative w-full so it is a centered flex child; I'm OK shadow already present from prior pass.
-  - [ ] User page: polish Get Help modal (question buttons, stream panel) to new color system and layout
-  - [ ] User page: polish stream panel response view (I'm okay / Call Maria / Show this screen buttons) to new design
-  - [ ] User page: style the lost location scenario state on the user page (unfamiliar location alert, lost flow)
-  - [ ] Caregiver dashboard: full UI polish pass to new color system and layout matching mockup
+  - [x] Check-in modal step 1 restyle: card bg/ring now conditional (bg-[#E4F6DD] ring-[6px] ring-[#F6FFF5] on step 1, bg-white no ring on steps 2–3); h2 replaced with p "Tap a question to answer" text-sm font-semibold text-[#719E6B]; question buttons bg-white border-[#F3EEE6] flex items-center justify-between with chevronRight icon.
+  - [x] Check-in modal steps 1+2 polish: green card now covers steps 1+2 (conditioned on !checkInBranchOpen); step 1 question buttons lose hover/focus-ring, chevron h-8 w-8 text-[#5A8C5A]; step 2 header p font-serif text-base text-[#5A4A3A]; step 2 branch buttons bg-white border-[#F3EEE6] flex gap-2 with splitTrailingEmoji splitting label into text/emoji/chevron.
+  - [x] Modal polish pass: dismissCheckInModal helper; checkIn backdrop/X/stopProp; step 3 Show Details bg-[#FEF3E2] border-[#FAE4B0] with chevron, I'm okay bg-[#F6FFF5] border-[#E4F6DD] text-[#51694E]; Back/Close/View-past-check-ins → pill style; X button + backdrop-dismiss + relative + stopProp on all modals; bottom-sheet modals (checkInHistory, streamPanel, recentGuidance, nextEventDetail) → centered max-w-sm rounded-3xl; One moment… → pulsing dots in checkIn step 3 and streamPanel.
+  - [x] Six targeted modal fixes: step 1 Back↔View-past-check-ins swapped; step 3 Show Details w-4/5 mx-auto justify-center, I'm okay w-4/5 mx-auto; all affirmative I'm okay/I'm OK buttons → bg-[#F6FFF5] border-[#E4F6DD] text-[#51694E]; checkedItems Set state + reset useEffect + interactive prep item checkboxes in nextEventDetail; Get help button → #FEF3E2/#FAE4B0 w-4/5 mx-auto with chevron; loading dot threshold changed from empty to trim().length < 30.
+  - [x] Stream panel + affirmative button polish: all affirmative buttons → bg-[#E4F6DD] border-[#F6FFF5] w-4/5 mx-auto block; stream panel action area fully restructured (Got it I'm good → ask-another-question IIFE → gradient divider → Show Card teal button → simple divider → Back pill + Call Maria pill row); loading threshold already at < 30 from prior pass.
+  - [x] Stream panel order/style fixes: Show Card button + both dividers removed; order → ask-another-question IIFE first, then gradient divider, then Got it I'm good (px-6 flex justify-center whitespace-nowrap), then Back+CallMaria row; top question label text-xs→text-sm text-brand-muted→text-[#5A4A3A]; Ask another question label same update.
+  - [x] Stream/helpMeNow visual pass: both card divs bg-[#EEE7DD] ring-[6px] ring-[#BEAE9A]; helpMeNow h2→p text-xs uppercase; helpMeNow+stream question buttons bg-white border-[#FAE4B0]; stream response wrapped in rounded-2xl bg-white p-4; gradient divider added between response card and ask-another-question; ask-another-question label text-sm→text-xs; History row right-aligned pill style; Saved removed from row, added as absolute bottom-1 overlay on Check-In button.
+  - [x] helpMeNow bottom row: Back confirmed pill style; row changed to flex items-center justify-between; Emergency button added on right (bg-[#A64D4D] border-[#EDDBDB] with "Emergency" label + "911" inner pill; calls setCallingEmergency(true) + setHelpMeNowOpen(false)).
+  - [x] Emergency button color fix: bg-[#A64D4D]→bg-[#FAF0F0], border-[#EDDBDB]→border-[#E8B4B4], label text-[#B27070]→text-[#A64D4D]; 911 pill unchanged.
+  - [x] HelperModal: emergency section + divider above it removed; card ends at I'M OK footer.
+  - [x] Lost alert modal fully redesigned: alertTriangle icon + Location Alert badge, "This place looks unfamiliar" heading, detected location card (resolvedAddress or label + detail), gradient divider, I'm OK / Get Help / Show Card action buttons (w-4/5 mx-auto), section divider, Emergency pill + Call Maria pill row at bottom.
+  - [x] Lost alert compacted: card bg-white, warm top strip bg-[#FEF1D8] rounded-t-3xl wraps A–C; icon h-10 w-10, alertTriangle h-6 w-6; heading text-base; subtitle text-xs; detail line removed; location card p-2.5; action buttons min-h-9 py-1.5; Get Help bg-[#FEF1D8]; Call Maria py-1→py-2; space-y-2 throughout lower section.
+  - [x] Nine targeted fixes: Nominatim parsing improved (house+road, suburb/neighbourhood, city/town/county, state); lost alert standalone icon tile removed, alertTriangle moved into badge (h-3.5 gap-1.5); card mx-4; action buttons reverted to min-h-12 py-3 px-6, gained relative + absolute right-4 icon per button; Call Maria circle h-5 w-5 + phone h-3 w-3 + py-1.5; HelperModal no truncate found; YOU ARE AT row splits address at first comma when placeId falsy; History row moved to centered div below buttons.
+  - [x] Six targeted fixes: Nominatim rewritten using optional chaining (streetLine via join, array filter/join, no slice); YOU ARE AT uses resolvedAddress??label, leading-tight/leading-snug; History restored to mb-2 justify-end row above buttons; pb-3→pb-6; helpMeNow Emergency button removed; Recent guidance underline link removed, pill button added on right of bottom row (Back left, Recent guidance right).
+  - [x] Check-in race condition fix: AbortController added to generateCheckInPacket effect (aborts on cleanup); checkInModalOpen added to dependency array; early return guard if modal is closed; catch/finally skip state updates on aborted requests.
+  - [x] Stream panel: when all questions have been asked (remainingQuestions empty), renders a "Show previous guidance" button (clock icon, same question-button style) instead of null; label "ASK ANOTHER QUESTION" only shows when there are actual question buttons.
+  - [x] reorient/route.ts prompt tightening: question rules updated so what_is_happening and what_should_i_do_next explicitly forbid opening with or restating the location; questionPrompts for those two questions updated with stronger directive phrasing.
+  - [x] HelperModal: emergency section restored (divider + red card row + Call 911 button) after being accidentally removed in a prior pass.
+  - [x] Caregiver dashboard primary view: greetingPrefix helper added; header rebuilt (greeting/name/role label on left, Active pill on right, BrandLogo/h1/preferredName removed); dashboard h2 added at top of content; activity feed: checkin_submitted quote shown as-is (no formatQuestionKey), response field shown below quote, location/scenario block removed; EventLogList + old Insights button replaced with card-style Insights Link; BrandLogo and EventLogList imports removed.
+  - [x] Landing page (app/page.tsx): legacy hero card replaced with Claira logo + subtitle + team credit hero section; START DEMO button added (check-in style, links to /app); gradient divider added; nav links renamed to "User Dashboard", "Caregiver Dashboard", "Demo Settings".
+  - [x] reorient/route.ts: CRITICAL SAFETY RULE added to system prompt — forbids asserting safety or positive outcome when location is unrecognized; lists specific banned phrases; requires calm action-focused closing referencing the caregiver instead.
+  - [x] Caregiver view: header un-stickied (scrolls with page), "Viewing as" line removed; extractTrailingEmoji helper added; activity feed uses trailing emoji as bullet for checkin_submitted, colored dot for all others; Wellness Insights card moved before Today's Snapshot, renamed, icon h-6 w-6, h3 text-base, View text-base; old Insights card removed.
+  - [x] reorient prompt: Helper Card definition section added (digital screen in app, not physical card); where_am_i prompt updated (no 'saved/trusted places' language, no helper card for location); stream panel lost scenario replaces Got it I'm good with contact section (Call Maria + Call Emergency 911 + No I'm OK) when not in classroom mode.
+  - [x] demoState pharmacy_confusion guidance updated: now staff-facing text explaining Alex is there for a prescription pickup, directs staff to the counter, and provides Maria's contact role.
+  - [x] Stream panel lost contact section reworked: contactDeclined state added (resets on scenario change); isLostNonClassroom + showContactSection derived booleans; contact section (Call Maria, Call Emergency, No I'm OK) renders first when showContactSection; No I'm OK sets contactDeclined only (panel stays open); Got it I'm good always rendered after ask-another-question; Call Maria removed from bottom row when contact section visible.
+  - [x] SiteHeader: handleLostNoClassroomClick added (same geolocation logic as lost classroom but demoClassroomMode false); 5th scenario button active condition updated to exclude lost when not classroom; 6th button added (gray inactive, amber active) for non-classroom lost scenario.
+  - [x] demoState guidance cleanup: pharmacy_confusion shortened to concise staff-facing text; lost_unknown_location guidance replaced with user/stranger-facing text (unfamiliar area, stay calm, caregiver button below).
+  - [x] Stream panel: Ask Another Question IIFE + gradient divider + Got it I'm good wrapped in !showContactSection block; contact section renders exclusively when showContactSection true; bottom row always visible.
+  - [x] Caregiver inner header: sticky top-[66px] z-[9] added so it sticks below the global SiteHeader.
+  - [x] Lost alert fixes: showLostAlert condition simplified (no browserLocation/source requirements) on both user and caregiver pages; lostAlertDismissed reset useEffect added on both pages (keyed to activeScenarioId); caregiver Where Is detail text truncate→line-clamp-2.
+  - [x] Caregiver primary main: min-h-screen→h-full overflow-y-auto (own scroll container); inner header sticky top-[66px]→top-0; Where Is detail text line-clamp-2 removed, wraps naturally.
+  - [x] reorient route: what_is_coming_up question type added (system prompt rule + questionPrompts entry); what_should_i_do_next rule updated (no premature event prep instruction); nextEventPreviewText/Loading state + AbortController useEffect added; Coming Up Next popup: non-scheduled branch shows streamed AI preview (white card, pulsing dots/cursor); scheduled branch (doctor) keeps checklist + Get help button unchanged.
+  - [x] demoData: scenarioNextEvent added explicit cases for home_reorientation and evening_routine (warm, forward-looking text); lost scenario next event updated to unfamiliar-area phrasing; scenarioExpectedVisitor lost case now returns empty signal (hides With You); With You row: lost classroom shows team names, lost non-classroom hidden, all others unchanged.
+  - [x] Coming Up Next strings shortened (home, evening, lost); orientation card YOU ARE AT amber "Unfamiliar location" sublabel removed.
+  - [x] checkedItems reset: nextEventDetailOpen-based useEffect removed; replaced with state.activeScenarioId-based reset so checklist clears on scenario change rather than on modal close.
+  - [x] Lost scenario next event shortened to "Unfamiliar place — contact Maria if needed."; outer wrapper div gains min-h-0 to prevent body-level scroll breaking the white frame.
+  - [x] White frame overlay z-[49]→z-[9] so SiteHeader (z-10) always wins overlap during iOS scroll bounce.
+
+- Phase 11 - Caregiver and Insights Polish (active as of 2026-06-01, UTC-7):
+  - [ ] Caregiver dashboard: full UI polish pass to new color system and layout
   - [ ] Insights page: update chart colors, tab styles, and typography to new palette
-  - [ ] Demo page: revamp layout for easier scenario navigation and profile editing
+  - [ ] Caregiver activity feed improvements (richer event display, better filtering)
+  - [ ] Bug fixes identified during Phase 10 demo testing
   - [ ] End-to-end demo walkthrough on physical iPhone across all 5 scenarios
-  - [ ] Final accessibility and contrast review
 
 - Phase 8 - Lost Scenario and Demo Hardening (complete as of 2026-05-28, UTC-7):
   - [x] Real-time location tracking for lost_unknown_location scenario
@@ -422,7 +465,7 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
 
 ## Last Updated
 
-2026-05-31 (UTC-7) — Phase 10 in progress. SiteHeader and /app user page visual polish pass complete. tsc and lint pass clean.
+2026-06-01 (UTC-7) — Phase 10 complete. Phase 11 (Caregiver and Insights Polish) opened. Branch: dasha/phase-11-caregiver-insights-polish.
 
 
 // ---
@@ -770,26 +813,37 @@ export default function LandingPage() {
   return (
     <main className="mx-auto min-h-screen w-full max-w-3xl px-4 py-10">
       <div className="space-y-6">
-        <div className="rounded-3xl border border-brand-border bg-brand-surface p-6 shadow-sm">
-          <div className="flex items-start gap-3">
-            <div className="mt-1 text-brand-compass" aria-hidden="true">
-              <MemoryIcon name="compass" className="h-8 w-8" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-semibold text-brand-text">Memory Assistant</h1>
-              <p className="mt-2 text-base leading-7 text-brand-muted">
-                Calm, non-clinical support for moments of confusion. It helps you orient to the present.
-              </p>
-            </div>
+        {/* Hero section */}
+        <div className="flex flex-col items-center gap-4 py-6 text-center">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/claira-logo.webp" alt="Claira" className="h-20 w-auto mx-auto" />
+          <div className="space-y-1">
+            <p className="font-serif text-lg font-semibold italic text-[#5A4A3A]">A Caregiver-Mediated Cognitive Support System</p>
+            <p className="font-serif text-sm italic text-[#8B7D6B]">&ldquo;Where am I?&nbsp; What&apos;s happening?&nbsp; What do I do next?&rdquo;</p>
           </div>
+          <p className="text-xs text-[#8B7D6B] tracking-wide">Robert Morrison · Levon Nazaretyan · Katya Rodova · Dasha Bolotina · Parth Gupta</p>
         </div>
+
+        {/* START DEMO button */}
+        <Link
+          href="/app"
+          className="flex items-center justify-center gap-3 w-full rounded-2xl border-[3px] border-[#7C9B78]/60 bg-[#C8E2C4]/40 px-6 py-4 shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] transition-transform active:scale-95 focus:outline-none"
+        >
+          <div className="h-10 w-10 shrink-0 rounded-xl bg-[#7C9B78] flex items-center justify-center">
+            <MemoryIcon name="checkCircle" className="h-5 w-5 text-white" />
+          </div>
+          <span className="font-serif text-lg font-bold text-[#5A4A3A] tracking-wide">START DEMO</span>
+        </Link>
+
+        {/* Divider */}
+        <div className="h-px w-full bg-gradient-to-r from-transparent via-[#C8E2C4] to-transparent" />
 
         <section className="space-y-3">
           <Link
             href="/app"
             className="flex min-h-16 items-center justify-between rounded-3xl border border-brand-border bg-brand-surface px-5 text-base font-semibold text-brand-text"
           >
-            <span>Help with today</span>
+            <span>User Dashboard</span>
             <span aria-hidden="true" className="text-brand-compass">
               →
             </span>
@@ -807,7 +861,7 @@ export default function LandingPage() {
             href="/demo"
             className="flex min-h-16 items-center justify-between rounded-3xl border border-brand-border bg-brand-surface px-5 text-base font-semibold text-brand-text"
           >
-            <span>Scenario Demo Simulator</span>
+            <span>Demo Settings</span>
             <span aria-hidden="true" className="text-brand-compass">
               →
             </span>
@@ -951,6 +1005,10 @@ export default function TodayWindowPage() {
   const [checkInBranchText, setCheckInBranchText] = useState("");
   const [checkInBranchLoading, setCheckInBranchLoading] = useState(false);
   const [checkInHistoryOpen, setCheckInHistoryOpen] = useState(false);
+  const [checkedItems, setCheckedItems] = useState<Set<number>>(new Set());
+  const [nextEventPreviewText, setNextEventPreviewText] = useState("");
+  const [nextEventPreviewLoading, setNextEventPreviewLoading] = useState(false);
+  const [contactDeclined, setContactDeclined] = useState(false);
 
   useEffect(() => {
     setState(loadState());
@@ -962,6 +1020,18 @@ export default function TodayWindowPage() {
     window.addEventListener("claira-state-update", handler);
     return () => window.removeEventListener("claira-state-update", handler);
   }, []);
+
+  useEffect(() => {
+    setCheckedItems(new Set());
+  }, [state.activeScenarioId]);
+
+  useEffect(() => {
+    setContactDeclined(false);
+  }, [state.activeScenarioId]);
+
+  useEffect(() => {
+    setLostAlertDismissed(false);
+  }, [state.activeScenarioId]);
 
   const activeScenario = useMemo(() => findScenario(state.activeScenarioId), [state.activeScenarioId]);
 
@@ -1020,12 +1090,16 @@ export default function TodayWindowPage() {
       `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`,
       { headers: { "User-Agent": "memory-assistant-prototype/1.0" } }
     )
-      .then((r) => r.json() as Promise<{ display_name?: string; address?: { road?: string; city?: string } }>)
+      .then((r) => r.json() as Promise<{ display_name?: string; address?: { house_number?: string; road?: string; suburb?: string; neighbourhood?: string; city?: string; town?: string; county?: string; state?: string } }>)
       .then((data) => {
         if (cancelled) return;
-        const road = data.address?.road;
-        const city = data.address?.city;
-        const addr = road && city ? `${road}, ${city}` : (data.display_name ?? "").slice(0, 60);
+        const streetLine = [data.address?.house_number, data.address?.road].filter(Boolean).join(" ");
+        const addr = [
+          streetLine,
+          data.address?.suburb ?? data.address?.neighbourhood,
+          data.address?.city ?? data.address?.town ?? data.address?.county,
+          data.address?.state,
+        ].filter(Boolean).join(", ") || (data.display_name ?? "");
         persist({ ...stateRef.current, resolvedAddress: addr });
       })
       .catch(() => {
@@ -1041,12 +1115,14 @@ export default function TodayWindowPage() {
   }, [activeScenario.id, resolvedLocation.source, lostAlertDismissed]);
 
   useEffect(() => {
+    const controller = new AbortController();
     const packetFallback: CheckInQuestion[] = [
       { id: "q1", text: "How are you feeling right now?", responses: { positive: "Feeling good 😊", uncertain: "A bit unsure 🤔", confused: "Not sure 😳" } },
       { id: "q2", text: "Do you know what is coming up next?", responses: { positive: "Yes I do 😊", uncertain: "Kind of, not sure 🤔", confused: "No idea 😳" } },
       { id: "q3", text: "Is there anything on your mind?", responses: { positive: "All good 😊", uncertain: "A little worried 🤔", confused: "Feeling confused 😳" } },
     ];
     const generateCheckInPacket = async () => {
+      if (!checkInModalOpen) return;
       setCheckInPacketLoading(true);
       setCheckInPacket(null);
       setCheckInSelectedId(null);
@@ -1056,6 +1132,7 @@ export default function TodayWindowPage() {
         const response = await fetch("/api/checkin", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          signal: controller.signal,
           body: JSON.stringify({
             mode: "packet",
             context: {
@@ -1074,12 +1151,62 @@ export default function TodayWindowPage() {
           setCheckInPacket(packetFallback);
         }
       } catch {
-        setCheckInPacket(packetFallback);
+        if (!controller.signal.aborted) setCheckInPacket(packetFallback);
       } finally {
-        setCheckInPacketLoading(false);
+        if (!controller.signal.aborted) setCheckInPacketLoading(false);
       }
     };
     void generateCheckInPacket();
+    return () => controller.abort();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeScenario.id, checkInModalOpen]);
+
+  useEffect(() => {
+    if (activeScenario.scheduledEvent) {
+      setNextEventPreviewText("");
+      setNextEventPreviewLoading(false);
+      return;
+    }
+    const controller = new AbortController();
+    setNextEventPreviewText("");
+    setNextEventPreviewLoading(true);
+    const fetchPreview = async () => {
+      try {
+        const response = await fetch("/api/reorient", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          signal: controller.signal,
+          body: JSON.stringify({
+            question: "what_is_coming_up",
+            context: {
+              location: contextPacket.location,
+              location_mode: contextPacket.location_mode,
+              next_event: contextPacket.next_event,
+              current_activity: contextPacket.current_activity,
+              time_of_day: contextPacket.time_of_day,
+              caregiver_name: contextPacket.caregiver_name,
+              notes: contextPacket.notes,
+              trusted_place: contextPacket.trusted_place,
+            },
+            userName: state.profile.preferredName,
+          }),
+        });
+        if (!response.ok || !response.body) throw new Error("no body");
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          setNextEventPreviewText((prev) => prev + decoder.decode(value, { stream: true }));
+        }
+      } catch {
+        // aborted or error — leave text as-is
+      } finally {
+        if (!controller.signal.aborted) setNextEventPreviewLoading(false);
+      }
+    };
+    void fetchPreview();
+    return () => controller.abort();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeScenario.id]);
 
@@ -1215,6 +1342,14 @@ export default function TodayWindowPage() {
     setCallingEmergency(true);
   };
 
+  const dismissCheckInModal = () => {
+    setCheckInModalOpen(false);
+    setCheckInSelectedId(null);
+    setCheckInBranchOpen(false);
+    setCheckInBranchType(null);
+    setCheckInBranchText("");
+  };
+
   const handleCheckInBranch = async (questionId: string, branch: "positive" | "uncertain" | "confused"): Promise<void> => {
     const question = checkInPacket?.find((q) => q.id === questionId) ?? null;
     persist(appendActivityEvent(state, createLocationEvent("checkin_submitted", {
@@ -1268,11 +1403,11 @@ export default function TodayWindowPage() {
     }
   };
 
+  const isLostNonClassroom = state.activeScenarioId === "lost_unknown_location" && !state.demoClassroomMode;
+  const showContactSection = isLostNonClassroom && !contactDeclined && !streamingLoading && streamedText.trim().length >= 30;
+
   const showUnknownLocationPrompt = resolvedLocation.locationMode === "other";
-  const showLostAlert =
-    activeScenario.id === "lost_unknown_location" &&
-    resolvedLocation.source === "browser_geolocation" &&
-    !lostAlertDismissed;
+  const showLostAlert = activeScenario.id === "lost_unknown_location" && !lostAlertDismissed;
 
   const dateString = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
 
@@ -1285,8 +1420,19 @@ export default function TodayWindowPage() {
   };
   const nextEventIconName: MemoryIconName = scenarioNextEventIcon[activeScenario.id] ?? "utensils";
 
+  const splitTrailingEmoji = (str: string): { text: string; emoji: string } => {
+    const lastSpace = str.lastIndexOf(" ");
+    if (lastSpace !== -1) {
+      const trailing = str.slice(lastSpace + 1);
+      if (/\p{Emoji}/u.test(trailing)) {
+        return { text: str.slice(0, lastSpace), emoji: trailing };
+      }
+    }
+    return { text: str, emoji: "" };
+  };
+
   return (
-    <div className="relative flex flex-1 flex-col">
+    <div className="relative flex flex-1 flex-col min-h-0">
     <main className="mx-auto flex flex-1 w-full max-w-[375px] flex-col overflow-hidden bg-[#F6F3EE] font-sans">
 
       {/* Top region */}
@@ -1337,16 +1483,22 @@ export default function TodayWindowPage() {
               </div>
               <div className="flex flex-col">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-[#8B7D6B]">You are at</span>
-                <span className="font-serif text-xl font-medium text-[#5A4A3A]">
-                  {activeScenario.id === "lost_unknown_location" && state.resolvedAddress !== null
-                    ? state.resolvedAddress
-                    : activeLocationSummary.label}
-                </span>
+                {activeLocationSummary.placeId ? (
+                  <span className="font-serif text-xl font-medium text-[#5A4A3A]">{activeLocationSummary.label}</span>
+                ) : (() => {
+                  const fullAddr = state.resolvedAddress ?? activeLocationSummary.label;
+                  const commaIdx = fullAddr.indexOf(",");
+                  const street = commaIdx !== -1 ? fullAddr.slice(0, commaIdx) : fullAddr;
+                  const rest = commaIdx !== -1 ? fullAddr.slice(commaIdx + 1).trim() : "";
+                  return (
+                    <>
+                      <span className="font-serif text-lg font-medium leading-tight text-[#5A4A3A]">{street}</span>
+                      {rest ? <span className="font-serif text-sm font-medium leading-snug text-[#8B7D6B]">{rest}</span> : null}
+                    </>
+                  );
+                })()}
                 {activeLocationSummary.trustedPlaceAddress ? (
                   <span className="text-xs font-medium text-[#8B7D6B]">{activeLocationSummary.trustedPlaceAddress}</span>
-                ) : null}
-                {showUnknownLocationPrompt ? (
-                  <span className="text-xs font-medium text-amber-700">Unfamiliar location — stay where you are if safe.</span>
                 ) : null}
               </div>
             </div>
@@ -1368,7 +1520,18 @@ export default function TodayWindowPage() {
               <MemoryIcon name="chevronRight" className="h-4 w-4 shrink-0 text-[#8B7D6B]" />
             </button>
             {/* Row 4: With you (conditional) */}
-            {contextPacket.who_is_expected !== "No other people are required right now." ? (
+            {activeScenario.id === "lost_unknown_location" && state.demoClassroomMode ? (
+              <div className="flex items-center gap-4 px-5 py-3">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#7C9B78] text-xl font-serif font-bold text-white opacity-75">
+                  T
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-[#8B7D6B]">With you</span>
+                  <span className="mt-0.5 font-serif text-lg font-medium leading-tight text-[#5A4A3A]">Robert, Levon, Katya, Dasha, Parth</span>
+                  <span className="text-[13px] font-medium text-[#8B7D6B]">your team</span>
+                </div>
+              </div>
+            ) : contextPacket.who_is_expected !== "No other people are required right now." ? (
               <div className="flex items-center gap-4 px-5 py-3">
                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#7C9B78] text-xl font-serif font-bold text-white opacity-75">
                   {state.profile.caregiverName.charAt(0).toUpperCase()}
@@ -1386,23 +1549,17 @@ export default function TodayWindowPage() {
       </div>
 
       {/* Bottom region */}
-      <div className="shrink-0 px-5 pb-3 pt-3">
-        {/* History / Saved row above buttons */}
-        <div className="mb-2 flex items-center justify-between text-xs">
+      <div className="shrink-0 px-5 pb-6 pt-3">
+        {/* History row above buttons */}
+        <div className="mb-2 flex items-center justify-end">
           <button
             type="button"
             onClick={() => setCheckInHistoryOpen(true)}
-            className="flex items-center gap-1 focus:outline-none"
+            className="flex items-center gap-1 rounded-full bg-[#C8E2C4]/40 px-2 py-0.5 text-[11px] font-semibold text-[#4B8B62] focus:outline-none"
           >
-            <MemoryIcon name="clock" className="h-4 w-4 text-[#8B7D6B]" />
-            <span className="text-[#8B7D6B]">History</span>
+            <MemoryIcon name="clock" className="h-3 w-3 text-[#4B8B62]" />
+            History
           </button>
-          {checkInDoneThisSession ? (
-            <div className="flex items-center gap-1 rounded-full bg-[#C8E2C4]/40 px-2 py-0.5">
-              <MemoryIcon name="checkCircle" className="h-3 w-3 text-[#4B8B62]" />
-              <span className="text-[#4B8B62]">Saved</span>
-            </div>
-          ) : null}
         </div>
         {/* Three main action buttons */}
         <div className="flex gap-2">
@@ -1421,12 +1578,15 @@ export default function TodayWindowPage() {
           <button
             type="button"
             onClick={() => setCheckInModalOpen(true)}
-            className="flex aspect-square flex-1 flex-col items-center justify-center gap-1 rounded-2xl border-[3px] border-[#7C9B78]/60 bg-[#C8E2C4]/40 p-2 shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] transition-transform focus:outline-none active:scale-95"
+            className="relative flex aspect-square flex-1 flex-col items-center justify-center gap-1 rounded-2xl border-[3px] border-[#7C9B78]/60 bg-[#C8E2C4]/40 p-2 shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] transition-transform focus:outline-none active:scale-95"
           >
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#7C9B78] shadow-sm">
               <MemoryIcon name="checkCircle" className="h-5 w-5 text-white" />
             </div>
             <span className="font-serif text-sm font-bold whitespace-nowrap text-[#5A4A3A]">Check-In</span>
+            {checkInDoneThisSession ? (
+              <span className="absolute bottom-1 left-0 right-0 text-center text-[9px] font-semibold text-[#4B8B62] leading-none">✓ Saved</span>
+            ) : null}
           </button>
           {/* Get Help */}
           <button
@@ -1443,11 +1603,12 @@ export default function TodayWindowPage() {
       </div>
 
       {checkInModalOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-xl space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => dismissCheckInModal()}>
+          <div className={`relative w-full max-w-sm rounded-3xl p-6 shadow-xl space-y-4 ${!checkInBranchOpen ? "bg-[#E4F6DD] ring-[6px] ring-[#F6FFF5]" : "bg-white"}`} onClick={(e) => e.stopPropagation()}>
+            <button type="button" onClick={dismissCheckInModal} className="absolute top-3 right-3 flex h-8 w-8 items-center justify-center rounded-full bg-[#F6F3EE] text-[#8B7D6B] shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none">×</button>
             {!checkInSelectedId ? (
               <>
-                <h2 className="font-serif text-xl font-bold text-[#5A4A3A]">How are you doing?</h2>
+                <p className="text-sm font-semibold text-[#719E6B]">Tap a question to answer</p>
                 <div className="space-y-3">
                   {checkInPacketLoading || !checkInPacket ? (
                     <div className="flex items-center justify-center gap-1 py-8">
@@ -1457,46 +1618,55 @@ export default function TodayWindowPage() {
                     </div>
                   ) : (
                     checkInPacket.map((q) => (
-                      <button key={q.id} type="button" onClick={() => setCheckInSelectedId(q.id)} className="min-h-12 w-full rounded-2xl border border-[#E3DAC9] bg-[#F6F3EE] px-4 py-3 text-left text-base font-medium text-[#5A4A3A] shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] hover:bg-[#C8E2C4]/20 focus:outline-none focus:ring-2 focus:ring-[#7C9B78]/40">
-                        {q.text}
+                      <button key={q.id} type="button" onClick={() => setCheckInSelectedId(q.id)} className="min-h-12 w-full rounded-2xl border border-[#F3EEE6] bg-white px-4 py-3 flex items-center justify-between shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none">
+                        <span className="text-left text-base font-medium text-[#5A4A3A] flex-1 pr-2">{q.text}</span>
+                        <MemoryIcon name="chevronRight" className="h-8 w-8 shrink-0 text-[#5A8C5A]" />
                       </button>
                     ))
                   )}
                 </div>
                 <div className="flex items-center justify-between pt-1">
-                  <button type="button" onClick={() => setCheckInHistoryOpen(true)} className="shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] text-xs text-[#8B7D6B] underline underline-offset-2">View past check-ins</button>
-                  <button type="button" onClick={() => { setCheckInModalOpen(false); setCheckInSelectedId(null); }} className="shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] text-sm text-[#8B7D6B] underline underline-offset-2">Back</button>
+                  <button type="button" onClick={() => { setCheckInModalOpen(false); setCheckInSelectedId(null); }} className="rounded-full border border-[#F3EEE6] bg-[#F6F3EE] px-5 py-2 text-sm font-semibold text-[#5A4A3A] shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none">Back</button>
+                  <button type="button" onClick={() => setCheckInHistoryOpen(true)} className="rounded-full border border-[#F3EEE6] bg-[#F6F3EE] px-5 py-2 text-sm font-semibold text-[#5A4A3A] shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none">View past check-ins</button>
                 </div>
               </>
             ) : !checkInBranchOpen ? (
               <>
-                <p className="text-xs font-semibold uppercase tracking-wide text-[#8B7D6B]">{checkInPacket?.find((q) => q.id === checkInSelectedId)?.text}</p>
+                <p className="font-serif text-base font-semibold text-[#5A4A3A]">{checkInPacket?.find((q) => q.id === checkInSelectedId)?.text}</p>
                 <div className="space-y-3">
                   {(["positive", "uncertain", "confused"] as const).map((branch) => {
                     const label = checkInPacket?.find((q) => q.id === checkInSelectedId)?.responses[branch] ?? "";
+                    const { text: labelText, emoji: labelEmoji } = splitTrailingEmoji(label);
                     return (
-                      <button key={branch} type="button" onClick={() => void handleCheckInBranch(checkInSelectedId!, branch)} className="min-h-12 w-full rounded-2xl border border-[#E3DAC9] bg-[#F6F3EE] px-4 py-3 text-left text-base font-medium text-[#5A4A3A] shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] hover:bg-[#C8E2C4]/20 focus:outline-none focus:ring-2 focus:ring-[#7C9B78]/40">
-                        {label}
+                      <button key={branch} type="button" onClick={() => void handleCheckInBranch(checkInSelectedId!, branch)} className="min-h-12 w-full rounded-2xl border border-[#F3EEE6] bg-white px-4 py-3 flex items-center gap-2 shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none">
+                        <span className="flex-1 text-left text-base font-medium text-[#5A4A3A]">{labelText}</span>
+                        <span className="text-xl w-8 text-center shrink-0">{labelEmoji}</span>
+                        <MemoryIcon name="chevronRight" className="h-8 w-8 shrink-0 text-[#5A8C5A]" />
                       </button>
                     );
                   })}
                 </div>
-                <button type="button" onClick={() => setCheckInSelectedId(null)} className="shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] text-sm text-[#8B7D6B] underline underline-offset-2">Back</button>
+                <button type="button" onClick={() => setCheckInSelectedId(null)} className="rounded-full border border-[#F3EEE6] bg-[#F6F3EE] px-5 py-2 text-sm font-semibold text-[#5A4A3A] shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none">Back</button>
               </>
             ) : (
               <>
                 <div className="min-h-20 text-base leading-relaxed text-[#5A4A3A]">
-                  {checkInBranchLoading && !checkInBranchText ? (
-                    <span className="text-[#8B7D6B]">One moment...</span>
+                  {checkInBranchLoading && checkInBranchText.trim().length < 30 ? (
+                    <div className="flex items-center justify-center gap-1 py-8">
+                      <div className="h-2 w-2 animate-pulse rounded-full bg-[#7C9B78]" />
+                      <div className="h-2 w-2 animate-pulse rounded-full bg-[#7C9B78] [animation-delay:0.2s]" />
+                      <div className="h-2 w-2 animate-pulse rounded-full bg-[#7C9B78] [animation-delay:0.4s]" />
+                    </div>
                   ) : checkInBranchText}
                   {checkInBranchLoading ? <span className="ml-1 inline-block h-3 w-0.5 animate-pulse bg-[#7C9B78]" /> : null}
                 </div>
                 {!checkInBranchLoading ? (
                   <div className="space-y-3">
-                    <button type="button" onClick={() => { setCheckInModalOpen(false); setCheckInSelectedId(null); setCheckInBranchOpen(false); setCheckInBranchType(null); setCheckInBranchText(""); setNextEventDetailOpen(true); }} className="min-h-12 w-full rounded-2xl bg-[#7C9B78] px-4 py-3 text-base font-semibold text-white shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none">
-                      Show me the details
+                    <button type="button" onClick={() => { setCheckInModalOpen(false); setCheckInSelectedId(null); setCheckInBranchOpen(false); setCheckInBranchType(null); setCheckInBranchText(""); setNextEventDetailOpen(true); }} className="min-h-12 w-4/5 mx-auto rounded-2xl bg-[#FEF3E2] border-2 border-[#FAE4B0] px-4 py-3 text-base font-semibold text-[#5A4A3A] flex items-center justify-center gap-2 shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none">
+                      <span>Show me the details</span>
+                      <MemoryIcon name="chevronRight" className="h-6 w-6 shrink-0 text-[#8B7355]" />
                     </button>
-                    <button type="button" onClick={() => { setCheckInDoneThisSession(true); setCheckInModalOpen(false); setCheckInSelectedId(null); setCheckInBranchOpen(false); setCheckInBranchType(null); setCheckInBranchText(""); }} className="min-h-12 w-full rounded-2xl border border-[#E3DAC9] bg-[#F6F3EE] px-4 py-3 text-base font-semibold text-[#5A4A3A] shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none">
+                    <button type="button" onClick={() => { setCheckInDoneThisSession(true); setCheckInModalOpen(false); setCheckInSelectedId(null); setCheckInBranchOpen(false); setCheckInBranchType(null); setCheckInBranchText(""); }} className="bg-[#E4F6DD] border border-[#F6FFF5] text-[#51694E] font-semibold rounded-2xl min-h-12 px-4 py-3 shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none w-4/5 mx-auto block">
                       I&apos;m okay, thanks
                     </button>
                   </div>
@@ -1508,8 +1678,9 @@ export default function TodayWindowPage() {
       ) : null}
 
       {checkInHistoryOpen ? (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4">
-          <div className="max-h-[80vh] w-full max-w-lg overflow-y-auto rounded-t-3xl border border-[#E3DAC9] bg-white p-6 shadow-xl sm:rounded-3xl space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setCheckInHistoryOpen(false)}>
+          <div className="relative max-h-[80vh] w-full max-w-sm overflow-y-auto rounded-3xl border border-[#E3DAC9] bg-white p-6 shadow-xl space-y-4" onClick={(e) => e.stopPropagation()}>
+            <button type="button" onClick={() => setCheckInHistoryOpen(false)} className="absolute top-3 right-3 flex h-8 w-8 items-center justify-center rounded-full bg-[#F6F3EE] text-[#8B7D6B] shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none">×</button>
             <h2 className="font-serif text-lg font-bold text-[#5A4A3A]">Past check-ins</h2>
             {state.activityEvents.filter((e) => e.eventType === "checkin_submitted").length === 0 ? (
               <p className="text-sm text-[#8B7D6B]">No check-ins yet this session.</p>
@@ -1531,7 +1702,7 @@ export default function TodayWindowPage() {
                   ))}
               </ul>
             )}
-            <button type="button" onClick={() => setCheckInHistoryOpen(false)} className="min-h-12 w-full rounded-2xl border border-[#E3DAC9] bg-[#F6F3EE] px-4 py-3 text-base font-semibold text-[#5A4A3A] shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none">
+            <button type="button" onClick={() => setCheckInHistoryOpen(false)} className="rounded-full border border-[#F3EEE6] bg-[#F6F3EE] px-5 py-2 text-sm font-semibold text-[#5A4A3A] shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none">
               Close
             </button>
           </div>
@@ -1551,9 +1722,10 @@ export default function TodayWindowPage() {
       />
 
       {helpMeNowOpen && !streamPanelOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-sm rounded-3xl border border-brand-border bg-brand-surface p-6 shadow-xl space-y-4">
-            <h2 className="text-xl font-semibold text-brand-text">What would you like to know?</h2>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setHelpMeNowOpen(false)}>
+          <div className="relative w-full max-w-sm rounded-3xl bg-[#EEE7DD] ring-[6px] ring-[#BEAE9A] p-6 shadow-xl space-y-4" onClick={(e) => e.stopPropagation()}>
+            <button type="button" onClick={() => setHelpMeNowOpen(false)} className="absolute top-3 right-3 flex h-8 w-8 items-center justify-center rounded-full bg-[#F6F3EE] text-[#8B7D6B] shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none">×</button>
+            <p className="text-xs font-semibold uppercase tracking-wide text-[#5A4A3A] mb-2">What would you like to know?</p>
             <div className="space-y-3">
               {(["where_am_i", "what_is_happening", "what_should_i_do_next"] as QuestionKey[]).map((key) => (
                 <button
@@ -1561,94 +1733,158 @@ export default function TodayWindowPage() {
                   type="button"
                   onClick={() => askQuestion(key)}
                   disabled={streamingLoading}
-                  className="min-h-12 w-full rounded-2xl border border-brand-border bg-brand-bg px-4 py-3 text-left text-base font-medium text-brand-text shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] hover:bg-brand-surface focus:outline-none focus:ring-2 focus:ring-brand-compass/40 disabled:opacity-50"
+                  className="min-h-12 w-full rounded-2xl border border-[#FAE4B0] bg-white px-4 py-3 text-left text-base font-medium text-brand-text shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none focus:ring-2 focus:ring-brand-compass/40 disabled:opacity-50"
                 >
                   {questionLabels[key]}
                 </button>
               ))}
             </div>
-            <div className="flex justify-end">
+            <div className="flex items-center justify-between">
               <button
                 type="button"
-                onClick={() => { setHelpMeNowOpen(false); setRecentGuidanceOpen(true); }}
-                className="shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] text-xs text-brand-muted underline underline-offset-2"
+                onClick={() => setHelpMeNowOpen(false)}
+                className="rounded-full border border-[#F3EEE6] bg-[#F6F3EE] px-5 py-2 text-sm font-semibold text-[#5A4A3A] shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none"
+              >
+                Back
+              </button>
+              <button
+                type="button"
+                onClick={() => { setRecentGuidanceOpen(true); setHelpMeNowOpen(false); }}
+                className="rounded-full border border-[#F3EEE6] bg-[#F6F3EE] px-5 py-2 text-sm font-semibold text-[#5A4A3A] shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none"
               >
                 Recent guidance
               </button>
             </div>
-            <button
-              type="button"
-              onClick={() => setHelpMeNowOpen(false)}
-              className="shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] text-sm text-brand-muted underline underline-offset-2"
-            >
-              Back
-            </button>
           </div>
         </div>
       ) : null}
 
       {streamPanelOpen ? (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4">
-          <div className="w-full max-w-lg rounded-t-3xl border border-brand-border bg-brand-surface p-6 shadow-xl sm:rounded-3xl">
-            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-brand-muted">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => dismissStreamPanel()}>
+          <div className="relative w-full max-w-sm rounded-3xl bg-[#EEE7DD] ring-[6px] ring-[#BEAE9A] p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <button type="button" onClick={dismissStreamPanel} className="absolute top-3 right-3 flex h-8 w-8 items-center justify-center rounded-full bg-[#F6F3EE] text-[#8B7D6B] shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none">×</button>
+            <p className="mb-3 text-sm font-semibold uppercase tracking-wide text-[#5A4A3A]">
               {streamingQuestion ? questionLabels[streamingQuestion] : ""}
             </p>
-            <div className="min-h-24 text-base leading-relaxed text-brand-text">
-              {streamingLoading && !streamedText ? (
-                <span className="text-brand-muted">One moment...</span>
-              ) : (
-                streamedText
-              )}
-              {streamingLoading ? <span className="ml-1 inline-block h-3 w-0.5 animate-pulse bg-brand-primary" /> : null}
+            <div className="rounded-2xl bg-white p-4">
+              <div className="min-h-24 text-base leading-relaxed text-brand-text">
+                {streamingLoading && streamedText.trim().length < 30 ? (
+                  <div className="flex items-center justify-center gap-1 py-8">
+                    <div className="h-2 w-2 animate-pulse rounded-full bg-[#7C9B78]" />
+                    <div className="h-2 w-2 animate-pulse rounded-full bg-[#7C9B78] [animation-delay:0.2s]" />
+                    <div className="h-2 w-2 animate-pulse rounded-full bg-[#7C9B78] [animation-delay:0.4s]" />
+                  </div>
+                ) : (
+                  streamedText
+                )}
+                {streamingLoading ? <span className="ml-1 inline-block h-3 w-0.5 animate-pulse bg-brand-primary" /> : null}
+              </div>
             </div>
             {!streamingLoading ? (
-              <div className="mt-5 space-y-3">
-                <button
-                  type="button"
-                  onClick={() => {
-                    persist(appendActivityEvent(state, createLocationEvent("okay_confirmed", { question: streamingQuestion })));
-                    setHelpMeNowOpen(false);
-                    dismissStreamPanel();
-                  }}
-                  className="min-h-12 w-full rounded-2xl bg-green-700 px-4 py-3 text-base font-semibold text-white shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none focus:ring-2 focus:ring-green-400"
-                >
-                  I&apos;m okay
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { callCaregiver(); setHelpMeNowOpen(false); dismissStreamPanel(); }}
-                  className="min-h-12 w-full rounded-2xl bg-brand-primary px-4 py-3 text-base font-semibold text-white shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none focus:ring-2 focus:ring-brand-compass"
-                >
-                  {`Call ${state.profile.caregiverName}`}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setHelperOpen(true); setHelpMeNowOpen(false); dismissStreamPanel(); }}
-                  className="min-h-12 w-full rounded-2xl border border-brand-border bg-brand-bg px-4 py-3 text-base font-semibold text-brand-text shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none focus:ring-2 focus:ring-brand-compass/40"
-                >
-                  Show this screen
-                </button>
-                {(() => {
-                  const remainingQuestions = (["where_am_i", "what_is_happening", "what_should_i_do_next"] as QuestionKey[]).filter(
-                    (key) => !askedQuestions.includes(key)
-                  );
-                  if (remainingQuestions.length === 0) return null;
-                  return (
-                    <>
-                      <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-brand-muted">Ask another question</p>
-                      {remainingQuestions.map((key) => (
+              <div className="mt-5 space-y-4">
+                {/* Contact section — lost scenario only, once per session */}
+                {showContactSection ? (
+                  <div className="space-y-3">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-[#5A4A3A] text-center">Would you like to contact someone?</p>
+                    <div className="flex gap-2 justify-center">
+                      <button
+                        type="button"
+                        onClick={() => { callCaregiver(); setContactDeclined(true); dismissStreamPanel(); setHelpMeNowOpen(false); }}
+                        className="flex items-center gap-1 rounded-full border-2 border-[#A5BBA0] bg-[#F4F9F3] pl-2 pr-1 py-1 shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none"
+                      >
+                        <span className="text-xs font-semibold text-[#71A172] whitespace-nowrap">Call {state.profile.caregiverName}</span>
+                        <div className="h-8 w-8 rounded-full bg-[#95C18F] border-2 border-[#E1FFC4] flex items-center justify-center">
+                          <MemoryIcon name="phone" className="h-4 w-4 text-white" />
+                        </div>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setCallingEmergency(true); setContactDeclined(true); }}
+                        className="rounded-full border border-[#E8B4B4] bg-[#FAF0F0] flex items-center gap-1.5 px-3 py-1.5 shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none"
+                      >
+                        <span className="text-sm font-semibold text-[#A64D4D]">Call Emergency</span>
+                        <span className="rounded-full bg-[#8C3939] px-1.5 py-0.5 text-xs font-bold text-white">911</span>
+                      </button>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setContactDeclined(true)}
+                      className="min-h-12 px-6 py-3 rounded-2xl text-base font-semibold whitespace-nowrap bg-[#E4F6DD] border border-[#F6FFF5] text-[#51694E] shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none w-4/5 mx-auto flex items-center justify-center"
+                    >
+                      No, I&apos;m OK
+                    </button>
+                  </div>
+                ) : null}
+                {/* Ask another question + Got it I'm good — hidden when contact section is showing */}
+                {!showContactSection ? (
+                  <>
+                    {(() => {
+                      const remainingQuestions = (["where_am_i", "what_is_happening", "what_should_i_do_next"] as QuestionKey[]).filter(
+                        (key) => !askedQuestions.includes(key)
+                      );
+                      if (remainingQuestions.length === 0) return (
                         <button
-                          key={key}
                           type="button"
-                          onClick={() => askQuestion(key)}
-                          className="min-h-12 w-full rounded-2xl border border-brand-border bg-brand-bg px-4 py-3 text-left text-base font-medium text-brand-text shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] hover:bg-brand-surface focus:outline-none focus:ring-2 focus:ring-brand-compass/40 disabled:opacity-50"
+                          onClick={() => { setRecentGuidanceOpen(true); dismissStreamPanel(); setHelpMeNowOpen(false); }}
+                          className="w-full rounded-2xl bg-white border border-[#FAE4B0] px-4 py-3 text-left text-base font-medium text-[#5A4A3A] shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none flex items-center justify-between"
                         >
-                          {questionLabels[key]}
+                          <span>Show previous guidance</span>
+                          <MemoryIcon name="clock" className="h-5 w-5 shrink-0 text-[#8B7D6B]" />
                         </button>
-                      ))}
-                    </>
-                  );
-                })()}
+                      );
+                      return (
+                        <>
+                          <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-[#5A4A3A]">Ask another question</p>
+                          {remainingQuestions.map((key) => (
+                            <button
+                              key={key}
+                              type="button"
+                              onClick={() => askQuestion(key)}
+                              className="min-h-12 w-full rounded-2xl border border-[#FAE4B0] bg-white px-4 py-3 text-left text-base font-medium text-brand-text shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none focus:ring-2 focus:ring-brand-compass/40 disabled:opacity-50"
+                            >
+                              {questionLabels[key]}
+                            </button>
+                          ))}
+                        </>
+                      );
+                    })()}
+                    <div className="h-px w-full bg-gradient-to-r from-transparent via-[#C8E2C4] to-transparent" />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        persist(appendActivityEvent(state, createLocationEvent("okay_confirmed", { question: streamingQuestion })));
+                        setHelpMeNowOpen(false);
+                        dismissStreamPanel();
+                      }}
+                      className="min-h-12 px-6 py-3 rounded-2xl text-base font-semibold whitespace-nowrap bg-[#E4F6DD] border border-[#F6FFF5] text-[#51694E] shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none w-4/5 mx-auto flex items-center justify-center"
+                    >
+                      Got it, I&apos;m good
+                    </button>
+                  </>
+                ) : null}
+                <div className="border-t border-[#E3DAC9]" />
+                {/* Bottom row: Back always; Call Maria only when contact section is hidden */}
+                <div className="flex items-center justify-between pt-1">
+                  <button
+                    type="button"
+                    onClick={() => { setHelpMeNowOpen(false); dismissStreamPanel(); }}
+                    className="rounded-full border border-[#F3EEE6] bg-[#F6F3EE] px-5 py-2 text-sm font-semibold text-[#5A4A3A] shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none"
+                  >
+                    Back
+                  </button>
+                  {!showContactSection ? (
+                    <button
+                      type="button"
+                      onClick={() => { callCaregiver(); setHelpMeNowOpen(false); dismissStreamPanel(); }}
+                      className="flex items-center gap-1 rounded-full border-2 border-[#A5BBA0] bg-[#F4F9F3] pl-2 pr-1 py-1 shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none"
+                    >
+                      <span className="text-xs font-semibold text-[#71A172] whitespace-nowrap">Call {state.profile.caregiverName}</span>
+                      <div className="h-8 w-8 rounded-full bg-[#95C18F] border-2 border-[#E1FFC4] flex items-center justify-center">
+                        <MemoryIcon name="phone" className="h-4 w-4 text-white" />
+                      </div>
+                    </button>
+                  ) : null}
+                </div>
               </div>
             ) : null}
           </div>
@@ -1656,8 +1892,9 @@ export default function TodayWindowPage() {
       ) : null}
 
       {recentGuidanceOpen ? (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4">
-          <div className="max-h-[80vh] w-full max-w-lg overflow-y-auto rounded-t-3xl border border-brand-border bg-brand-surface p-6 shadow-xl sm:rounded-3xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setRecentGuidanceOpen(false)}>
+          <div className="relative max-h-[80vh] w-full max-w-sm overflow-y-auto rounded-3xl border border-brand-border bg-brand-surface p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <button type="button" onClick={() => setRecentGuidanceOpen(false)} className="absolute top-3 right-3 flex h-8 w-8 items-center justify-center rounded-full bg-[#F6F3EE] text-[#8B7D6B] shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none">×</button>
             <h2 className="mb-4 text-lg font-semibold text-brand-text">Recent guidance</h2>
             {recentGuidance.length === 0 ? (
               <p className="text-sm text-brand-muted">No guidance yet. Tap Help Me Now to get started.</p>
@@ -1676,7 +1913,7 @@ export default function TodayWindowPage() {
             <button
               type="button"
               onClick={() => setRecentGuidanceOpen(false)}
-              className="mt-5 min-h-12 w-full rounded-2xl border border-brand-border bg-brand-bg px-4 py-3 text-base font-semibold text-brand-text shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none focus:ring-2 focus:ring-brand-compass/40"
+              className="mt-5 rounded-full border border-[#F3EEE6] bg-[#F6F3EE] px-5 py-2 text-sm font-semibold text-[#5A4A3A] shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none"
             >
               Close
             </button>
@@ -1685,11 +1922,9 @@ export default function TodayWindowPage() {
       ) : null}
 
       {nextEventDetailOpen ? (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4">
-          <div className="w-full max-w-lg rounded-t-3xl border border-brand-border bg-brand-surface p-6 shadow-xl sm:rounded-3xl space-y-5">
-            <div className="flex justify-center">
-              <div className="h-1 w-10 rounded-full bg-brand-border" />
-            </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setNextEventDetailOpen(false)}>
+          <div className="relative w-full max-w-sm rounded-3xl border border-brand-border bg-brand-surface p-6 shadow-xl space-y-5" onClick={(e) => e.stopPropagation()}>
+            <button type="button" onClick={() => setNextEventDetailOpen(false)} className="absolute top-3 right-3 flex h-8 w-8 items-center justify-center rounded-full bg-[#F6F3EE] text-[#8B7D6B] shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none">×</button>
             <div>
               <p className="font-serif text-xl font-bold text-brand-text">{parsedNextEvent.shortLabel}</p>
               {parsedNextEvent.details.length > 0 ? (
@@ -1697,26 +1932,60 @@ export default function TodayWindowPage() {
               ) : null}
             </div>
             {parsedNextEvent.details.length > 0 ? (
-              <ul className="space-y-3">
-                {parsedNextEvent.details.map((item, i) => (
-                  <li key={i} className="flex items-start gap-3">
-                    <div className="mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 border-brand-sageDark" />
-                    <span className="text-base text-brand-text">{item}</span>
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-            <button
-              type="button"
-              onClick={() => { setNextEventDetailOpen(false); void askQuestion("what_should_i_do_next"); }}
-              className="min-h-12 w-full rounded-2xl bg-brand-sageDark px-4 py-3 text-base font-semibold text-white shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none focus:ring-2 focus:ring-brand-sageDark/50"
-            >
-              Get help with this
-            </button>
+              <>
+                <ul className="space-y-3">
+                  {parsedNextEvent.details.map((item, i) => (
+                    <li key={i} className="flex items-start gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setCheckedItems((prev) => {
+                          const next = new Set(prev);
+                          if (next.has(i)) { next.delete(i); } else { next.add(i); }
+                          return next;
+                        })}
+                        className="mt-1 shrink-0 focus:outline-none"
+                      >
+                        {checkedItems.has(i) ? (
+                          <div className="h-5 w-5 rounded-full bg-[#7C9B78] flex items-center justify-center">
+                            <span className="text-white text-xs">✓</span>
+                          </div>
+                        ) : (
+                          <div className="h-5 w-5 rounded-full border-2 border-[#7C9B78]" />
+                        )}
+                      </button>
+                      <span className="text-base text-brand-text">{item}</span>
+                    </li>
+                  ))}
+                </ul>
+                <button
+                  type="button"
+                  onClick={() => { setNextEventDetailOpen(false); void askQuestion("what_should_i_do_next"); }}
+                  className="min-h-12 w-4/5 mx-auto rounded-2xl bg-[#FEF3E2] border-2 border-[#FAE4B0] px-4 py-3 text-base font-semibold text-[#5A4A3A] flex items-center justify-center gap-2 shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none"
+                >
+                  Get help with this
+                  <MemoryIcon name="chevronRight" className="h-6 w-6 shrink-0 text-[#8B7355]" />
+                </button>
+              </>
+            ) : (
+              <div className="rounded-2xl bg-white p-4 text-base leading-relaxed text-brand-text">
+                {nextEventPreviewLoading && nextEventPreviewText.length === 0 ? (
+                  <div className="flex items-center justify-center gap-1 py-8">
+                    <div className="h-2 w-2 animate-pulse rounded-full bg-[#7C9B78]" />
+                    <div className="h-2 w-2 animate-pulse rounded-full bg-[#7C9B78] [animation-delay:0.2s]" />
+                    <div className="h-2 w-2 animate-pulse rounded-full bg-[#7C9B78] [animation-delay:0.4s]" />
+                  </div>
+                ) : (
+                  <>
+                    {nextEventPreviewText}
+                    {nextEventPreviewLoading ? <span className="ml-1 inline-block h-3 w-0.5 animate-pulse bg-[#7C9B78]" /> : null}
+                  </>
+                )}
+              </div>
+            )}
             <button
               type="button"
               onClick={() => setNextEventDetailOpen(false)}
-              className="block w-full text-center text-sm text-brand-muted shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] underline underline-offset-2 focus:outline-none"
+              className="rounded-full border border-[#F3EEE6] bg-[#F6F3EE] px-5 py-2 text-sm font-semibold text-[#5A4A3A] shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none"
             >
               Close
             </button>
@@ -1725,8 +1994,9 @@ export default function TodayWindowPage() {
       ) : null}
 
       {callingEmergency ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-sm rounded-3xl border border-brand-border bg-brand-surface p-6 shadow-lg">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setCallingEmergency(false)}>
+          <div className="relative w-full max-w-sm rounded-3xl border border-brand-border bg-brand-surface p-6 shadow-lg" onClick={(e) => e.stopPropagation()}>
+            <button type="button" onClick={() => setCallingEmergency(false)} className="absolute top-3 right-3 flex h-8 w-8 items-center justify-center rounded-full bg-[#F6F3EE] text-[#8B7D6B] shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none">×</button>
             <p className="text-xl font-semibold text-brand-text">Calling 911...</p>
             <p className="mt-2 text-sm text-brand-muted">This is a demo. No real call is placed.</p>
             <button
@@ -1741,33 +2011,73 @@ export default function TodayWindowPage() {
       ) : null}
 
       {showLostAlert ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-sm rounded-3xl border border-brand-border bg-[#FEF1D8] ring-[6px] ring-[#F5C842] p-6 shadow-lg space-y-4">
-            <h2 className="text-xl font-semibold text-brand-text">You are in an unfamiliar location</h2>
-            <p className="text-sm text-brand-muted">This does not look like one of your saved places. Would you like some help?</p>
-            <div className="space-y-3">
-              <button
-                type="button"
-                onClick={() => { setLostAlertDismissed(true); handleHelpMeNow(); }}
-                className="min-h-12 w-full rounded-2xl bg-brand-compass px-4 py-3 text-base font-semibold text-white shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none focus:ring-2 focus:ring-brand-compass/60"
-              >
-                Help me
-              </button>
-              <button
-                type="button"
-                onClick={() => setLostAlertDismissed(true)}
-                className="min-h-12 w-full rounded-2xl border border-brand-border bg-brand-bg px-4 py-3 text-base font-semibold text-brand-text shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none focus:ring-2 focus:ring-brand-compass/40"
-              >
-                I&apos;m OK
-              </button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setLostAlertDismissed(true)}>
+          <div className="relative w-full max-w-sm mx-4 rounded-3xl bg-white ring-[6px] ring-[#F5C842] shadow-xl overflow-y-auto max-h-[90dvh]" onClick={(e) => e.stopPropagation()}>
+            <button type="button" onClick={() => setLostAlertDismissed(true)} className="absolute top-3 right-3 flex h-8 w-8 items-center justify-center rounded-full bg-[#F6F3EE] text-[#8B7D6B] shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none">×</button>
+            {/* Sections A–C: warm top strip */}
+            <div className="bg-[#FEF1D8] rounded-t-3xl px-5 pt-4 pb-3 space-y-2 text-center">
+              {/* Section A: badge only */}
+              <div className="flex flex-col items-center gap-2">
+                <span className="flex items-center gap-1.5 rounded-full bg-[#FAE4B0] border border-[#F5C842] px-3 py-0.5 text-xs font-bold uppercase tracking-wide text-[#BD8B35]">
+                  <MemoryIcon name="alertTriangle" className="h-3.5 w-3.5" />
+                  Location Alert
+                </span>
+              </div>
+              {/* Section B: heading */}
+              <h2 className="font-serif text-base font-bold text-[#5A4A3A]">This place looks unfamiliar</h2>
+              {/* Section C: description */}
+              <p className="text-xs text-[#8B7D6B]">You appear to be somewhere that is not one of your usual places. {state.profile.caregiverName} can see where you are.</p>
+            </div>
+            {/* Sections D–H: white lower area */}
+            <div className="px-5 pb-4 pt-3 space-y-2">
+              {/* Section D: detected location */}
+              <div className="rounded-2xl bg-white/70 border border-[#FAE4B0] p-2.5 shadow-sm">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-[#8B7D6B]">Detected Location</p>
+                <p className="font-semibold text-[#5A4A3A] text-sm">
+                  {state.resolvedAddress ? state.resolvedAddress : activeLocationSummary.label}
+                </p>
+              </div>
+              {/* Section E: gradient divider */}
+              <div className="h-px w-full bg-gradient-to-r from-transparent via-[#F5C842]/50 to-transparent" />
+              {/* Section F: action buttons */}
+              <div className="space-y-2">
+                <button type="button" onClick={() => setLostAlertDismissed(true)} className="relative min-h-12 px-6 py-3 rounded-2xl bg-[#E4F6DD] border border-[#F6FFF5] text-[#51694E] font-semibold shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none w-4/5 mx-auto flex items-center justify-center">
+                  <span>I&apos;m OK</span>
+                  <MemoryIcon name="checkCircle" className="absolute right-4 h-5 w-5 text-[#51694E]" />
+                </button>
+                <button type="button" onClick={() => { setLostAlertDismissed(true); handleHelpMeNow(); }} className="relative min-h-12 px-6 py-3 rounded-2xl bg-[#FEF1D8] border-2 border-[#FAE4B0] text-[#5A4A3A] font-semibold shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none w-4/5 mx-auto flex items-center justify-center">
+                  <span>Get Help</span>
+                  <MemoryIcon name="chevronRight" className="absolute right-4 h-5 w-5 text-[#8B7355]" />
+                </button>
+                <button type="button" onClick={() => { setLostAlertDismissed(true); persist(appendActivityEvent(state, createLocationEvent("helper_card_shown"))); setHelperOpen(true); }} className="relative min-h-12 px-6 py-3 rounded-2xl bg-[#DDE9E8] border-2 border-[#92BDBB] text-[#465E6D] font-semibold shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none w-4/5 mx-auto flex items-center justify-center">
+                  <span>Show Card</span>
+                  <MemoryIcon name="idCard" className="absolute right-4 h-5 w-5 text-[#465E6D]" />
+                </button>
+              </div>
+              {/* Section G: divider */}
+              <div className="border-t border-[#E3DAC9]" />
+              {/* Section H: emergency + call caregiver row */}
+              <div className="flex items-center justify-between">
+                <button type="button" onClick={() => setCallingEmergency(true)} className="rounded-full border border-[#E8B4B4] bg-[#FAF0F0] flex items-center gap-2 px-3 py-2 shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none">
+                  <span className="text-sm font-semibold text-[#A64D4D]">Emergency</span>
+                  <span className="rounded-full bg-[#8C3939] px-2 py-0.5 text-xs font-bold text-white">911</span>
+                </button>
+                <button type="button" onClick={callCaregiver} className="flex items-center gap-1 rounded-full border-2 border-[#A5BBA0] bg-[#F4F9F3] pl-2 pr-1 py-1.5 shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none">
+                  <span className="text-xs font-semibold text-[#71A172] whitespace-nowrap">Call {state.profile.caregiverName}</span>
+                  <div className="h-5 w-5 rounded-full bg-[#95C18F] border-2 border-[#E1FFC4] flex items-center justify-center">
+                    <MemoryIcon name="phone" className="h-3 w-3 text-white" />
+                  </div>
+                </button>
+              </div>
             </div>
           </div>
         </div>
       ) : null}
 
       {callingCaregiver ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-sm rounded-3xl border border-brand-border bg-brand-surface p-6 shadow-lg">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setCallingCaregiver(false)}>
+          <div className="relative w-full max-w-sm rounded-3xl border border-brand-border bg-brand-surface p-6 shadow-lg" onClick={(e) => e.stopPropagation()}>
+            <button type="button" onClick={() => setCallingCaregiver(false)} className="absolute top-3 right-3 flex h-8 w-8 items-center justify-center rounded-full bg-[#F6F3EE] text-[#8B7D6B] shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none">×</button>
             <p className="text-xl font-semibold text-brand-text">Calling {state.profile.caregiverName}...</p>
             <p className="mt-2 text-sm text-brand-muted">This is a demo. No real call is placed.</p>
             <button
@@ -1781,7 +2091,7 @@ export default function TodayWindowPage() {
         </div>
       ) : null}
     </main>
-      <div className="pointer-events-none absolute inset-0 z-[49] border-[8px] border-white" />
+      <div className="pointer-events-none absolute inset-0 z-[9] border-[8px] border-white" />
     </div>
   );
 }
@@ -1795,8 +2105,6 @@ export default function TodayWindowPage() {
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import BrandLogo from "@/components/BrandLogo";
-import EventLogList from "@/components/EventLogList";
 import MemoryIcon from "@/components/MemoryIcon";
 import { buildActiveLocationSummary } from "@/data/demoData";
 import { appendSystemEvent, createEvent, findScenario, initialDemoState, normalizeDemoState, pronounWords, storageKey, type DemoState } from "@/data/demoState";
@@ -1860,6 +2168,19 @@ function formatQuestionKey(key: string): string {
   return key.replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase());
 }
 
+function extractTrailingEmoji(text: string): string {
+  const match = text.match(/\p{Emoji_Presentation}$/u);
+  return match ? match[0] : "";
+}
+
+function greetingPrefix(): string {
+  const hour = new Date().getHours();
+  if (hour >= 5 && hour <= 11) return "Good morning,";
+  if (hour >= 12 && hour <= 16) return "Good afternoon,";
+  if (hour >= 17 && hour <= 20) return "Good evening,";
+  return "Good night,";
+}
+
 export default function CaregiverPage() {
   const [state, setState] = useState<DemoState>(initialDemoState);
   const [caregiverRole, setCaregiverRole] = useState<"primary" | "family" | "read_only" | null | undefined>(undefined);
@@ -1878,6 +2199,10 @@ export default function CaregiverPage() {
     window.addEventListener("claira-state-update", handler);
     return () => window.removeEventListener("claira-state-update", handler);
   }, []);
+
+  useEffect(() => {
+    setLostAlertDismissed(false);
+  }, [state.activeScenarioId]);
 
   useEffect(() => {
     const loaded = loadState();
@@ -2000,11 +2325,7 @@ export default function CaregiverPage() {
     ? `${activeScenario.happening} Next support should stay grounded in ${activeLocationSummary.label}.`
     : "The app did not recognize this location, so the safest caregiver response is calm clarification and direct support.";
 
-  const showLostAlert =
-    state.activeScenarioId === "lost_unknown_location" &&
-    state.browserLocation !== null &&
-    state.activeLocationSource === "browser_geolocation" &&
-    !lostAlertDismissed;
+  const showLostAlert = state.activeScenarioId === "lost_unknown_location" && !lostAlertDismissed;
 
   const lastOkayEvent = state.activityEvents.filter((e) => e.eventType === "okay_confirmed").sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0] ?? null;
   const lastCheckInEvent = state.activityEvents.filter((e) => e.eventType === "checkin_submitted").sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0] ?? null;
@@ -2174,27 +2495,22 @@ export default function CaregiverPage() {
 
   // Primary caregiver view
   return (
-    <main className="mx-auto min-h-screen w-full max-w-md bg-brand-careBg">
+    <main className="mx-auto h-full overflow-y-auto w-full max-w-md bg-brand-careBg">
       {/* Header */}
-      <header className="sticky top-0 z-10 flex items-start justify-between bg-brand-careBg px-4 pb-4 pt-6">
-        <div className="flex items-center gap-3">
-          <BrandLogo size={40} />
-          <div>
-            <h1 className="text-xl font-bold leading-tight text-brand-careText">Caregiver Dashboard</h1>
-            <p className="mt-0.5 text-sm text-brand-careMuted">Viewing as {headerCaregiverName} ({headerCaregiverLabel})</p>
-          </div>
+      <header className="sticky top-0 z-[9] flex items-start justify-between bg-brand-careBg px-4 pb-3 pt-5">
+        <div>
+          <p className="text-xs font-medium text-brand-careMuted">{greetingPrefix()}</p>
+          <p className="text-base font-semibold text-brand-careText">{headerCaregiverName}</p>
         </div>
-        <div className="flex shrink-0 flex-col items-end">
-          <span className="text-base font-semibold text-brand-careText">{state.profile.preferredName}</span>
-          <div className="mt-1 flex items-center gap-1.5 rounded-full bg-brand-careGreenLight px-2 py-1">
-            <div className="h-2 w-2 rounded-full bg-brand-careGreen" />
-            <span className="text-xs font-medium text-brand-careGreen">Active</span>
-          </div>
+        <div className="flex items-center gap-1.5 rounded-full bg-brand-careGreenLight px-2 py-1">
+          <div className="h-2 w-2 rounded-full bg-brand-careGreen" />
+          <span className="text-xs font-medium text-brand-careGreen">Active</span>
         </div>
       </header>
 
       {/* Main content */}
       <div className="space-y-4 px-4 pb-8">
+        <h2 className="text-lg font-bold text-brand-careText">{state.profile.preferredName}&apos;s Dashboard</h2>
         {/* Lost alert */}
         {showLostAlert ? (
           <div className="space-y-2 rounded-2xl border border-amber-300 bg-amber-50 p-4">
@@ -2233,7 +2549,7 @@ export default function CaregiverPage() {
             <div>
               <p className="font-bold text-sm text-brand-careText">{activeLocationSummary.label}</p>
               {(activeLocationSummary.detail ?? activeLocationSummary.trustedPlaceAddress) ? (
-                <p className="truncate text-xs text-brand-careMuted">
+                <p className="text-xs text-brand-careMuted">
                   {activeLocationSummary.detail ?? activeLocationSummary.trustedPlaceAddress}
                 </p>
               ) : null}
@@ -2330,21 +2646,26 @@ export default function CaregiverPage() {
                 <div className="space-y-4">
                   {visibleActivityItems.map((item) => {
                     const quote = typeof item.metadata?.question === "string" && item.metadata.question
-                      ? formatQuestionKey(item.metadata.question as string)
+                      ? (item.eventType === "checkin_submitted"
+                          ? (item.metadata.question as string)
+                          : formatQuestionKey(item.metadata.question as string))
                       : typeof item.metadata?.ai_response === "string" && item.metadata.ai_response
                         ? (item.metadata.ai_response as string).length > 80
                           ? (item.metadata.ai_response as string).slice(0, 80) + "…"
                           : (item.metadata.ai_response as string)
                         : null;
-                    const hasTrustedPlace = typeof item.metadata?.trustedPlace === "string" && !!item.metadata.trustedPlace;
-                    const hasLocation = hasTrustedPlace || !!item.scenarioId;
-                    const locationText = hasTrustedPlace
-                      ? (item.metadata!.trustedPlace as string)
-                      : activeLocationSummary.label;
+
+                    const trailingEmoji = item.eventType === "checkin_submitted" && typeof item.metadata?.response === "string"
+                      ? extractTrailingEmoji(item.metadata.response as string)
+                      : "";
 
                     return (
                       <div key={item.id} className="flex items-start gap-3">
-                        <div className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ${activityDotClass(item.eventType)}`} />
+                        {trailingEmoji ? (
+                          <span className="text-2xl leading-none shrink-0 mt-0">{trailingEmoji}</span>
+                        ) : (
+                          <div className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ${activityDotClass(item.eventType)}`} />
+                        )}
                         <div>
                           <p className="mb-0.5 text-xs text-brand-careMuted">
                             {new Date(item.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
@@ -2353,10 +2674,8 @@ export default function CaregiverPage() {
                           {quote ? (
                             <p className="text-sm italic text-brand-careText">&ldquo;{quote}&rdquo;</p>
                           ) : null}
-                          {hasLocation ? (
-                            <p className="text-xs text-brand-careMuted">
-                              {locationText}{item.scenarioId ? ` · ${item.scenarioId.split("_").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")}` : ""}
-                            </p>
+                          {item.eventType === "checkin_submitted" && typeof item.metadata?.response === "string" ? (
+                            <p className="text-xs font-medium text-brand-careTeal">{item.metadata.response as string}</p>
                           ) : null}
                         </div>
                       </div>
@@ -2376,6 +2695,23 @@ export default function CaregiverPage() {
             </>
           ) : null}
         </div>
+
+        {/* Wellness Insights card */}
+        <Link
+          href="/caregiver/insights"
+          className="block rounded-2xl border border-brand-careBorder bg-white p-4 shadow-sm"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <MemoryIcon name="compass" className="h-6 w-6 text-brand-careTeal" />
+              <h3 className="font-bold text-base text-brand-careText">Wellness Insights</h3>
+            </div>
+            <span className="flex items-center gap-1 text-base font-medium text-brand-careMuted">
+              View
+              <MemoryIcon name="chevronRight" className="h-4 w-4" />
+            </span>
+          </div>
+        </Link>
 
         {/* Today's Snapshot */}
         <div className="rounded-2xl border border-brand-careBorder bg-white p-4 shadow-sm">
@@ -2415,17 +2751,6 @@ export default function CaregiverPage() {
           </div>
         </div>
 
-        {/* Event log */}
-        <EventLogList items={state.systemEvents} defaultCollapsed={true} title="Event Log" plain={true} emptyText="No system events yet." />
-
-        {/* Insights button */}
-        <Link
-          href="/caregiver/insights"
-          className="flex w-full items-center justify-center gap-2 rounded-xl border border-brand-careBorder bg-white py-3 text-sm font-medium text-brand-careText shadow-sm focus:outline-none"
-        >
-          <span>Insights</span>
-          <MemoryIcon name="chevronRight" className="h-4 w-4 text-brand-careMuted" />
-        </Link>
       </div>
 
       {callingUser ? (
@@ -3491,15 +3816,21 @@ Rules:
 - End with one grounding, reassuring sentence.
 - Exception: if the user prompt contains a line starting with DEMO OVERRIDE, follow those instructions exactly and ignore all location and context rules above.
 
+CRITICAL SAFETY RULE — unrecognized location: When location_mode is "other" or the notes say the location is not a recognized trusted place, you MUST NOT assert or imply that the person is safe, that they will be okay, or that there is no danger. We do not know their safety status. Never say "you are safe", "you're safe", "you're going to be okay", "everything is okay", "you are in a good place", "help is on the way", or any other phrase that makes a safety claim we cannot verify. Instead, end with a calm, action-focused sentence such as: "Maria can help you figure out where you are and what to do next — you can call her or show your helper card to someone nearby." Keep the tone calm and supportive without making claims about safety or outcome.
+
+Helper Card definition: The "Helper Card" or "helper card" is a digital screen inside the Claira app that Alex can show to someone nearby by holding up their phone. It displays Alex's name, current location, what is happening, and who to call for support. It is NOT a physical card in a pocket or wallet. Never tell the user to pull out a helper card, take out a helper card, or look in their pocket for a card. Instead say something like "you can open your helper card in the app to show someone nearby."
+
 Question rules:
-- "Where am I?" focuses only on location. If the location is unrecognized, say that clearly.
-- "What is happening?" focuses only on what is currently known. If the app does not know why the person is there, say that clearly.
-- "What should I do next?" gives only the next calm step. If the location is unrecognized, keep the guidance safety-focused: stay where you are if safe, call the caregiver, show the helper card, or call emergency services if unsafe or urgent.`;
+- "Where am I?" answers ONLY the location. Open directly with where the person is. Do not describe activities, schedules, or next steps.
+- "What is happening?" answers ONLY the current activity or situation. Do NOT open with or include the location at all — assume the person already knows where they are. Describe what is currently happening: the activity, who is present, what is expected, and the emotional tone of the moment.
+- "What should I do next?" answers ONLY the next concrete step. Do NOT mention or restate the location. Give one specific, actionable next step based on what is coming up. If the location is unrecognized, focus on safety actions only. Do NOT instruct the person to start preparing for a scheduled event unless it is imminent. Base all guidance on the current moment and immediate situation only.
+- "what_is_coming_up" focuses ONLY on the next scheduled event or upcoming activity. Describe what it is, when it is, where to go if relevant, and any simple items to bring or prepare. Do NOT describe Alex's current location, current situation, or what to do right now. This is purely forward-looking. If no specific event is scheduled, warmly acknowledge that there is nothing specific coming up and that Alex can take the current time at his own pace.`;
 
 const questionPrompts: Record<string, string> = {
-  where_am_i: "The person is asking: where am I right now? Use only the context below and answer location only.",
-  what_is_happening: "The person is asking: what is happening right now? Use only the context below and explain only what is currently known.",
-  what_should_i_do_next: "The person is asking: what should I do next? Use only the context below and give one clear, calm next step.",
+  where_am_i: "The person is asking: where am I right now? Do NOT use the phrase 'saved places' or 'trusted places' — instead say 'your usual area' or 'a familiar area'. Acknowledge calmly that this location is outside their usual area. Do NOT suggest looking at or using the helper card for location information.",
+  what_is_happening: "The person is asking: what is happening right now? Do NOT open with or repeat the location — they already know where they are. Answer only what is currently happening: the activity, who is present, and what the moment feels like.",
+  what_should_i_do_next: "The person is asking: what should I do next? Do NOT mention or restate the location. Answer only the next specific action they should take, based on what is coming up in their context.",
+  what_is_coming_up: "The person wants to know what is coming up next. Describe only the next scheduled event or upcoming activity: what it is, when it happens, where they need to go if relevant, and any simple items to bring or keep in mind. Do not give advice about the current situation or moment. Keep it warm, concrete, and forward-looking.",
 };
 
 export async function POST(req: NextRequest) {
@@ -3843,6 +4174,47 @@ export default function SiteHeader() {
     }
   };
 
+  const handleLostNoClassroomClick = () => {
+    const raw = window.localStorage.getItem(storageKey);
+    let current = initialDemoState;
+    if (raw) {
+      try { current = normalizeDemoState(JSON.parse(raw)); } catch { /* use initial */ }
+    }
+    headerPersist({
+      ...current,
+      activeScenarioId: "lost_unknown_location",
+      demoClassroomMode: false,
+      activeLocationSource: "scenario_seed",
+    });
+
+    if (typeof navigator !== "undefined" && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          if (position.coords.accuracy <= MAX_DEMO_BROWSER_ACCURACY_METERS) {
+            const latest = window.localStorage.getItem(storageKey);
+            let latestState = initialDemoState;
+            if (latest) {
+              try { latestState = normalizeDemoState(JSON.parse(latest)); } catch { /* use initial */ }
+            }
+            const browserLocation: BrowserLocation = {
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude,
+              accuracyMeters: position.coords.accuracy,
+              timestamp: new Date().toISOString(),
+            };
+            headerPersist({
+              ...latestState,
+              activeLocationSource: "browser_geolocation",
+              browserLocation,
+            });
+          }
+        },
+        () => { /* accuracy too broad or error — keep scenario_seed */ },
+        { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
+      );
+    }
+  };
+
   const activeScenarioId = state.activeScenarioId;
   const userInitial = state.profile.preferredName.charAt(0).toUpperCase();
   const caregiverInitial = state.profile.caregiverName.charAt(0).toUpperCase();
@@ -3892,17 +4264,32 @@ export default function SiteHeader() {
                 type="button"
                 onClick={() => handleScenarioClick(id)}
                 className={`rounded-md border-2 w-[26px] h-[22px] flex items-center justify-center transition-colors active:scale-95 focus:outline-none ${
-                  activeScenarioId === id
+                  activeScenarioId === id && (id !== "lost_unknown_location" || state.demoClassroomMode)
                     ? "bg-[#FAE4B0] border-[#F5C842]"
                     : "bg-white border-[#FAE4B0]"
                 }`}
               >
                 <MemoryIcon
                   name={icon}
-                  className={`h-3 w-3 ${activeScenarioId === id ? "text-[#BD8B35]" : "text-[#F0DBB7]"}`}
+                  className={`h-3 w-3 ${activeScenarioId === id && (id !== "lost_unknown_location" || state.demoClassroomMode) ? "text-[#BD8B35]" : "text-[#F0DBB7]"}`}
                 />
               </button>
             ))}
+            {/* 6th button: lost scenario without classroom mode */}
+            <button
+              type="button"
+              onClick={handleLostNoClassroomClick}
+              className={`rounded-md border-2 w-[26px] h-[22px] flex items-center justify-center transition-colors active:scale-95 focus:outline-none ${
+                activeScenarioId === "lost_unknown_location" && !state.demoClassroomMode
+                  ? "bg-[#FAE4B0] border-[#F5C842]"
+                  : "bg-[#E4E4E4] border-[#C8C8C8]"
+              }`}
+            >
+              <MemoryIcon
+                name="alertTriangle"
+                className={`h-3 w-3 ${activeScenarioId === "lost_unknown_location" && !state.demoClassroomMode ? "text-[#BD8B35]" : "text-[#AAAAAA]"}`}
+              />
+            </button>
           </div>
         </div>
       </div>
@@ -4430,7 +4817,7 @@ export default function HelperModal({ open, onClose, profile, activeLocationSumm
               </p>
               <p className="text-[13px] font-serif font-bold text-[#B27070]">Call emergency services</p>
             </div>
-            <button type="button" onClick={onCallEmergency} aria-label="Call emergency services" className="shrink-0 rounded-xl border-2 border-[#EDDBDB] bg-[#A64D4D] px-3 py-1 text-xs font-bold text-white shadow-md shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] transition-transform active:scale-95">Call 911</button>
+            <button type="button" onClick={onCallEmergency} aria-label="Call emergency services" className="shrink-0 rounded-xl border-2 border-[#EDDBDB] bg-[#A64D4D] px-3 py-1 text-xs font-bold text-white shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] transition-transform active:scale-95">Call 911</button>
           </div>
         </div>
 
@@ -4801,7 +5188,7 @@ export const demoScenarios: DemoScenario[] = [
   {
     id: "pharmacy_confusion",
     label: "Pharmacy confusion",
-    guidance: "Alex is at the Pharmacy and needs help remembering that he came to pick up a prescription.",
+    guidance: "Alex is here to pick up a prescription at the counter. A pharmacy staff member can help him find it.",
     where: "You are at the Pharmacy.",
     happening: "You planned to stop by the pharmacy to pick up a prescription.",
     nextStep: "Go to the pharmacy counter, ask about prescription pickup, show the helper card if needed, or call Maria if you are still unsure.",
@@ -4843,7 +5230,7 @@ export const demoScenarios: DemoScenario[] = [
   {
     id: "lost_unknown_location",
     label: "Lost / unknown location",
-    guidance: "Alex is not at a recognized trusted place and needs safe fallback guidance without overclaiming.",
+    guidance: "Alex appears to be in an unfamiliar area and may be uncertain about where he is. Please help him stay calm. His caregiver can be contacted using the button below.",
     where: "I do not recognize this as one of your saved trusted places.",
     happening: "The app does not have enough information to know why you are here.",
     nextStep: "Stay where you are if it feels safe, call Maria, show the helper card if needed, and call emergency services if this feels unsafe or urgent.",
@@ -5193,12 +5580,20 @@ function scenarioNextEvent(scenario: DemoScenario, trustedLocations: TrustedLoca
     return `${scenario.scheduledEvent.title}${placeLabel}. ${scenario.scheduledEvent.timeLabel}. Bring ${buildBringItemsText(scenario.scheduledEvent.bringItems)}.`;
   }
 
+  if (scenario.id === "home_reorientation") {
+    return "A quiet morning — take your time, have some tea, and ease in gently.";
+  }
+
   if (scenario.id === "pharmacy_confusion") {
     return "Pick up the prescription, then head back home.";
   }
 
+  if (scenario.id === "evening_routine") {
+    return "Time to wind down — maybe some TV or a book before bed.";
+  }
+
   if (scenario.id === "lost_unknown_location") {
-    return "Focus on staying safe and contacting support.";
+    return "Unfamiliar place — contact Maria if needed.";
   }
 
   return "Continue the current home routine at an easy pace.";
@@ -5210,7 +5605,7 @@ function scenarioExpectedVisitor(scenario: DemoScenario, profile: DemoProfile): 
   }
 
   if (scenario.id === "lost_unknown_location") {
-    return `${profile.caregiverName} is the best support contact if this still feels unclear.`;
+    return "No other people are required right now.";
   }
 
   return "No other people are required right now.";

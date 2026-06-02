@@ -86,12 +86,20 @@ function scenarioNextEvent(scenario: DemoScenario, trustedLocations: TrustedLoca
     return `${scenario.scheduledEvent.title}${placeLabel}. ${scenario.scheduledEvent.timeLabel}. Bring ${buildBringItemsText(scenario.scheduledEvent.bringItems)}.`;
   }
 
+  if (scenario.id === "home_reorientation") {
+    return "A quiet morning — take your time, have some tea, and ease in gently.";
+  }
+
   if (scenario.id === "pharmacy_confusion") {
     return "Pick up the prescription, then head back home.";
   }
 
+  if (scenario.id === "evening_routine") {
+    return "Time to wind down — maybe some TV or a book before bed.";
+  }
+
   if (scenario.id === "lost_unknown_location") {
-    return "Focus on staying safe and contacting support.";
+    return "Unfamiliar place — contact Maria if needed.";
   }
 
   return "Continue the current home routine at an easy pace.";
@@ -103,7 +111,7 @@ function scenarioExpectedVisitor(scenario: DemoScenario, profile: DemoProfile): 
   }
 
   if (scenario.id === "lost_unknown_location") {
-    return `${profile.caregiverName} is the best support contact if this still feels unclear.`;
+    return "No other people are required right now.";
   }
 
   return "No other people are required right now.";

@@ -101,6 +101,47 @@ export default function SiteHeader() {
     }
   };
 
+  const handleLostNoClassroomClick = () => {
+    const raw = window.localStorage.getItem(storageKey);
+    let current = initialDemoState;
+    if (raw) {
+      try { current = normalizeDemoState(JSON.parse(raw)); } catch { /* use initial */ }
+    }
+    headerPersist({
+      ...current,
+      activeScenarioId: "lost_unknown_location",
+      demoClassroomMode: false,
+      activeLocationSource: "scenario_seed",
+    });
+
+    if (typeof navigator !== "undefined" && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          if (position.coords.accuracy <= MAX_DEMO_BROWSER_ACCURACY_METERS) {
+            const latest = window.localStorage.getItem(storageKey);
+            let latestState = initialDemoState;
+            if (latest) {
+              try { latestState = normalizeDemoState(JSON.parse(latest)); } catch { /* use initial */ }
+            }
+            const browserLocation: BrowserLocation = {
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude,
+              accuracyMeters: position.coords.accuracy,
+              timestamp: new Date().toISOString(),
+            };
+            headerPersist({
+              ...latestState,
+              activeLocationSource: "browser_geolocation",
+              browserLocation,
+            });
+          }
+        },
+        () => { /* accuracy too broad or error — keep scenario_seed */ },
+        { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
+      );
+    }
+  };
+
   const activeScenarioId = state.activeScenarioId;
   const userInitial = state.profile.preferredName.charAt(0).toUpperCase();
   const caregiverInitial = state.profile.caregiverName.charAt(0).toUpperCase();
@@ -150,17 +191,32 @@ export default function SiteHeader() {
                 type="button"
                 onClick={() => handleScenarioClick(id)}
                 className={`rounded-md border-2 w-[26px] h-[22px] flex items-center justify-center transition-colors active:scale-95 focus:outline-none ${
-                  activeScenarioId === id
+                  activeScenarioId === id && (id !== "lost_unknown_location" || state.demoClassroomMode)
                     ? "bg-[#FAE4B0] border-[#F5C842]"
                     : "bg-white border-[#FAE4B0]"
                 }`}
               >
                 <MemoryIcon
                   name={icon}
-                  className={`h-3 w-3 ${activeScenarioId === id ? "text-[#BD8B35]" : "text-[#F0DBB7]"}`}
+                  className={`h-3 w-3 ${activeScenarioId === id && (id !== "lost_unknown_location" || state.demoClassroomMode) ? "text-[#BD8B35]" : "text-[#F0DBB7]"}`}
                 />
               </button>
             ))}
+            {/* 6th button: lost scenario without classroom mode */}
+            <button
+              type="button"
+              onClick={handleLostNoClassroomClick}
+              className={`rounded-md border-2 w-[26px] h-[22px] flex items-center justify-center transition-colors active:scale-95 focus:outline-none ${
+                activeScenarioId === "lost_unknown_location" && !state.demoClassroomMode
+                  ? "bg-[#FAE4B0] border-[#F5C842]"
+                  : "bg-[#E4E4E4] border-[#C8C8C8]"
+              }`}
+            >
+              <MemoryIcon
+                name="alertTriangle"
+                className={`h-3 w-3 ${activeScenarioId === "lost_unknown_location" && !state.demoClassroomMode ? "text-[#BD8B35]" : "text-[#AAAAAA]"}`}
+              />
+            </button>
           </div>
         </div>
       </div>

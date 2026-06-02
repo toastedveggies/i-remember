@@ -98,6 +98,10 @@ export default function CaregiverPage() {
   }, []);
 
   useEffect(() => {
+    setLostAlertDismissed(false);
+  }, [state.activeScenarioId]);
+
+  useEffect(() => {
     const loaded = loadState();
     const next = appendSystemEvent(
       loaded,
@@ -218,11 +222,7 @@ export default function CaregiverPage() {
     ? `${activeScenario.happening} Next support should stay grounded in ${activeLocationSummary.label}.`
     : "The app did not recognize this location, so the safest caregiver response is calm clarification and direct support.";
 
-  const showLostAlert =
-    state.activeScenarioId === "lost_unknown_location" &&
-    state.browserLocation !== null &&
-    state.activeLocationSource === "browser_geolocation" &&
-    !lostAlertDismissed;
+  const showLostAlert = state.activeScenarioId === "lost_unknown_location" && !lostAlertDismissed;
 
   const lastOkayEvent = state.activityEvents.filter((e) => e.eventType === "okay_confirmed").sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0] ?? null;
   const lastCheckInEvent = state.activityEvents.filter((e) => e.eventType === "checkin_submitted").sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0] ?? null;
@@ -392,9 +392,9 @@ export default function CaregiverPage() {
 
   // Primary caregiver view
   return (
-    <main className="mx-auto min-h-screen w-full max-w-md bg-brand-careBg">
+    <main className="mx-auto h-full overflow-y-auto w-full max-w-md bg-brand-careBg">
       {/* Header */}
-      <header className="flex items-start justify-between bg-brand-careBg px-4 pb-3 pt-5">
+      <header className="sticky top-0 z-[9] flex items-start justify-between bg-brand-careBg px-4 pb-3 pt-5">
         <div>
           <p className="text-xs font-medium text-brand-careMuted">{greetingPrefix()}</p>
           <p className="text-base font-semibold text-brand-careText">{headerCaregiverName}</p>
@@ -446,7 +446,7 @@ export default function CaregiverPage() {
             <div>
               <p className="font-bold text-sm text-brand-careText">{activeLocationSummary.label}</p>
               {(activeLocationSummary.detail ?? activeLocationSummary.trustedPlaceAddress) ? (
-                <p className="truncate text-xs text-brand-careMuted">
+                <p className="text-xs text-brand-careMuted">
                   {activeLocationSummary.detail ?? activeLocationSummary.trustedPlaceAddress}
                 </p>
               ) : null}

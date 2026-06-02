@@ -127,6 +127,9 @@ export default function TodayWindowPage() {
   const [checkInBranchLoading, setCheckInBranchLoading] = useState(false);
   const [checkInHistoryOpen, setCheckInHistoryOpen] = useState(false);
   const [checkedItems, setCheckedItems] = useState<Set<number>>(new Set());
+  const [nextEventPreviewText, setNextEventPreviewText] = useState("");
+  const [nextEventPreviewLoading, setNextEventPreviewLoading] = useState(false);
+  const [contactDeclined, setContactDeclined] = useState(false);
 
   useEffect(() => {
     setState(loadState());
@@ -140,8 +143,16 @@ export default function TodayWindowPage() {
   }, []);
 
   useEffect(() => {
-    if (!nextEventDetailOpen) setCheckedItems(new Set());
-  }, [nextEventDetailOpen]);
+    setCheckedItems(new Set());
+  }, [state.activeScenarioId]);
+
+  useEffect(() => {
+    setContactDeclined(false);
+  }, [state.activeScenarioId]);
+
+  useEffect(() => {
+    setLostAlertDismissed(false);
+  }, [state.activeScenarioId]);
 
   const activeScenario = useMemo(() => findScenario(state.activeScenarioId), [state.activeScenarioId]);
 
@@ -270,6 +281,55 @@ export default function TodayWindowPage() {
     return () => controller.abort();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeScenario.id, checkInModalOpen]);
+
+  useEffect(() => {
+    if (activeScenario.scheduledEvent) {
+      setNextEventPreviewText("");
+      setNextEventPreviewLoading(false);
+      return;
+    }
+    const controller = new AbortController();
+    setNextEventPreviewText("");
+    setNextEventPreviewLoading(true);
+    const fetchPreview = async () => {
+      try {
+        const response = await fetch("/api/reorient", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          signal: controller.signal,
+          body: JSON.stringify({
+            question: "what_is_coming_up",
+            context: {
+              location: contextPacket.location,
+              location_mode: contextPacket.location_mode,
+              next_event: contextPacket.next_event,
+              current_activity: contextPacket.current_activity,
+              time_of_day: contextPacket.time_of_day,
+              caregiver_name: contextPacket.caregiver_name,
+              notes: contextPacket.notes,
+              trusted_place: contextPacket.trusted_place,
+            },
+            userName: state.profile.preferredName,
+          }),
+        });
+        if (!response.ok || !response.body) throw new Error("no body");
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          setNextEventPreviewText((prev) => prev + decoder.decode(value, { stream: true }));
+        }
+      } catch {
+        // aborted or error — leave text as-is
+      } finally {
+        if (!controller.signal.aborted) setNextEventPreviewLoading(false);
+      }
+    };
+    void fetchPreview();
+    return () => controller.abort();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeScenario.id]);
 
   const eventLocationDetails = useMemo(
     () => ({
@@ -464,11 +524,11 @@ export default function TodayWindowPage() {
     }
   };
 
+  const isLostNonClassroom = state.activeScenarioId === "lost_unknown_location" && !state.demoClassroomMode;
+  const showContactSection = isLostNonClassroom && !contactDeclined && !streamingLoading && streamedText.trim().length >= 30;
+
   const showUnknownLocationPrompt = resolvedLocation.locationMode === "other";
-  const showLostAlert =
-    activeScenario.id === "lost_unknown_location" &&
-    resolvedLocation.source === "browser_geolocation" &&
-    !lostAlertDismissed;
+  const showLostAlert = activeScenario.id === "lost_unknown_location" && !lostAlertDismissed;
 
   const dateString = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
 
@@ -493,7 +553,7 @@ export default function TodayWindowPage() {
   };
 
   return (
-    <div className="relative flex flex-1 flex-col">
+    <div className="relative flex flex-1 flex-col min-h-0">
     <main className="mx-auto flex flex-1 w-full max-w-[375px] flex-col overflow-hidden bg-[#F6F3EE] font-sans">
 
       {/* Top region */}
@@ -561,9 +621,6 @@ export default function TodayWindowPage() {
                 {activeLocationSummary.trustedPlaceAddress ? (
                   <span className="text-xs font-medium text-[#8B7D6B]">{activeLocationSummary.trustedPlaceAddress}</span>
                 ) : null}
-                {showUnknownLocationPrompt ? (
-                  <span className="text-xs font-medium text-amber-700">Unfamiliar location — stay where you are if safe.</span>
-                ) : null}
               </div>
             </div>
             {/* Row 3: Next event */}
@@ -584,7 +641,18 @@ export default function TodayWindowPage() {
               <MemoryIcon name="chevronRight" className="h-4 w-4 shrink-0 text-[#8B7D6B]" />
             </button>
             {/* Row 4: With you (conditional) */}
-            {contextPacket.who_is_expected !== "No other people are required right now." ? (
+            {activeScenario.id === "lost_unknown_location" && state.demoClassroomMode ? (
+              <div className="flex items-center gap-4 px-5 py-3">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#7C9B78] text-xl font-serif font-bold text-white opacity-75">
+                  T
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-[#8B7D6B]">With you</span>
+                  <span className="mt-0.5 font-serif text-lg font-medium leading-tight text-[#5A4A3A]">Robert, Levon, Katya, Dasha, Parth</span>
+                  <span className="text-[13px] font-medium text-[#8B7D6B]">your team</span>
+                </div>
+              </div>
+            ) : contextPacket.who_is_expected !== "No other people are required right now." ? (
               <div className="flex items-center gap-4 px-5 py-3">
                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#7C9B78] text-xl font-serif font-bold text-white opacity-75">
                   {state.profile.caregiverName.charAt(0).toUpperCase()}
@@ -835,49 +903,88 @@ export default function TodayWindowPage() {
             </div>
             {!streamingLoading ? (
               <div className="mt-5 space-y-4">
-                <div className="h-px w-full bg-gradient-to-r from-transparent via-[#C8E2C4] to-transparent" />
-                {(() => {
-                  const remainingQuestions = (["where_am_i", "what_is_happening", "what_should_i_do_next"] as QuestionKey[]).filter(
-                    (key) => !askedQuestions.includes(key)
-                  );
-                  if (remainingQuestions.length === 0) return (
+                {/* Contact section — lost scenario only, once per session */}
+                {showContactSection ? (
+                  <div className="space-y-3">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-[#5A4A3A] text-center">Would you like to contact someone?</p>
+                    <div className="flex gap-2 justify-center">
+                      <button
+                        type="button"
+                        onClick={() => { callCaregiver(); setContactDeclined(true); dismissStreamPanel(); setHelpMeNowOpen(false); }}
+                        className="flex items-center gap-1 rounded-full border-2 border-[#A5BBA0] bg-[#F4F9F3] pl-2 pr-1 py-1 shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none"
+                      >
+                        <span className="text-xs font-semibold text-[#71A172] whitespace-nowrap">Call {state.profile.caregiverName}</span>
+                        <div className="h-8 w-8 rounded-full bg-[#95C18F] border-2 border-[#E1FFC4] flex items-center justify-center">
+                          <MemoryIcon name="phone" className="h-4 w-4 text-white" />
+                        </div>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setCallingEmergency(true); setContactDeclined(true); }}
+                        className="rounded-full border border-[#E8B4B4] bg-[#FAF0F0] flex items-center gap-1.5 px-3 py-1.5 shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none"
+                      >
+                        <span className="text-sm font-semibold text-[#A64D4D]">Call Emergency</span>
+                        <span className="rounded-full bg-[#8C3939] px-1.5 py-0.5 text-xs font-bold text-white">911</span>
+                      </button>
+                    </div>
                     <button
                       type="button"
-                      onClick={() => { setRecentGuidanceOpen(true); dismissStreamPanel(); setHelpMeNowOpen(false); }}
-                      className="w-full rounded-2xl bg-white border border-[#FAE4B0] px-4 py-3 text-left text-base font-medium text-[#5A4A3A] shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none flex items-center justify-between"
+                      onClick={() => setContactDeclined(true)}
+                      className="min-h-12 px-6 py-3 rounded-2xl text-base font-semibold whitespace-nowrap bg-[#E4F6DD] border border-[#F6FFF5] text-[#51694E] shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none w-4/5 mx-auto flex items-center justify-center"
                     >
-                      <span>Show previous guidance</span>
-                      <MemoryIcon name="clock" className="h-5 w-5 shrink-0 text-[#8B7D6B]" />
+                      No, I&apos;m OK
                     </button>
-                  );
-                  return (
-                    <>
-                      <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-[#5A4A3A]">Ask another question</p>
-                      {remainingQuestions.map((key) => (
+                  </div>
+                ) : null}
+                {/* Ask another question + Got it I'm good — hidden when contact section is showing */}
+                {!showContactSection ? (
+                  <>
+                    {(() => {
+                      const remainingQuestions = (["where_am_i", "what_is_happening", "what_should_i_do_next"] as QuestionKey[]).filter(
+                        (key) => !askedQuestions.includes(key)
+                      );
+                      if (remainingQuestions.length === 0) return (
                         <button
-                          key={key}
                           type="button"
-                          onClick={() => askQuestion(key)}
-                          className="min-h-12 w-full rounded-2xl border border-[#FAE4B0] bg-white px-4 py-3 text-left text-base font-medium text-brand-text shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none focus:ring-2 focus:ring-brand-compass/40 disabled:opacity-50"
+                          onClick={() => { setRecentGuidanceOpen(true); dismissStreamPanel(); setHelpMeNowOpen(false); }}
+                          className="w-full rounded-2xl bg-white border border-[#FAE4B0] px-4 py-3 text-left text-base font-medium text-[#5A4A3A] shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none flex items-center justify-between"
                         >
-                          {questionLabels[key]}
+                          <span>Show previous guidance</span>
+                          <MemoryIcon name="clock" className="h-5 w-5 shrink-0 text-[#8B7D6B]" />
                         </button>
-                      ))}
-                    </>
-                  );
-                })()}
-                <div className="h-px w-full bg-gradient-to-r from-transparent via-[#C8E2C4] to-transparent" />
-                <button
-                  type="button"
-                  onClick={() => {
-                    persist(appendActivityEvent(state, createLocationEvent("okay_confirmed", { question: streamingQuestion })));
-                    setHelpMeNowOpen(false);
-                    dismissStreamPanel();
-                  }}
-                  className="min-h-12 px-6 py-3 rounded-2xl text-base font-semibold whitespace-nowrap bg-[#E4F6DD] border border-[#F6FFF5] text-[#51694E] shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none w-4/5 mx-auto flex items-center justify-center"
-                >
-                  Got it, I&apos;m good
-                </button>
+                      );
+                      return (
+                        <>
+                          <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-[#5A4A3A]">Ask another question</p>
+                          {remainingQuestions.map((key) => (
+                            <button
+                              key={key}
+                              type="button"
+                              onClick={() => askQuestion(key)}
+                              className="min-h-12 w-full rounded-2xl border border-[#FAE4B0] bg-white px-4 py-3 text-left text-base font-medium text-brand-text shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none focus:ring-2 focus:ring-brand-compass/40 disabled:opacity-50"
+                            >
+                              {questionLabels[key]}
+                            </button>
+                          ))}
+                        </>
+                      );
+                    })()}
+                    <div className="h-px w-full bg-gradient-to-r from-transparent via-[#C8E2C4] to-transparent" />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        persist(appendActivityEvent(state, createLocationEvent("okay_confirmed", { question: streamingQuestion })));
+                        setHelpMeNowOpen(false);
+                        dismissStreamPanel();
+                      }}
+                      className="min-h-12 px-6 py-3 rounded-2xl text-base font-semibold whitespace-nowrap bg-[#E4F6DD] border border-[#F6FFF5] text-[#51694E] shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none w-4/5 mx-auto flex items-center justify-center"
+                    >
+                      Got it, I&apos;m good
+                    </button>
+                  </>
+                ) : null}
+                <div className="border-t border-[#E3DAC9]" />
+                {/* Bottom row: Back always; Call Maria only when contact section is hidden */}
                 <div className="flex items-center justify-between pt-1">
                   <button
                     type="button"
@@ -886,16 +993,18 @@ export default function TodayWindowPage() {
                   >
                     Back
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => { callCaregiver(); setHelpMeNowOpen(false); dismissStreamPanel(); }}
-                    className="flex items-center gap-1 rounded-full border-2 border-[#A5BBA0] bg-[#F4F9F3] pl-2 pr-1 py-1 shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none"
-                  >
-                    <span className="text-xs font-semibold text-[#71A172] whitespace-nowrap">Call {state.profile.caregiverName}</span>
-                    <div className="h-8 w-8 rounded-full bg-[#95C18F] border-2 border-[#E1FFC4] flex items-center justify-center">
-                      <MemoryIcon name="phone" className="h-4 w-4 text-white" />
-                    </div>
-                  </button>
+                  {!showContactSection ? (
+                    <button
+                      type="button"
+                      onClick={() => { callCaregiver(); setHelpMeNowOpen(false); dismissStreamPanel(); }}
+                      className="flex items-center gap-1 rounded-full border-2 border-[#A5BBA0] bg-[#F4F9F3] pl-2 pr-1 py-1 shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none"
+                    >
+                      <span className="text-xs font-semibold text-[#71A172] whitespace-nowrap">Call {state.profile.caregiverName}</span>
+                      <div className="h-8 w-8 rounded-full bg-[#95C18F] border-2 border-[#E1FFC4] flex items-center justify-center">
+                        <MemoryIcon name="phone" className="h-4 w-4 text-white" />
+                      </div>
+                    </button>
+                  ) : null}
                 </div>
               </div>
             ) : null}
@@ -944,39 +1053,56 @@ export default function TodayWindowPage() {
               ) : null}
             </div>
             {parsedNextEvent.details.length > 0 ? (
-              <ul className="space-y-3">
-                {parsedNextEvent.details.map((item, i) => (
-                  <li key={i} className="flex items-start gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setCheckedItems((prev) => {
-                        const next = new Set(prev);
-                        if (next.has(i)) { next.delete(i); } else { next.add(i); }
-                        return next;
-                      })}
-                      className="mt-1 shrink-0 focus:outline-none"
-                    >
-                      {checkedItems.has(i) ? (
-                        <div className="h-5 w-5 rounded-full bg-[#7C9B78] flex items-center justify-center">
-                          <span className="text-white text-xs">✓</span>
-                        </div>
-                      ) : (
-                        <div className="h-5 w-5 rounded-full border-2 border-[#7C9B78]" />
-                      )}
-                    </button>
-                    <span className="text-base text-brand-text">{item}</span>
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-            <button
-              type="button"
-              onClick={() => { setNextEventDetailOpen(false); void askQuestion("what_should_i_do_next"); }}
-              className="min-h-12 w-4/5 mx-auto rounded-2xl bg-[#FEF3E2] border-2 border-[#FAE4B0] px-4 py-3 text-base font-semibold text-[#5A4A3A] flex items-center justify-center gap-2 shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none"
-            >
-              Get help with this
-              <MemoryIcon name="chevronRight" className="h-6 w-6 shrink-0 text-[#8B7355]" />
-            </button>
+              <>
+                <ul className="space-y-3">
+                  {parsedNextEvent.details.map((item, i) => (
+                    <li key={i} className="flex items-start gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setCheckedItems((prev) => {
+                          const next = new Set(prev);
+                          if (next.has(i)) { next.delete(i); } else { next.add(i); }
+                          return next;
+                        })}
+                        className="mt-1 shrink-0 focus:outline-none"
+                      >
+                        {checkedItems.has(i) ? (
+                          <div className="h-5 w-5 rounded-full bg-[#7C9B78] flex items-center justify-center">
+                            <span className="text-white text-xs">✓</span>
+                          </div>
+                        ) : (
+                          <div className="h-5 w-5 rounded-full border-2 border-[#7C9B78]" />
+                        )}
+                      </button>
+                      <span className="text-base text-brand-text">{item}</span>
+                    </li>
+                  ))}
+                </ul>
+                <button
+                  type="button"
+                  onClick={() => { setNextEventDetailOpen(false); void askQuestion("what_should_i_do_next"); }}
+                  className="min-h-12 w-4/5 mx-auto rounded-2xl bg-[#FEF3E2] border-2 border-[#FAE4B0] px-4 py-3 text-base font-semibold text-[#5A4A3A] flex items-center justify-center gap-2 shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none"
+                >
+                  Get help with this
+                  <MemoryIcon name="chevronRight" className="h-6 w-6 shrink-0 text-[#8B7355]" />
+                </button>
+              </>
+            ) : (
+              <div className="rounded-2xl bg-white p-4 text-base leading-relaxed text-brand-text">
+                {nextEventPreviewLoading && nextEventPreviewText.length === 0 ? (
+                  <div className="flex items-center justify-center gap-1 py-8">
+                    <div className="h-2 w-2 animate-pulse rounded-full bg-[#7C9B78]" />
+                    <div className="h-2 w-2 animate-pulse rounded-full bg-[#7C9B78] [animation-delay:0.2s]" />
+                    <div className="h-2 w-2 animate-pulse rounded-full bg-[#7C9B78] [animation-delay:0.4s]" />
+                  </div>
+                ) : (
+                  <>
+                    {nextEventPreviewText}
+                    {nextEventPreviewLoading ? <span className="ml-1 inline-block h-3 w-0.5 animate-pulse bg-[#7C9B78]" /> : null}
+                  </>
+                )}
+              </div>
+            )}
             <button
               type="button"
               onClick={() => setNextEventDetailOpen(false)}
@@ -1086,7 +1212,7 @@ export default function TodayWindowPage() {
         </div>
       ) : null}
     </main>
-      <div className="pointer-events-none absolute inset-0 z-[49] border-[8px] border-white" />
+      <div className="pointer-events-none absolute inset-0 z-[9] border-[8px] border-white" />
     </div>
   );
 }
