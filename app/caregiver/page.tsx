@@ -2,8 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import BrandLogo from "@/components/BrandLogo";
-import EventLogList from "@/components/EventLogList";
 import MemoryIcon from "@/components/MemoryIcon";
 import { buildActiveLocationSummary } from "@/data/demoData";
 import { appendSystemEvent, createEvent, findScenario, initialDemoState, normalizeDemoState, pronounWords, storageKey, type DemoState } from "@/data/demoState";
@@ -65,6 +63,19 @@ function activityDisplayLabel(eventType: string): string {
 
 function formatQuestionKey(key: string): string {
   return key.replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase());
+}
+
+function extractTrailingEmoji(text: string): string {
+  const match = text.match(/\p{Emoji_Presentation}$/u);
+  return match ? match[0] : "";
+}
+
+function greetingPrefix(): string {
+  const hour = new Date().getHours();
+  if (hour >= 5 && hour <= 11) return "Good morning,";
+  if (hour >= 12 && hour <= 16) return "Good afternoon,";
+  if (hour >= 17 && hour <= 20) return "Good evening,";
+  return "Good night,";
 }
 
 export default function CaregiverPage() {
@@ -383,25 +394,20 @@ export default function CaregiverPage() {
   return (
     <main className="mx-auto min-h-screen w-full max-w-md bg-brand-careBg">
       {/* Header */}
-      <header className="sticky top-0 z-10 flex items-start justify-between bg-brand-careBg px-4 pb-4 pt-6">
-        <div className="flex items-center gap-3">
-          <BrandLogo size={40} />
-          <div>
-            <h1 className="text-xl font-bold leading-tight text-brand-careText">Caregiver Dashboard</h1>
-            <p className="mt-0.5 text-sm text-brand-careMuted">Viewing as {headerCaregiverName} ({headerCaregiverLabel})</p>
-          </div>
+      <header className="flex items-start justify-between bg-brand-careBg px-4 pb-3 pt-5">
+        <div>
+          <p className="text-xs font-medium text-brand-careMuted">{greetingPrefix()}</p>
+          <p className="text-base font-semibold text-brand-careText">{headerCaregiverName}</p>
         </div>
-        <div className="flex shrink-0 flex-col items-end">
-          <span className="text-base font-semibold text-brand-careText">{state.profile.preferredName}</span>
-          <div className="mt-1 flex items-center gap-1.5 rounded-full bg-brand-careGreenLight px-2 py-1">
-            <div className="h-2 w-2 rounded-full bg-brand-careGreen" />
-            <span className="text-xs font-medium text-brand-careGreen">Active</span>
-          </div>
+        <div className="flex items-center gap-1.5 rounded-full bg-brand-careGreenLight px-2 py-1">
+          <div className="h-2 w-2 rounded-full bg-brand-careGreen" />
+          <span className="text-xs font-medium text-brand-careGreen">Active</span>
         </div>
       </header>
 
       {/* Main content */}
       <div className="space-y-4 px-4 pb-8">
+        <h2 className="text-lg font-bold text-brand-careText">{state.profile.preferredName}&apos;s Dashboard</h2>
         {/* Lost alert */}
         {showLostAlert ? (
           <div className="space-y-2 rounded-2xl border border-amber-300 bg-amber-50 p-4">
@@ -537,21 +543,26 @@ export default function CaregiverPage() {
                 <div className="space-y-4">
                   {visibleActivityItems.map((item) => {
                     const quote = typeof item.metadata?.question === "string" && item.metadata.question
-                      ? formatQuestionKey(item.metadata.question as string)
+                      ? (item.eventType === "checkin_submitted"
+                          ? (item.metadata.question as string)
+                          : formatQuestionKey(item.metadata.question as string))
                       : typeof item.metadata?.ai_response === "string" && item.metadata.ai_response
                         ? (item.metadata.ai_response as string).length > 80
                           ? (item.metadata.ai_response as string).slice(0, 80) + "…"
                           : (item.metadata.ai_response as string)
                         : null;
-                    const hasTrustedPlace = typeof item.metadata?.trustedPlace === "string" && !!item.metadata.trustedPlace;
-                    const hasLocation = hasTrustedPlace || !!item.scenarioId;
-                    const locationText = hasTrustedPlace
-                      ? (item.metadata!.trustedPlace as string)
-                      : activeLocationSummary.label;
+
+                    const trailingEmoji = item.eventType === "checkin_submitted" && typeof item.metadata?.response === "string"
+                      ? extractTrailingEmoji(item.metadata.response as string)
+                      : "";
 
                     return (
                       <div key={item.id} className="flex items-start gap-3">
-                        <div className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ${activityDotClass(item.eventType)}`} />
+                        {trailingEmoji ? (
+                          <span className="text-2xl leading-none shrink-0 mt-0">{trailingEmoji}</span>
+                        ) : (
+                          <div className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ${activityDotClass(item.eventType)}`} />
+                        )}
                         <div>
                           <p className="mb-0.5 text-xs text-brand-careMuted">
                             {new Date(item.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
@@ -560,10 +571,8 @@ export default function CaregiverPage() {
                           {quote ? (
                             <p className="text-sm italic text-brand-careText">&ldquo;{quote}&rdquo;</p>
                           ) : null}
-                          {hasLocation ? (
-                            <p className="text-xs text-brand-careMuted">
-                              {locationText}{item.scenarioId ? ` · ${item.scenarioId.split("_").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")}` : ""}
-                            </p>
+                          {item.eventType === "checkin_submitted" && typeof item.metadata?.response === "string" ? (
+                            <p className="text-xs font-medium text-brand-careTeal">{item.metadata.response as string}</p>
                           ) : null}
                         </div>
                       </div>
@@ -583,6 +592,23 @@ export default function CaregiverPage() {
             </>
           ) : null}
         </div>
+
+        {/* Wellness Insights card */}
+        <Link
+          href="/caregiver/insights"
+          className="block rounded-2xl border border-brand-careBorder bg-white p-4 shadow-sm"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <MemoryIcon name="compass" className="h-6 w-6 text-brand-careTeal" />
+              <h3 className="font-bold text-base text-brand-careText">Wellness Insights</h3>
+            </div>
+            <span className="flex items-center gap-1 text-base font-medium text-brand-careMuted">
+              View
+              <MemoryIcon name="chevronRight" className="h-4 w-4" />
+            </span>
+          </div>
+        </Link>
 
         {/* Today's Snapshot */}
         <div className="rounded-2xl border border-brand-careBorder bg-white p-4 shadow-sm">
@@ -622,17 +648,6 @@ export default function CaregiverPage() {
           </div>
         </div>
 
-        {/* Event log */}
-        <EventLogList items={state.systemEvents} defaultCollapsed={true} title="Event Log" plain={true} emptyText="No system events yet." />
-
-        {/* Insights button */}
-        <Link
-          href="/caregiver/insights"
-          className="flex w-full items-center justify-center gap-2 rounded-xl border border-brand-careBorder bg-white py-3 text-sm font-medium text-brand-careText shadow-sm focus:outline-none"
-        >
-          <span>Insights</span>
-          <MemoryIcon name="chevronRight" className="h-4 w-4 text-brand-careMuted" />
-        </Link>
       </div>
 
       {callingUser ? (
