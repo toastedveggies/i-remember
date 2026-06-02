@@ -206,6 +206,8 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
   - [x] Six targeted fixes: Nominatim rewritten using optional chaining (streetLine via join, array filter/join, no slice); YOU ARE AT uses resolvedAddress??label, leading-tight/leading-snug; History restored to mb-2 justify-end row above buttons; pb-3→pb-6; helpMeNow Emergency button removed; Recent guidance underline link removed, pill button added on right of bottom row (Back left, Recent guidance right).
   - [x] Check-in race condition fix: AbortController added to generateCheckInPacket effect (aborts on cleanup); checkInModalOpen added to dependency array; early return guard if modal is closed; catch/finally skip state updates on aborted requests.
   - [x] Stream panel: when all questions have been asked (remainingQuestions empty), renders a "Show previous guidance" button (clock icon, same question-button style) instead of null; label "ASK ANOTHER QUESTION" only shows when there are actual question buttons.
+  - [x] reorient/route.ts prompt tightening: question rules updated so what_is_happening and what_should_i_do_next explicitly forbid opening with or restating the location; questionPrompts for those two questions updated with stronger directive phrasing.
+  - [x] HelperModal: emergency section restored (divider + red card row + Call 911 button) after being accidentally removed in a prior pass.
   - [ ] User page: polish Get Help modal (question buttons, stream panel) to new color system and layout
   - [ ] User page: polish stream panel response view (I'm okay / Call Maria / Show this screen buttons) to new design
   - [ ] User page: style the lost location scenario state on the user page (unfamiliar location alert, lost flow)

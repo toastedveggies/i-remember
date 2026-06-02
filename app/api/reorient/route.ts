@@ -19,14 +19,14 @@ Rules:
 - Exception: if the user prompt contains a line starting with DEMO OVERRIDE, follow those instructions exactly and ignore all location and context rules above.
 
 Question rules:
-- "Where am I?" focuses only on location. If the location is unrecognized, say that clearly.
-- "What is happening?" focuses only on what is currently known. If the app does not know why the person is there, say that clearly.
-- "What should I do next?" gives only the next calm step. If the location is unrecognized, keep the guidance safety-focused: stay where you are if safe, call the caregiver, show the helper card, or call emergency services if unsafe or urgent.`;
+- "Where am I?" answers ONLY the location. Open directly with where the person is. Do not describe activities, schedules, or next steps.
+- "What is happening?" answers ONLY the current activity or situation. Do NOT open with or include the location at all — assume the person already knows where they are. Describe what is currently happening: the activity, who is present, what is expected, and the emotional tone of the moment.
+- "What should I do next?" answers ONLY the next concrete step. Do NOT mention or restate the location. Give one specific, actionable next step based on what is coming up. If the location is unrecognized, focus on safety actions only.`;
 
 const questionPrompts: Record<string, string> = {
   where_am_i: "The person is asking: where am I right now? Use only the context below and answer location only.",
-  what_is_happening: "The person is asking: what is happening right now? Use only the context below and explain only what is currently known.",
-  what_should_i_do_next: "The person is asking: what should I do next? Use only the context below and give one clear, calm next step.",
+  what_is_happening: "The person is asking: what is happening right now? Do NOT open with or repeat the location — they already know where they are. Answer only what is currently happening: the activity, who is present, and what the moment feels like.",
+  what_should_i_do_next: "The person is asking: what should I do next? Do NOT mention or restate the location. Answer only the next specific action they should take, based on what is coming up in their context.",
 };
 
 export async function POST(req: NextRequest) {

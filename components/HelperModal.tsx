@@ -147,6 +147,20 @@ export default function HelperModal({ open, onClose, profile, activeLocationSumm
           </button>
         </div>
 
+        <div className="mx-5 mt-1 h-[2px] rounded-full bg-[#E3DAC9]" />
+
+        {/* Emergency */}
+        <div className="mb-1 flex flex-col gap-2 px-5 py-1.5">
+          <div className="flex items-center gap-3 rounded-2xl border-2 border-[#E8B4B4] bg-[#E8B4B4]/20 px-4 py-1 shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)]">
+            <div className="flex flex-1 flex-col gap-0.5">
+              <p className="text-[9px] font-bold uppercase tracking-wider text-[#A64D4D]/70">
+                If you feel that {profile.preferredName} is in danger
+              </p>
+              <p className="text-[13px] font-serif font-bold text-[#B27070]">Call emergency services</p>
+            </div>
+            <button type="button" onClick={onCallEmergency} aria-label="Call emergency services" className="shrink-0 rounded-xl border-2 border-[#EDDBDB] bg-[#A64D4D] px-3 py-1 text-xs font-bold text-white shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] transition-transform active:scale-95">Call 911</button>
+          </div>
+        </div>
 
       </div>
     </div>
