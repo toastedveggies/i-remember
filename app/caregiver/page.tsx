@@ -51,7 +51,7 @@ function activityLabelClass(eventType: string): string {
 
 function activityDisplayLabel(eventType: string): string {
   switch (eventType) {
-    case "okay_confirmed": return "Confirmed okay";
+    case "okay_confirmed": return "Dismissed guidance";
     case "reorientation_card_viewed": return "Viewed guidance";
     case "checkin_submitted": return "Submitted check-in";
     case "caregiver_called": return "Called caregiver";
@@ -114,16 +114,43 @@ export default function CaregiverPage() {
     if (caregiverId) {
       void (async () => {
         try {
-          const { data: relationship } = await (supabase as any)
+          let effectiveCaregiverId = caregiverId;
+          const { data: initialRelationship } = await (supabase as any)
             .from("caregiver_user_relationships")
             .select("role, is_primary_contact")
             .eq("user_id", DEMO_USER_ID)
-            .eq("caregiver_id", caregiverId)
+            .eq("caregiver_id", effectiveCaregiverId)
             .maybeSingle();
 
+          let relationship = initialRelationship as Record<string, unknown> | null;
+
           if (!relationship) {
-            setCaregiverRole(null);
-            return;
+            const { data: fallback } = await (supabase as any)
+              .from("caregiver_user_relationships")
+              .select("caregiver_id, role, is_primary_contact")
+              .eq("user_id", DEMO_USER_ID)
+              .order("is_primary_contact", { ascending: false })
+              .limit(1)
+              .maybeSingle();
+
+            if (!fallback) {
+              setCaregiverRole(null);
+              return;
+            }
+
+            const fallbackRec = fallback as Record<string, unknown>;
+            effectiveCaregiverId = fallbackRec.caregiver_id as string;
+            relationship = fallbackRec;
+
+            const updatedState = {
+              ...next,
+              profile: {
+                ...next.profile,
+                activeCaregiverId: effectiveCaregiverId,
+              },
+            };
+            window.localStorage.setItem(storageKey, JSON.stringify(updatedState));
+            setState(updatedState);
           }
 
           const relationshipRecord = relationship as Record<string, unknown>;
@@ -156,7 +183,7 @@ export default function CaregiverPage() {
           const { data: caregiver } = await (supabase as any)
             .from("caregivers")
             .select("name, relationship_label")
-            .eq("id", caregiverId)
+            .eq("id", effectiveCaregiverId)
             .is("deleted_at", null)
             .maybeSingle();
 
@@ -195,6 +222,7 @@ export default function CaregiverPage() {
   const missedCalls = state.activityEvents.filter((event) => event.eventType === "caregiver_called").length;
   const emergencyCalls = state.activityEvents.filter((event) => event.eventType === "emergency_called").length;
   const okayConfirmations = state.activityEvents.filter((event) => event.eventType === "okay_confirmed").length;
+  const checkInCount = state.activityEvents.filter((event) => event.eventType === "checkin_submitted").length;
   const hasDistressEvent = state.activityEvents.some((event) => event.eventType === "reorientation_started");
 
   const activityPanelItems = [
@@ -224,7 +252,6 @@ export default function CaregiverPage() {
 
   const showLostAlert = state.activeScenarioId === "lost_unknown_location" && !lostAlertDismissed;
 
-  const lastOkayEvent = state.activityEvents.filter((e) => e.eventType === "okay_confirmed").sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0] ?? null;
   const lastCheckInEvent = state.activityEvents.filter((e) => e.eventType === "checkin_submitted").sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0] ?? null;
   const headerCaregiverName = caregiverDisplayName ?? state.profile.caregiverName;
   const headerCaregiverLabel = caregiverDisplayLabel ?? state.profile.caregiverRelationshipLabel ?? "caregiver";
@@ -456,12 +483,19 @@ export default function CaregiverPage() {
           {/* Cell 2: How */}
           <div className="flex min-h-[110px] flex-col justify-between rounded-2xl border border-brand-careBorder bg-white p-4 shadow-sm">
             <p className="text-xs font-medium text-brand-careMuted">How {state.profile.preferredName} Is Doing</p>
-            <MemoryIcon name="checkCircle" className="mt-2 h-6 w-6 text-brand-careRust" />
+            <MemoryIcon
+              name="checkCircle"
+              className={`mt-2 h-6 w-6 ${lastCheckInEvent && typeof lastCheckInEvent.metadata?.response === "string" ? "text-brand-careGreen" : "text-brand-careMuted"}`}
+            />
             <div>
-              {okayConfirmations > 0 && lastOkayEvent ? (
+              {lastCheckInEvent && typeof lastCheckInEvent.metadata?.response === "string" ? (
                 <>
-                  <p className="font-bold text-sm text-brand-careText">Felt okay</p>
-                  <p className="text-xs text-brand-careMuted">Confirmed this session</p>
+                  <p className="font-bold text-sm text-brand-careText">
+                    {(lastCheckInEvent.metadata.response as string).length > 30
+                      ? (lastCheckInEvent.metadata.response as string).slice(0, 30) + "…"
+                      : (lastCheckInEvent.metadata.response as string)}
+                  </p>
+                  <p className="text-xs text-brand-careMuted">Last check-in</p>
                 </>
               ) : emergencyCalls > 0 ? (
                 <>
@@ -514,8 +548,8 @@ export default function CaregiverPage() {
             <p className="text-xl font-bold text-brand-careText">{missedCalls}</p>
           </div>
           <div className="rounded-xl border border-brand-careBorder bg-white p-3 text-center shadow-sm">
-            <p className="mb-1 text-xs font-medium text-brand-careMuted">Felt okay</p>
-            <p className="text-xl font-bold text-brand-careText">{okayConfirmations}</p>
+            <p className="mb-1 text-xs font-medium text-brand-careMuted">Check-ins</p>
+            <p className="text-xl font-bold text-brand-careText">{checkInCount}</p>
           </div>
         </div>
 

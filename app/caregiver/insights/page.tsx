@@ -74,6 +74,39 @@ const sundowningRows = [
 const heatmapMonths = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const heatmapBuckets = ["Morning","Afternoon","Evening","Night"];
 
+// ── Period label helpers ──────────────────────────────────────────────────────
+
+function mondayIdx(utcDay: number): number {
+  return utcDay === 0 ? 6 : utcDay - 1;
+}
+
+function getWeekLabel(offset: number): string {
+  const now = new Date();
+  const mon = new Date(now);
+  mon.setUTCDate(now.getUTCDate() - mondayIdx(now.getUTCDay()) + offset * 7);
+  mon.setUTCHours(0, 0, 0, 0);
+  const sun = new Date(mon);
+  sun.setUTCDate(mon.getUTCDate() + 6);
+  const fmt: Intl.DateTimeFormatOptions = { month: "short", day: "numeric" };
+  return `${mon.toLocaleDateString("en-US", fmt)} – ${sun.toLocaleDateString("en-US", fmt)}`;
+}
+
+function getMonthLabel(offset: number): string {
+  const now = new Date();
+  const target = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + offset, 1));
+  return target.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+}
+
+function weekOffsetBadge(offset: number): string | null {
+  if (offset === 0) return null;
+  return offset === -1 ? "Last week" : `${Math.abs(offset)} weeks ago`;
+}
+
+function monthOffsetBadge(offset: number): string | null {
+  if (offset === 0) return null;
+  return offset === -1 ? "Last month" : `${Math.abs(offset)} months ago`;
+}
+
 // ── Sub-components ───────────────────────────────────────────────────────────
 
 function BarChart({ data }: { data: { label: string; count: number }[] }) {
@@ -250,18 +283,28 @@ function SundowningHeatmap({ rows, monthLabels }: { rows: number[][]; monthLabel
 export default function InsightsPage() {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("week");
-  const [insightsLoading, setInsightsLoading] = useState(true);
+  const [weekOffset, setWeekOffset] = useState(0);
+  const [monthOffset, setMonthOffset] = useState(0);
+  const [weekLoading, setWeekLoading] = useState(true);
+  const [monthLoading, setMonthLoading] = useState(true);
+  const [yearLoading, setYearLoading] = useState(true);
+  const insightsLoading = weekLoading || monthLoading || yearLoading;
   const [weekData, setWeekData] = useState<WeeklyData | null>(null);
   const [monthData, setMonthData] = useState<MonthlyData | null>(null);
   const [yearData, setYearData] = useState<YearlyData | null>(null);
 
   useEffect(() => {
-    Promise.all([getWeeklyData(), getMonthlyData(), getYearlyData()]).then(([w, m, y]) => {
-      setWeekData(w);
-      setMonthData(m);
-      setYearData(y);
-      setInsightsLoading(false);
-    });
+    setWeekLoading(true);
+    void getWeeklyData(weekOffset).then((w) => { setWeekData(w); setWeekLoading(false); });
+  }, [weekOffset]);
+
+  useEffect(() => {
+    setMonthLoading(true);
+    void getMonthlyData(monthOffset).then((m) => { setMonthData(m); setMonthLoading(false); });
+  }, [monthOffset]);
+
+  useEffect(() => {
+    void getYearlyData().then((y) => { setYearData(y); setYearLoading(false); });
   }, []);
 
   const resolvedWeekBarData = weekData?.eventsPerDay ?? weekBarData;
@@ -293,6 +336,9 @@ export default function InsightsPage() {
     : sundowningRows;
   const resolvedSundowningMonthLabels = yearData?.sundowningPattern.map((p) => p.month) ?? heatmapMonths;
 
+  const weekBadge = weekOffsetBadge(weekOffset);
+  const monthBadge = monthOffsetBadge(monthOffset);
+
   return (
     <main className="mx-auto min-h-screen w-full max-w-3xl px-4 py-8">
       <div className="space-y-6">
@@ -321,24 +367,59 @@ export default function InsightsPage() {
         )}
 
         <div className="flex gap-2">
-          {(["week", "month", "year"] as Tab[]).map((t) => (
-            <button
-              key={t}
-              type="button"
-              onClick={() => setTab(t)}
-              className={`flex-1 rounded-2xl border px-4 py-2 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-brand-compass/40 ${
-                tab === t
-                  ? "border-brand-primary bg-brand-primary text-white"
-                  : "border-brand-border bg-brand-bg text-brand-text hover:bg-brand-surface"
-              }`}
-            >
-              {t.charAt(0).toUpperCase() + t.slice(1)}
-            </button>
-          ))}
+          {(["week", "month", "year"] as Tab[]).map((t) => {
+            const isPast = (t === "week" && weekOffset !== 0) || (t === "month" && monthOffset !== 0);
+            return (
+              <button
+                key={t}
+                type="button"
+                onClick={() => setTab(t)}
+                className={`flex-1 rounded-2xl border px-4 py-2 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-brand-compass/40 ${
+                  tab === t
+                    ? "border-brand-primary bg-brand-primary text-white"
+                    : "border-brand-border bg-brand-bg text-brand-text hover:bg-brand-surface"
+                }`}
+              >
+                <span className="inline-flex items-center justify-center gap-1.5">
+                  {t.charAt(0).toUpperCase() + t.slice(1)}
+                  {isPast ? <span className="h-1.5 w-1.5 rounded-full bg-amber-400" /> : null}
+                </span>
+              </button>
+            );
+          })}
         </div>
 
         {tab === "week" && (
           <div className="space-y-4">
+            {/* Week navigation */}
+            <div className="flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => setWeekOffset((prev) => Math.max(prev - 1, -12))}
+                className="flex h-8 w-8 items-center justify-center rounded-xl border border-brand-border bg-brand-bg text-sm text-brand-text hover:bg-brand-surface focus:outline-none focus:ring-2 focus:ring-brand-compass/40"
+                aria-label="Previous week"
+              >
+                ←
+              </button>
+              <div className="flex flex-col items-center gap-1">
+                <span className="text-sm font-semibold text-brand-text">{getWeekLabel(weekOffset)}</span>
+                {weekBadge ? (
+                  <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
+                    {weekBadge}
+                  </span>
+                ) : null}
+              </div>
+              <button
+                type="button"
+                onClick={() => setWeekOffset((prev) => Math.min(prev + 1, 0))}
+                disabled={weekOffset === 0}
+                className="flex h-8 w-8 items-center justify-center rounded-xl border border-brand-border bg-brand-bg text-sm text-brand-text hover:bg-brand-surface focus:outline-none focus:ring-2 focus:ring-brand-compass/40 disabled:cursor-not-allowed disabled:opacity-40"
+                aria-label="Next week"
+              >
+                →
+              </button>
+            </div>
+
             <section className="rounded-3xl border border-brand-border bg-brand-surface p-5 shadow-sm space-y-3">
               <h2 className="text-xl font-semibold text-brand-text">Confusion Events This Week</h2>
               <p className="text-sm text-brand-muted">Help requests per day (reorientation started)</p>
@@ -359,6 +440,35 @@ export default function InsightsPage() {
 
         {tab === "month" && (
           <div className="space-y-4">
+            {/* Month navigation */}
+            <div className="flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => setMonthOffset((prev) => Math.max(prev - 1, -12))}
+                className="flex h-8 w-8 items-center justify-center rounded-xl border border-brand-border bg-brand-bg text-sm text-brand-text hover:bg-brand-surface focus:outline-none focus:ring-2 focus:ring-brand-compass/40"
+                aria-label="Previous month"
+              >
+                ←
+              </button>
+              <div className="flex flex-col items-center gap-1">
+                <span className="text-sm font-semibold text-brand-text">{getMonthLabel(monthOffset)}</span>
+                {monthBadge ? (
+                  <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
+                    {monthBadge}
+                  </span>
+                ) : null}
+              </div>
+              <button
+                type="button"
+                onClick={() => setMonthOffset((prev) => Math.min(prev + 1, 0))}
+                disabled={monthOffset === 0}
+                className="flex h-8 w-8 items-center justify-center rounded-xl border border-brand-border bg-brand-bg text-sm text-brand-text hover:bg-brand-surface focus:outline-none focus:ring-2 focus:ring-brand-compass/40 disabled:cursor-not-allowed disabled:opacity-40"
+                aria-label="Next month"
+              >
+                →
+              </button>
+            </div>
+
             <section className="rounded-3xl border border-brand-border bg-brand-surface p-5 shadow-sm space-y-3">
               <h2 className="text-xl font-semibold text-brand-text">Confusion Events This Month</h2>
               <p className="text-sm text-brand-muted">Help requests per week</p>

@@ -288,6 +288,7 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
   - [x] White frame overlay z-[49]→z-[9] so SiteHeader (z-10) always wins overlap during iOS scroll bounce.
 
 - Phase 11 - Caregiver and Insights Polish (active as of 2026-06-01, UTC-7):
+  - [x] Hotfix: SiteHeader scenario buttons now preserve activeCaregiverId — defaultDemoProfile imported, profile override added to all three headerPersist calls (handleScenarioClick lost branch, handleScenarioClick else branch, handleLostNoClassroomClick); demoState normalizeDemoState already had correct defaultDemoProfile fallback.
   - [ ] Caregiver dashboard: full UI polish pass to new color system and layout
   - [ ] Insights page: update chart colors, tab styles, and typography to new palette
   - [ ] Caregiver activity feed improvements (richer event display, better filtering)
@@ -4080,6 +4081,7 @@ import {
   storageKey,
   normalizeDemoState,
   initialDemoState,
+  defaultDemoProfile,
   type DemoState,
   type BrowserLocation,
 } from "@/data/demoState";
@@ -4131,6 +4133,7 @@ export default function SiteHeader() {
         activeScenarioId: "lost_unknown_location",
         demoClassroomMode: true,
         activeLocationSource: "scenario_seed",
+        profile: { ...current.profile, activeCaregiverId: current.profile.activeCaregiverId ?? defaultDemoProfile.activeCaregiverId },
       });
 
       if (typeof navigator !== "undefined" && navigator.geolocation) {
@@ -4170,6 +4173,7 @@ export default function SiteHeader() {
         activeScenarioId: id,
         activeLocationSource: "scenario_seed",
         demoClassroomMode: false,
+        profile: { ...current.profile, activeCaregiverId: current.profile.activeCaregiverId ?? defaultDemoProfile.activeCaregiverId },
       });
     }
   };
@@ -4185,6 +4189,7 @@ export default function SiteHeader() {
       activeScenarioId: "lost_unknown_location",
       demoClassroomMode: false,
       activeLocationSource: "scenario_seed",
+      profile: { ...current.profile, activeCaregiverId: current.profile.activeCaregiverId ?? defaultDemoProfile.activeCaregiverId },
     });
 
     if (typeof navigator !== "undefined" && navigator.geolocation) {

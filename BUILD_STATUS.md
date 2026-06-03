@@ -232,6 +232,10 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
 
 - Phase 11 - Caregiver and Insights Polish (active as of 2026-06-01, UTC-7):
   - [x] Hotfix: SiteHeader scenario buttons now preserve activeCaregiverId — defaultDemoProfile imported, profile override added to all three headerPersist calls (handleScenarioClick lost branch, handleScenarioClick else branch, handleLostNoClassroomClick); demoState normalizeDemoState already had correct defaultDemoProfile fallback.
+  - [x] Hotfix: caregiver page no-caregiver on fresh load — when the stored activeCaregiverId has no matching Supabase record, fall back to querying caregiver_user_relationships for any record for DEMO_USER_ID (ordered is_primary_contact desc, limit 1); if found, persist effectiveCaregiverId to localStorage and proceed with full caregiver load; only show null state when fallback also returns nothing. tsc + lint pass.
+  - [x] Bugfix: emergency calls not surfacing on caregiver dashboard — stream panel "Call Emergency" button and lost alert "Emergency 911" button both called setCallingEmergency(true) directly, bypassing callEmergency() which logs the event; replaced both with callEmergency() (keeping setContactDeclined(true) alongside in the stream panel case). tsc + lint pass.
+  - [x] Caregiver dashboard okay_confirmed polish — three fixes: (1) "How Doing" card now shows last check-in response text (trimmed to 30 chars) with green checkCircle and "Last check-in" subtitle, falling back to "No recent signal" when none exists; (2) activityDisplayLabel for okay_confirmed changed from "Confirmed okay" to "Dismissed guidance"; (3) stats row third counter renamed from "Felt okay" / okayConfirmations to "Check-ins" / checkInCount (checkin_submitted event count). Removed unused lastOkayEvent derived value. tsc + lint pass.
+  - [x] Insights page prev/next navigation — getWeeklyData and getMonthlyData now accept an offset param (weekRange/monthRange shifted accordingly); insights page adds weekOffset/monthOffset state with clamped navigation (min -12, max 0); three separate useEffects refetch on offset change; Week and Month tabs each show a ← date-range/label → navigation row with an amber "N weeks/months ago" badge when viewing the past; tab buttons show an amber dot indicator when the tab's offset is non-zero. tsc + lint pass.
   - [ ] Caregiver dashboard: full UI polish pass to new color system and layout
   - [ ] Insights page: update chart colors, tab styles, and typography to new palette
   - [ ] Caregiver activity feed improvements (richer event display, better filtering)
@@ -409,4 +413,4 @@ Phase 3 - Demo Readiness: complete as of 2026-05-14 (UTC-7)
 
 ## Last Updated
 
-2026-06-01 (UTC-7) — Phase 10 complete. Phase 11 (Caregiver and Insights Polish) opened. Branch: dasha/phase-11-caregiver-insights-polish.
+2026-06-02 (UTC-7) — Phase 11 active. Four fixes: caregiver page fresh-load fallback; emergency call logging; okay_confirmed dashboard polish; insights prev/next navigation. Branch: dasha/phase-11-caregiver-insights-polish.

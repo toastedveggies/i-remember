@@ -920,7 +920,7 @@ export default function TodayWindowPage() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => { setCallingEmergency(true); setContactDeclined(true); }}
+                        onClick={() => { callEmergency(); setContactDeclined(true); }}
                         className="rounded-full border border-[#E8B4B4] bg-[#FAF0F0] flex items-center gap-1.5 px-3 py-1.5 shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none"
                       >
                         <span className="text-sm font-semibold text-[#A64D4D]">Call Emergency</span>
@@ -1179,7 +1179,7 @@ export default function TodayWindowPage() {
               <div className="border-t border-[#E3DAC9]" />
               {/* Section H: emergency + call caregiver row */}
               <div className="flex items-center justify-between">
-                <button type="button" onClick={() => setCallingEmergency(true)} className="rounded-full border border-[#E8B4B4] bg-[#FAF0F0] flex items-center gap-2 px-3 py-2 shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none">
+                <button type="button" onClick={callEmergency} className="rounded-full border border-[#E8B4B4] bg-[#FAF0F0] flex items-center gap-2 px-3 py-2 shadow-[0px_0px_6px_-1px_rgba(0,0,0,0.22)] focus:outline-none">
                   <span className="text-sm font-semibold text-[#A64D4D]">Emergency</span>
                   <span className="rounded-full bg-[#8C3939] px-2 py-0.5 text-xs font-bold text-white">911</span>
                 </button>

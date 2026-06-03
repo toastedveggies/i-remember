@@ -43,21 +43,21 @@ function mondayIndex(utcDay: number): number {
   return utcDay === 0 ? 6 : utcDay - 1;
 }
 
-function weekRange(): { start: string; end: string } {
+function weekRange(offset: number = 0): { start: string; end: string } {
   const now = new Date();
   const mon = new Date(now);
-  mon.setUTCDate(now.getUTCDate() - mondayIndex(now.getUTCDay()));
+  mon.setUTCDate(now.getUTCDate() - mondayIndex(now.getUTCDay()) + offset * 7);
   mon.setUTCHours(0, 0, 0, 0);
   const sun = new Date(mon);
   sun.setUTCDate(mon.getUTCDate() + 7);
   return { start: mon.toISOString(), end: sun.toISOString() };
 }
 
-function monthRange(): { start: string; end: string } {
+function monthRange(offset: number = 0): { start: string; end: string } {
   const now = new Date();
   return {
-    start: new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString(),
-    end:   new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1)).toISOString(),
+    start: new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + offset, 1)).toISOString(),
+    end:   new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + offset + 1, 1)).toISOString(),
   };
 }
 
@@ -111,8 +111,8 @@ function emptyTod(): TimeOfDay {
 
 // ── Public API ────────────────────────────────────────────────────────────────
 
-export async function getWeeklyData(): Promise<WeeklyData | null> {
-  const { start, end } = weekRange();
+export async function getWeeklyData(offset: number = 0): Promise<WeeklyData | null> {
+  const { start, end } = weekRange(offset);
   const events = await fetchEvents(start, end);
   if (!events) return null;
 
@@ -144,8 +144,8 @@ export async function getWeeklyData(): Promise<WeeklyData | null> {
   };
 }
 
-export async function getMonthlyData(): Promise<MonthlyData | null> {
-  const { start, end } = monthRange();
+export async function getMonthlyData(offset: number = 0): Promise<MonthlyData | null> {
+  const { start, end } = monthRange(offset);
   const events = await fetchEvents(start, end);
   if (!events) return null;
 
